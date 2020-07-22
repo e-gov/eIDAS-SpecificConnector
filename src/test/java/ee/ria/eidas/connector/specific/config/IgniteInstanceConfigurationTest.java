@@ -21,9 +21,10 @@ import static org.apache.ignite.events.EventType.EVT_CLIENT_NODE_DISCONNECTED;
 import static org.apache.ignite.events.EventType.EVT_CLIENT_NODE_RECONNECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment = RANDOM_PORT)
 class IgniteInstanceConfigurationTest extends SpecificConnectorTest {
     private static final long RECONNECT_TIMEOUT = 10_000;
 
@@ -32,7 +33,7 @@ class IgniteInstanceConfigurationTest extends SpecificConnectorTest {
 
     @Test
     void igniteClientReconnectWhenDisconnected() throws Exception {
-        DiscoverySpi serverDiscoverySpi = getEidasNodeIgnite().configuration().getDiscoverySpi();
+        DiscoverySpi serverDiscoverySpi = eidasNodeIgnite.configuration().getDiscoverySpi();
         IgniteDiscoverySpi clientDiscoverySpi = (IgniteDiscoverySpi) igniteClient.configuration().getDiscoverySpi();
         CountDownLatch disconnectLatch = new CountDownLatch(1);
         CountDownLatch reconnectLatch = new CountDownLatch(1);

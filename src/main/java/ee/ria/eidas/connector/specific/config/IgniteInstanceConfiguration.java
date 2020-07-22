@@ -26,7 +26,7 @@ public class IgniteInstanceConfiguration {
         Ignition.setClientMode(true);
         IgniteConfiguration cfg = Ignition.loadSpringBean(resource.getInputStream(), cacheProperties.getIgniteConfigurationBeanName());
         cfg.setIgniteInstanceName(cfg.getIgniteInstanceName() + "Client");
-        return Ignition.start(cfg);
+        return Ignition.getOrStart(cfg);
     }
 
     @Lazy

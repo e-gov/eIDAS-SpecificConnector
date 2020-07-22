@@ -4,26 +4,35 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import lombok.Getter;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.restassured.RestAssured;
+import io.restassured.filter.log.RequestLoggingFilter;
+import io.restassured.filter.log.ResponseLoggingFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
+import javax.cache.Cache;
 import java.io.InputStream;
 import java.util.List;
 
 import static ch.qos.logback.classic.Level.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static io.restassured.config.RedirectConfig.redirectConfig;
+import static io.restassured.config.RestAssuredConfig.config;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.apache.ignite.events.EventType.*;
@@ -35,9 +44,14 @@ import static org.slf4j.LoggerFactory.getLogger;
 @Slf4j
 @ActiveProfiles("test")
 public abstract class SpecificConnectorTest {
-    @Getter
-    private static Ignite eidasNodeIgnite;
-    private static ListAppender<ILoggingEvent> mockAppender;
+    protected static final WireMockServer mockEidasNodeServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
+            .httpDisabled(true)
+            .keystorePath("src/test/resources/__files/mock_keys/tls-keystore.jks")
+            .keystorePassword("changeit")
+            .httpsPort(8084)
+    );
+    protected static Ignite eidasNodeIgnite;
+    protected static ListAppender<ILoggingEvent> mockAppender;
 
     static {
         String currentDirectory = System.getProperty("user.dir");
@@ -48,15 +62,47 @@ public abstract class SpecificConnectorTest {
         System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
     }
 
+    @LocalServerPort
+    protected int port;
+
     @MockBean
     protected BuildProperties buildProperties;
 
     @MockBean
     protected GitProperties gitProperties;
 
+    @SpyBean
+    protected MeterRegistry meterRegistry;
+
+    @SpyBean
+    @Qualifier("specificNodeConnectorRequestCache")
+    protected Cache<String, String> specificNodeConnectorRequestCache;
+
+    @SpyBean
+    @Qualifier("nodeSpecificConnectorResponseCache")
+    protected Cache<String, String> nodeSpecificConnectorResponseCache;
+
     @BeforeAll
     static void beforeAllTests() {
+        startMockEidasNodeServer();
         startMockEidasNodeIgniteServer();
+        configureRestAssured();
+    }
+
+    @AfterAll
+    static void afterAllTests() {
+        mockEidasNodeServer.stop();
+    }
+
+    @BeforeEach
+    public void beforeEachTest() {
+        RestAssured.port = port;
+        setupMockLogAppender();
+    }
+
+    private static void startMockEidasNodeServer() {
+        mockEidasNodeServer.start();
+        mockEidasNodeServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata")).willReturn(aResponse().withStatus(200)));
     }
 
     private static void startMockEidasNodeIgniteServer() {
@@ -72,9 +118,9 @@ public abstract class SpecificConnectorTest {
         }
     }
 
-    @BeforeEach
-    public void beforeEachTest() {
-        setupMockLogAppender();
+    private static void configureRestAssured() {
+        RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter());
+        RestAssured.config = config().redirect(redirectConfig().followRedirects(false));
     }
 
     private void setupMockLogAppender() {
