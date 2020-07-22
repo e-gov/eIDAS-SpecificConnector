@@ -38,3 +38,5 @@ build/
 docker-build-images.sh
 Dockerfile
 docker-compose.yml
+src/main/resources/rebel.xml
+src/main/resources/rebel-remote.xml

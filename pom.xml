@@ -105,10 +105,17 @@
             <version>${wiremock.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.ignite</groupId>
+            <artifactId>ignite-core</artifactId>
+            <version>2.7.0</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
-        <finalName>SpecificConnectorService</finalName>
+        <finalName>SpecificConnector</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
