@@ -20,7 +20,7 @@
         <eidas.node.version>2.4.0</eidas.node.version>
         <opensaml.version>3.4.5</opensaml.version>
         <rest-assured.version>4.2.0</rest-assured.version>
-        <wiremock.version>2.26.3</wiremock.version>
+        <wiremock.version>2.27.1</wiremock.version>
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
     </properties>
 
