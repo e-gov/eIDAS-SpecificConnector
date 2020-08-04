@@ -40,3 +40,4 @@ Dockerfile
 docker-compose.yml
 src/main/resources/rebel.xml
 src/main/resources/rebel-remote.xml
+src/main/resources/application-dev.properties
