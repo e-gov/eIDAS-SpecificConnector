@@ -17,13 +17,14 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 @SpringBootTest(webEnvironment = RANDOM_PORT,
         properties = {
-                "management.endpoints.jmx.exposure.exclude=*",
                 "management.endpoints.web.exposure.exclude=",
                 "management.endpoints.web.exposure.include=heartbeat",
-                "management.endpoints.web.base-path=/",
-                "management.info.git.mode=full",
-                "management.health.defaults.enabled=false",
-                "eidas.connector.health.trust-store-expiration-warning=30d"
+                "eidas.connector.service-providers[0].id=client1",
+                "eidas.connector.service-providers[0].entity-id=https://localhost:7070/metadata",
+                "eidas.connector.service-providers[0].url=https://localhost:7070/metadata",
+                "eidas.connector.service-providers[0].public-key=MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAETy4hXQ65cMD7UaV1eKhLEkCGzXK7QWJA2KUkNgMc0iXwEX3e" +
+                        "URJLNA0ZaaH+A9pfnIXLWeZ499IQ5NK4U4gEDVagEH4aXRCzZYjyYWRq9hOjEYzS84I/vsMQrt1kRQn7",
+                "eidas.connector.service-providers[0].type=public"
         })
 public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
 
@@ -52,7 +53,7 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
         assertEquals("branch", healthResponse.jsonPath().get("commitBranch"));
         assertNull(healthResponse.jsonPath().get("warnings"));
         assertStartAndUptime(healthResponse);
-        assertDependenciesUp(healthResponse);
+        assertAllDependenciesUp(healthResponse);
     }
 
     @Test
@@ -79,7 +80,7 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
         assertNull(healthResponse.jsonPath().get("buildTime"));
         assertNull(healthResponse.jsonPath().get("warnings"));
         assertStartAndUptime(healthResponse);
-        assertDependenciesUp(healthResponse);
+        assertAllDependenciesUp(healthResponse);
     }
 
     @Test
@@ -96,6 +97,6 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
                 .contentType(JSON).extract().response();
         assertNull(healthResponse.jsonPath().get("startTime"));
         assertNull(healthResponse.jsonPath().get("upTime"));
-        assertDependenciesUp(healthResponse);
+        assertAllDependenciesUp(healthResponse);
     }
 }

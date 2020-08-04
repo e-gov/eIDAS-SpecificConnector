@@ -20,13 +20,8 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 @SpringBootTest(webEnvironment = RANDOM_PORT,
         properties = {
-                "management.endpoints.jmx.exposure.exclude=*",
                 "management.endpoints.web.exposure.exclude=",
-                "management.endpoints.web.exposure.include=heartbeat",
-                "management.endpoints.web.base-path=/",
-                "management.info.git.mode=full",
-                "management.health.defaults.enabled=false",
-                "eidas.connector.health.trust-store-expiration-warning=30d"
+                "management.endpoints.web.exposure.include=heartbeat"
         })
 class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
 
@@ -48,7 +43,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
 
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
         assertNull(warnings);
-        assertDependenciesUp(healthResponse);
+        assertDependenciesUp(healthResponse, Dependencies.TRUSTSTORE);
     }
 
     @Test
@@ -69,7 +64,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
                 .filter(w -> w.contains("1589359800"))
                 .findFirst();
         assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1589359800' is expiring at 2021-05-13T08:50:00Z", authenticationService.get());
-        assertDependenciesUp(healthResponse);
+        assertDependenciesUp(healthResponse, Dependencies.TRUSTSTORE);
     }
 
     @Test

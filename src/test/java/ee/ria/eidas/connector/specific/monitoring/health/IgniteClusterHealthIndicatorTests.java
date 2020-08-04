@@ -27,13 +27,8 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT,
         properties = {
-                "management.endpoints.jmx.exposure.exclude=*",
                 "management.endpoints.web.exposure.exclude=",
-                "management.endpoints.web.exposure.include=heartbeat",
-                "management.endpoints.web.base-path=/",
-                "management.info.git.mode=full",
-                "management.health.defaults.enabled=false",
-                "eidas.connector.health.trust-store-expiration-warning=30d"
+                "management.endpoints.web.exposure.include=heartbeat"
         })
 public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     private static final AtomicInteger cachePuts = new AtomicInteger();
@@ -71,7 +66,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
                 .assertThat()
                 .statusCode(200)
                 .contentType(JSON).extract().response();
-        assertDependenciesUp(healthResponse);
+        assertDependenciesUp(healthResponse, Dependencies.IGNITE_CLUSTER);
 
         assertEquals(2, cachePuts.get());
         assertEquals(2, cacheRemoves.get());
@@ -87,7 +82,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
                 .assertThat()
                 .statusCode(200)
                 .contentType(JSON).extract().response();
-        assertDependenciesDown(healthResponse, Dependencies.CONNECTOR_METADATA);
+        assertDependenciesDown(healthResponse, Dependencies.IGNITE_CLUSTER);
 
         setClusterStateActive();
         healthResponse = given()
@@ -97,7 +92,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
                 .assertThat()
                 .statusCode(200)
                 .contentType(JSON).extract().response();
-        assertDependenciesUp(healthResponse);
+        assertDependenciesUp(healthResponse, Dependencies.IGNITE_CLUSTER);
     }
 
     @Test
@@ -134,7 +129,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
                 .assertThat()
                 .statusCode(200)
                 .contentType(JSON).extract().response();
-        assertDependenciesDown(healthResponse, Dependencies.CONNECTOR_METADATA);
+        assertDependenciesDown(healthResponse, Dependencies.IGNITE_CLUSTER);
     }
 
     @SneakyThrows
@@ -151,7 +146,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
                 .assertThat()
                 .statusCode(200)
                 .contentType(JSON).extract().response();
-        assertDependenciesDown(healthResponse, Dependencies.CONNECTOR_METADATA);
+        assertDependenciesDown(healthResponse, Dependencies.IGNITE_CLUSTER);
     }
 
     @SuppressWarnings({"unchecked"})

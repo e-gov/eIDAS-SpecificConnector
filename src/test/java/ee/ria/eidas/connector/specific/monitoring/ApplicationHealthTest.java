@@ -1,26 +1,60 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import io.micrometer.core.instrument.TimeGauge;
 import io.restassured.response.Response;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.lang.Double.valueOf;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     protected static final String APPLICATION_HEALTH_ENDPOINT_REQUEST = "/heartbeat";
+    protected static final WireMockServer mockSPClient1Server = new WireMockServer(WireMockConfiguration.wireMockConfig()
+            .httpDisabled(true)
+            .keystorePath("src/test/resources/__files/mock_keys/sp-client.jks")
+            .keystorePassword("changeit")
+            .keyManagerPassword("changeit")
+            .keystoreType("JKS")
+            .httpsPort(7070)
+    );
+
+    @BeforeAll
+    static void beforeAllHealthTests() {
+        startSPClientServer();
+    }
+
+    @AfterAll
+    static void afterAllHealthTests() {
+        mockSPClient1Server.stop();
+    }
+
+    private static void startSPClientServer() {
+        mockSPClient1Server.start();
+        mockSPClient1Server.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
+                .withHeader("Content-Type", "application/xml;charset=UTF-8")
+                .withStatus(200)
+                .withBodyFile("sp-client-metadata.xml")));
+    }
 
     protected static void setClusterStateInactive() {
         eidasNodeIgnite.cluster().active(false);
@@ -30,30 +64,31 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
         eidasNodeIgnite.cluster().active(true);
     }
 
-    protected void assertDependenciesUp(Response healthResponse) {
+    protected void assertAllDependenciesUp(Response healthResponse) {
         assertEquals("UP", healthResponse.jsonPath().get("status"));
-        List<HashMap<String, String>> healthDependencies = healthResponse.jsonPath().getList("dependencies");
-        assertNotNull(healthDependencies);
-        List<String> dependencies = healthDependencies.stream().map(d -> d.get("name")).collect(toList());
-        stream(Dependencies.values()).forEach(d -> assertTrue(dependencies.contains(d.getName())));
+        assertDependencies(healthResponse, "UP", Dependencies.values());
+    }
 
-        healthDependencies.stream()
-                .map(d -> d.get("status"))
-                .forEach(status -> assertEquals("UP", status));
+    protected void assertDependenciesUp(Response healthResponse, Dependencies... dependenciesUp) {
+        assertDependencies(healthResponse, "UP", dependenciesUp);
     }
 
     protected void assertDependenciesDown(Response healthResponse, Dependencies... dependenciesDown) {
-        assertEquals("DOWN", healthResponse.jsonPath().get("status"));
-        List<HashMap<String, String>> healthDependencies = healthResponse.jsonPath().getList("dependencies");
-        assertNotNull(healthDependencies);
-        List<String> dependencies = healthDependencies.stream().map(d -> d.get("name")).collect(toList());
-        stream(Dependencies.values()).forEach(d -> assertTrue(dependencies.contains(d.getName())));
+        assertEquals("DOWN", healthResponse.jsonPath().get("status"), "Compound health status");
+        assertDependencies(healthResponse, "DOWN", dependenciesDown);
+    }
 
-        List<Dependencies> dependenciesDownList = asList(dependenciesDown);
-        healthDependencies.stream()
-                .filter(s -> dependenciesDownList.contains(s.get("name")))
-                .map(d -> d.get("status"))
-                .forEach(status -> assertEquals("DOWN", status));
+    private void assertDependencies(Response healthResponse, String expectedStatus, Dependencies... expectedDependencies) {
+        List<HashMap<String, String>> dependencies = healthResponse.jsonPath().getList("dependencies");
+        Map<String, String> healthDependencies = dependencies.stream()
+                .map(m -> new AbstractMap.SimpleEntry<>(m.get("name"), m.get("status")))
+                .collect(toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+        List<Dependencies> expectedDependenciesList = asList(expectedDependencies);
+        expectedDependenciesList
+                .forEach(d -> assertTrue(healthDependencies.containsKey(d.getName()), "Health dependency not found: " + d.getName()));
+        expectedDependenciesList.stream()
+                .filter(d -> healthDependencies.containsKey(d.getName()))
+                .forEach(d -> assertEquals(expectedStatus, healthDependencies.get(d.getName()), "Expected status for dependency: " + d.getName()));
     }
 
     protected void assertStartAndUptime(Response healthResponse) {
@@ -74,8 +109,11 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     public enum Dependencies {
         IGNITE_CLUSTER("igniteCluster"),
         CONNECTOR_METADATA("connectorMetadata"),
+        SP_CLIENT("sp-client1-metadata"),
         TRUSTSTORE("truststore");
         @Getter
         public final String name;
+
+
     }
 }
