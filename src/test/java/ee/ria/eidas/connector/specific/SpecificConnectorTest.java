@@ -48,6 +48,8 @@ public abstract class SpecificConnectorTest {
             .httpDisabled(true)
             .keystorePath("src/test/resources/__files/mock_keys/tls-keystore.jks")
             .keystorePassword("changeit")
+            .keyManagerPassword("changeit")
+            .keystoreType("JKS")
             .httpsPort(8084)
     );
     protected static Ignite eidasNodeIgnite;
