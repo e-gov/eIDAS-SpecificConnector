@@ -6,6 +6,7 @@ import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import eu.eidas.auth.commons.attribute.*;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap.ImmutableAttributeEntry;
 import eu.eidas.auth.commons.exceptions.SecurityEIDASException;
+import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.ILightResponse;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
@@ -103,7 +104,7 @@ public class EidasNodeCommunication {
         Assert.notNull(lightTokenResponseAlgorithm, "lightToken.connector.response.algorithm cannot be null. Please check your configuration");
     }
 
-    public BinaryLightToken putLightRequest(LightRequest lightRequest) {
+    public BinaryLightToken putLightRequest(ILightRequest lightRequest) {
         try {
             final BinaryLightToken binaryLightToken = createBinaryLightToken(lightTokenRequestIssuerName, lightTokenRequestSecret, lightTokenRequestAlgorithm);
             final String tokenId = binaryLightToken.getToken().getId();

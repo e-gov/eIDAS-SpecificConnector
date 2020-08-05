@@ -38,6 +38,7 @@ import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureValidator;
 import org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngine;
 
+import static org.opensaml.saml.common.xml.SAMLConstants.SAML20P_NS;
 import static org.opensaml.security.credential.UsageType.ENCRYPTION;
 import static org.opensaml.security.credential.UsageType.SIGNING;
 
@@ -82,14 +83,18 @@ public class ServiceProviderMetadata {
     }
 
     public String getAssertionConsumerServiceUrl() {
-        return getEntityDescriptor().getSPSSODescriptor(SAMLConstants.SAML20P_NS).getDefaultAssertionConsumerService().getLocation();
+        return getEntityDescriptor().getSPSSODescriptor(SAML20P_NS).getDefaultAssertionConsumerService().getLocation();
+    }
+
+    public boolean getWantAssertionsSigned() {
+        return getEntityDescriptor().getSPSSODescriptor(SAML20P_NS).getWantAssertionsSigned();
     }
 
     private Credential getCredential(UsageType usageType) throws ResolverException {
         CriteriaSet criteriaSet = new CriteriaSet();
         criteriaSet.add(new UsageCriterion(usageType));
         criteriaSet.add(new EntityRoleCriterion(SPSSODescriptor.DEFAULT_ELEMENT_NAME));
-        criteriaSet.add(new ProtocolCriterion(SAMLConstants.SAML20P_NS));
+        criteriaSet.add(new ProtocolCriterion(SAML20P_NS));
         criteriaSet.add(new EntityIdCriterion(serviceProvider.getEntityId()));
         Credential credential = explicitKeySignatureTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
         if (credential == null) {

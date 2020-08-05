@@ -12,8 +12,7 @@ import org.springframework.core.io.ResourceLoader;
 import javax.cache.Cache;
 import java.io.IOException;
 
-import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.CacheProperties.INCOMING_NODE_REQUESTS_CACHE;
-import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.CacheProperties.OUTGOING_NODE_RESPONSES_CACHE;
+import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.CacheProperties.*;
 
 @Configuration
 public class IgniteInstanceConfiguration {
@@ -39,6 +38,12 @@ public class IgniteInstanceConfiguration {
     @Bean("nodeSpecificConnectorResponseCache")
     public Cache<String, String> nodeSpecificConnectorResponseCache(Ignite igniteClient) {
         return igniteClient.cache(SpecificConnectorProperties.CacheProperties.getCacheName(OUTGOING_NODE_RESPONSES_CACHE));
+    }
+
+    @Lazy
+    @Bean("specificMSSpRequestCorrelationMap")
+    public Cache<String, String> specificMSSpRequestCorrelationMap(Ignite igniteClient) {
+        return igniteClient.cache(SpecificConnectorProperties.CacheProperties.getCacheName(SP_REQUEST_CORRELATION_CACHE));
     }
 
     private Resource getResource(SpecificConnectorProperties.CacheProperties properties, ResourceLoader resourceLoader, String resourceLocation) {

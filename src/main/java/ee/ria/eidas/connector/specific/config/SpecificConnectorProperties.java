@@ -171,9 +171,12 @@ public class SpecificConnectorProperties {
     public static class CacheProperties {
         public static final String INCOMING_NODE_REQUESTS_CACHE = "incoming-node-requests-cache";
         public static final String OUTGOING_NODE_RESPONSES_CACHE = "outgoing-node-responses-cache";
+        public static final String SP_REQUEST_CORRELATION_CACHE = "sp-request-correlation-cache";
+
         private static final ImmutableMap<String, String> cacheNameMapping = ImmutableMap.<String, String>builder()
                 .put(INCOMING_NODE_REQUESTS_CACHE, "specificNodeConnectorRequestCache")
                 .put(OUTGOING_NODE_RESPONSES_CACHE, "nodeSpecificConnectorResponseCache")
+                .put(SP_REQUEST_CORRELATION_CACHE, "specificMSSpRequestCorrelationMap")
                 .build();
 
         @NotNull
