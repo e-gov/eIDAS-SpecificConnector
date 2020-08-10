@@ -64,6 +64,16 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
         eidasNodeIgnite.cluster().active(true);
     }
 
+    protected Response getHealthResponse() {
+        return given()
+                .when()
+                .get(APPLICATION_HEALTH_ENDPOINT_REQUEST)
+                .then()
+                .assertThat()
+                .statusCode(200)
+                .contentType(JSON).extract().response();
+    }
+
     protected void assertAllDependenciesUp(Response healthResponse) {
         assertEquals("UP", healthResponse.jsonPath().get("status"));
         assertDependencies(healthResponse, "UP", Dependencies.values());

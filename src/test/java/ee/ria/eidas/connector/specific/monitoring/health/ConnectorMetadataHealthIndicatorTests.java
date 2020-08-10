@@ -23,13 +23,7 @@ public class ConnectorMetadataHealthIndicatorTests extends ApplicationHealthTest
         mockEidasNodeServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata"))
                 .willReturn(aResponse()
                         .withStatus(404)));
-        Response healthResponse = given()
-                .when()
-                .get(APPLICATION_HEALTH_ENDPOINT_REQUEST)
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .contentType(JSON).extract().response();
+        Response healthResponse =getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.CONNECTOR_METADATA);
     }
 }
