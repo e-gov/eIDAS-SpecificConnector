@@ -2,6 +2,9 @@ package ee.ria.eidas.connector.specific.monitoring;
 
 import io.micrometer.core.instrument.search.Search;
 import io.restassured.response.Response;
+import net.shibboleth.utilities.java.support.resolver.ResolverException;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,28 +22,33 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
         properties = {
                 "management.endpoints.web.exposure.exclude=",
                 "management.endpoints.web.exposure.include=heartbeat",
-                "eidas.connector.service-providers[0].id=client1",
+                "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
-                "eidas.connector.service-providers[0].public-key=MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAETy4hXQ65cMD7UaV1eKhLEkCGzXK7QWJA2KUkNgMc0iXwEX3e" +
-                        "URJLNA0ZaaH+A9pfnIXLWeZ499IQ5NK4U4gEDVagEH4aXRCzZYjyYWRq9hOjEYzS84I/vsMQrt1kRQn7",
+                "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
                 "eidas.connector.service-providers[0].type=public"
         })
 public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
+
+    @BeforeEach
+    public void resetSPMetadata() throws ResolverException {
+        updateServiceProviderMetadata("valid-metadata.xml");
+        serviceProviderMetadataResolver.getByEntityId(SP_ENTITY_ID).refreshMetadata();
+    }
 
     @Test
     public void healthyApplicationState() {
         Instant testTime = Instant.now();
         when(gitProperties.getCommitId()).thenReturn("commit-id");
         when(gitProperties.getBranch()).thenReturn("branch");
-        when(buildProperties.getName()).thenReturn("ee-specific-connector");
-        when(buildProperties.getVersion()).thenReturn("0.0.1-SNAPSHOT");
+        when(buildProperties.getName()).thenReturn("ms-specific-connector");
+        when(buildProperties.getVersion()).thenReturn("1.0.0-SNAPSHOT");
         when(buildProperties.getTime()).thenReturn(testTime);
 
         Response healthResponse = getHealthResponse();
 
         assertEquals("UP", healthResponse.jsonPath().get("status"));
-        assertEquals("ee-specific-connector", healthResponse.jsonPath().get("name"));
-        assertEquals("0.0.1-SNAPSHOT", healthResponse.jsonPath().get("version"));
+        assertEquals("ms-specific-connector", healthResponse.jsonPath().get("name"));
+        assertEquals("1.0.0-SNAPSHOT", healthResponse.jsonPath().get("version"));
         assertEquals(testTime.toString(), healthResponse.jsonPath().get("buildTime"));
         assertEquals("commit-id", healthResponse.jsonPath().get("commitId"));
         assertEquals("branch", healthResponse.jsonPath().get("commitBranch"));
@@ -51,6 +59,7 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
 
     @Test
     public void healthyApplicationStateWhenMissingBuildAndGitInfo() {
+        updateServiceProviderMetadata("valid-metadata.xml");
         when(gitProperties.getCommitId()).thenReturn(null);
         when(gitProperties.getBranch()).thenReturn(null);
         when(buildProperties.getName()).thenReturn(null);
@@ -72,6 +81,7 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
 
     @Test
     public void healthyApplicationStateWhenMissingMetrics() {
+        updateServiceProviderMetadata("valid-metadata.xml");
         Search nonExistentMetric = meterRegistry.find("non-existent");
         Mockito.when(meterRegistry.find("process.start.time")).thenReturn(nonExistentMetric);
         Mockito.when(meterRegistry.find("process.uptime")).thenReturn(nonExistentMetric);

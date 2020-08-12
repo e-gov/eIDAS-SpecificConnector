@@ -46,10 +46,10 @@ import static org.slf4j.LoggerFactory.getLogger;
 public abstract class SpecificConnectorTest {
     protected static final WireMockServer mockEidasNodeServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
-            .keystorePath("src/test/resources/__files/mock_keys/tls-keystore.jks")
+            .keystorePath("src/test/resources/__files/mock_keys/sc-tls-keystore.p12")
             .keystorePassword("changeit")
             .keyManagerPassword("changeit")
-            .keystoreType("JKS")
+            .keystoreType("PKCS12")
             .httpsPort(8084)
     );
     protected static Ignite eidasNodeIgnite;
@@ -57,9 +57,9 @@ public abstract class SpecificConnectorTest {
 
     static {
         String currentDirectory = System.getProperty("user.dir");
-        System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/tls-truststore.jks");
+        System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/sc-tls-truststore.p12");
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
-        System.setProperty("javax.net.ssl.trustStoreType", "jks");
+        System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
         System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
         System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
     }

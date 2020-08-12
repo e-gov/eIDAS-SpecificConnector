@@ -3,12 +3,15 @@ package ee.ria.eidas.connector.specific.monitoring;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
+import ee.ria.eidas.connector.specific.metadata.ServiceProviderMetadataResolver;
 import io.micrometer.core.instrument.TimeGauge;
 import io.restassured.response.Response;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -16,44 +19,54 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static io.restassured.RestAssured.given;
+import static io.restassured.http.ContentType.JSON;
 import static java.lang.Double.valueOf;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     protected static final String APPLICATION_HEALTH_ENDPOINT_REQUEST = "/heartbeat";
-    protected static final WireMockServer mockSPClient1Server = new WireMockServer(WireMockConfiguration.wireMockConfig()
+    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
+    protected static final WireMockServer mockSPMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
-            .keystorePath("src/test/resources/__files/mock_keys/sp-client.jks")
+            .keystorePath("src/test/resources/__files/mock_keys/sp-tls-keystore.p12")
             .keystorePassword("changeit")
             .keyManagerPassword("changeit")
-            .keystoreType("JKS")
-            .httpsPort(7070)
+            .keystoreType("PKCS12")
+            .httpsPort(8888)
     );
+
+    @Autowired
+    protected ServiceProviderMetadataResolver serviceProviderMetadataResolver;
 
     @BeforeAll
     static void beforeAllHealthTests() {
-        startSPClientServer();
+        startServiceProviderMetadataServer();
+        updateServiceProviderMetadata("valid-metadata.xml");
     }
 
     @AfterAll
     static void afterAllHealthTests() {
-        mockSPClient1Server.stop();
+        mockSPMetadataServer.stop();
     }
 
-    private static void startSPClientServer() {
-        mockSPClient1Server.start();
-        mockSPClient1Server.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
+    private static void startServiceProviderMetadataServer() {
+        mockSPMetadataServer.start();
+        updateServiceProviderMetadata("valid-metadata.xml");
+    }
+
+    protected static void updateServiceProviderMetadata(String metadataFile) {
+        mockSPMetadataServer.resetAll();
+        mockSPMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
                 .withHeader("Content-Type", "application/xml;charset=UTF-8")
                 .withStatus(200)
-                .withBodyFile("sp-client-metadata.xml")));
+                .withBodyFile("sp_metadata/" + metadataFile)));
     }
 
     protected static void setClusterStateInactive() {
@@ -119,11 +132,9 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     public enum Dependencies {
         IGNITE_CLUSTER("igniteCluster"),
         CONNECTOR_METADATA("connectorMetadata"),
-        SP_CLIENT("sp-client1-metadata"),
+        SP_METADATA("sp-service-provider-metadata"),
         TRUSTSTORE("truststore");
         @Getter
         public final String name;
-
-
     }
 }
