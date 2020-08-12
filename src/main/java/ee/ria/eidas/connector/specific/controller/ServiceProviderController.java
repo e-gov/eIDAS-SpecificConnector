@@ -6,7 +6,6 @@ import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunicatio
 import ee.ria.eidas.connector.specific.saml.LightRequestFactory;
 import eu.eidas.auth.commons.EidasParameterKeys;
 import eu.eidas.auth.commons.light.ILightRequest;
-import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import lombok.SneakyThrows;

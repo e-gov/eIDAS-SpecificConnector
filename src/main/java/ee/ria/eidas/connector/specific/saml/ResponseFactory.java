@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.security.RandomIdentifierGenerationStrategy;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
-import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -127,7 +126,7 @@ public class ResponseFactory {
         return attributeStatement;
     }
 
-    @NotNull
+    @SuppressWarnings("unchecked")
     private Attribute createAttribute(Map.Entry<AttributeDefinition<?>, ImmutableSet<? extends AttributeValue<?>>> entry)
             throws AttributeValueMarshallingException {
         AttributeDefinition<?> definition = entry.getKey();
