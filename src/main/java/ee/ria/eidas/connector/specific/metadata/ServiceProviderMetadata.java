@@ -2,6 +2,7 @@ package ee.ria.eidas.connector.specific.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ServiceProvider;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
+import ee.ria.eidas.connector.specific.metadata.validation.ServiceProviderValidationFilter;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -11,9 +12,14 @@ import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.http.impl.client.HttpClients;
 import org.opensaml.core.criterion.EntityIdCriterion;
-import org.opensaml.saml.common.xml.SAMLConstants;
+import org.opensaml.saml.common.xml.SAMLSchemaBuilder;
 import org.opensaml.saml.criterion.EntityRoleCriterion;
 import org.opensaml.saml.criterion.ProtocolCriterion;
+import org.opensaml.saml.metadata.resolver.filter.MetadataFilter;
+import org.opensaml.saml.metadata.resolver.filter.MetadataFilterChain;
+import org.opensaml.saml.metadata.resolver.filter.impl.RequiredValidUntilFilter;
+import org.opensaml.saml.metadata.resolver.filter.impl.SchemaValidationFilter;
+import org.opensaml.saml.metadata.resolver.filter.impl.SignatureValidationFilter;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 import org.opensaml.saml.metadata.resolver.impl.PredicateRoleDescriptorResolver;
 import org.opensaml.saml.saml2.core.Assertion;
@@ -38,6 +44,10 @@ import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureValidator;
 import org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngine;
 
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.opensaml.saml.common.xml.SAMLConstants.SAML20P_NS;
 import static org.opensaml.security.credential.UsageType.ENCRYPTION;
 import static org.opensaml.security.credential.UsageType.SIGNING;
@@ -47,27 +57,31 @@ public class ServiceProviderMetadata {
     @Getter
     private final ServiceProvider serviceProvider;
     private final HTTPMetadataResolver httpMetadataResolver;
-    private final ExplicitKeySignatureTrustEngine explicitKeySignatureTrustEngine;
+    private final ExplicitKeySignatureTrustEngine metadataIssuerTrustEngine;
+    private final ExplicitKeySignatureTrustEngine serviceProviderTrustEngine;
 
     @Builder
-    public ServiceProviderMetadata(ServiceProvider serviceProvider, ParserPool parserPool) throws ResolverException, ComponentInitializationException {
-        this.serviceProvider = serviceProvider;
+    public ServiceProviderMetadata(ServiceProvider serviceProvider, ExplicitKeySignatureTrustEngine metadataIssuerTrustEngine,
+                                   ParserPool parserPool) throws ResolverException, ComponentInitializationException, CertificateException {
         log.info("Initializing metadata resolver for: {}", serviceProvider);
-        httpMetadataResolver = initHTTPMetadataResolver(parserPool);
-        explicitKeySignatureTrustEngine = initExplicitKeySignatureTrustEngine();
+        this.serviceProvider = serviceProvider;
+        this.metadataIssuerTrustEngine = metadataIssuerTrustEngine;
+        this.httpMetadataResolver = initHTTPMetadataResolver(parserPool);
+        this.serviceProviderTrustEngine = initServiceProviderTrustEngine();
     }
 
     public void validate(Signature signature) throws SignatureException, ResolverException {
-        SignatureValidator.validate(signature, getCredential(SIGNING));
+        SignatureValidator.validate(signature, resolveCredential(SIGNING));
     }
 
     public EncryptedAssertion encrypt(Assertion assertion) throws EncryptionException, ResolverException {
-        return initAssertionEncrypter().encrypt(assertion);
+        return createEncrypter().encrypt(assertion);
     }
 
     public EntityDescriptor getEntityDescriptor() {
         try {
-            EntityDescriptor entityDescriptor = httpMetadataResolver.resolveSingle(new CriteriaSet(new EntityIdCriterion(serviceProvider.getEntityId())));
+            CriteriaSet criteria = new CriteriaSet(new EntityIdCriterion(serviceProvider.getEntityId()));
+            EntityDescriptor entityDescriptor = httpMetadataResolver.resolveSingle(criteria);
             if (entityDescriptor == null) {
                 throw new TechnicalException("EntityDescriptor not found in Service Provider metadata. SP Entity id: %s",
                         serviceProvider.getEntityId());
@@ -90,21 +104,19 @@ public class ServiceProviderMetadata {
         return getEntityDescriptor().getSPSSODescriptor(SAML20P_NS).getWantAssertionsSigned();
     }
 
-    private Credential getCredential(UsageType usageType) throws ResolverException {
-        CriteriaSet criteriaSet = new CriteriaSet();
-        criteriaSet.add(new UsageCriterion(usageType));
-        criteriaSet.add(new EntityRoleCriterion(SPSSODescriptor.DEFAULT_ELEMENT_NAME));
-        criteriaSet.add(new ProtocolCriterion(SAML20P_NS));
-        criteriaSet.add(new EntityIdCriterion(serviceProvider.getEntityId()));
-        Credential credential = explicitKeySignatureTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
-        if (credential == null) {
-            throw new TechnicalException("%s credential not found in Service Provider metadata. SP Entity id: %s", usageType.name(),
-                    serviceProvider.getEntityId());
-        }
-        return credential;
+    public void refreshMetadata() throws ResolverException {
+        httpMetadataResolver.refresh();
     }
 
-    private ExplicitKeySignatureTrustEngine initExplicitKeySignatureTrustEngine() throws ComponentInitializationException {
+    public boolean isUpdatedAndValid() {
+        Boolean isRootValid = httpMetadataResolver.isRootValid();
+        Boolean wasLastRefreshSuccess = httpMetadataResolver.wasLastRefreshSuccess();
+        return httpMetadataResolver.isInitialized()
+                && isRootValid != null && isRootValid
+                && wasLastRefreshSuccess != null && wasLastRefreshSuccess;
+    }
+
+    private ExplicitKeySignatureTrustEngine initServiceProviderTrustEngine() throws ComponentInitializationException {
         MetadataCredentialResolver metadataCredentialResolver = new MetadataCredentialResolver();
         PredicateRoleDescriptorResolver roleResolver = new PredicateRoleDescriptorResolver(httpMetadataResolver);
         KeyInfoCredentialResolver keyResolver = DefaultSecurityConfigurationBootstrap.buildBasicInlineKeyInfoCredentialResolver();
@@ -121,15 +133,25 @@ public class ServiceProviderMetadata {
         metadataResolver.setParserPool(parserPool);
         metadataResolver.setRequireValidMetadata(true);
         metadataResolver.setFailFastInitialization(true);
-        // TODO: Use filters to validate
-        // metadataResolver.setMetadataFilter();
+
+        List<MetadataFilter> metadataFilters = new ArrayList<>();
+        metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId(), serviceProvider.getType()));
+        metadataFilters.add(new SignatureValidationFilter(metadataIssuerTrustEngine));
+        metadataFilters.add(new RequiredValidUntilFilter()); // TODO: consider using maxValidity
+        metadataFilters.add(new SchemaValidationFilter(new SAMLSchemaBuilder(SAMLSchemaBuilder.SAML1Version.SAML_11)));
+
+
+        MetadataFilterChain metadataFilterChain = new MetadataFilterChain();
+        metadataFilterChain.setFilters(metadataFilters);
+
+        metadataResolver.setMetadataFilter(metadataFilterChain);
         metadataResolver.initialize();
         return metadataResolver;
     }
 
-    private Encrypter initAssertionEncrypter() throws ResolverException {
+    private Encrypter createEncrypter() throws ResolverException {
         KeyEncryptionParameters kekParams = new KeyEncryptionParameters();
-        kekParams.setEncryptionCredential(getCredential(ENCRYPTION));
+        kekParams.setEncryptionCredential(resolveCredential(ENCRYPTION));
         kekParams.setAlgorithm(EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP); // TODO:
 
         X509KeyInfoGeneratorFactory keyInfoGeneratorFactory = new X509KeyInfoGeneratorFactory();
@@ -140,16 +162,17 @@ public class ServiceProviderMetadata {
         DataEncryptionParameters encryptParams = new DataEncryptionParameters();
         encryptParams.setAlgorithm(EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES128); // TODO:
 
-        Encrypter assertionEncrypter = new Encrypter(encryptParams, kekParams);
-        assertionEncrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);
-        return assertionEncrypter;
+        Encrypter encrypter = new Encrypter(encryptParams, kekParams);
+        encrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);
+        return encrypter;
     }
 
-    public boolean isUpdatedAndValid() {
-        Boolean isRootValid = httpMetadataResolver.isRootValid();
-        Boolean wasLastRefreshSuccess = httpMetadataResolver.wasLastRefreshSuccess();
-        return httpMetadataResolver.isInitialized()
-                && isRootValid != null && isRootValid
-                && wasLastRefreshSuccess != null && wasLastRefreshSuccess;
+    private Credential resolveCredential(UsageType credentialUsageType) throws ResolverException {
+        CriteriaSet criteriaSet = new CriteriaSet();
+        criteriaSet.add(new UsageCriterion(credentialUsageType));
+        criteriaSet.add(new EntityRoleCriterion(SPSSODescriptor.DEFAULT_ELEMENT_NAME));
+        criteriaSet.add(new ProtocolCriterion(SAML20P_NS));
+        criteriaSet.add(new EntityIdCriterion(serviceProvider.getEntityId()));
+        return serviceProviderTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
     }
 }

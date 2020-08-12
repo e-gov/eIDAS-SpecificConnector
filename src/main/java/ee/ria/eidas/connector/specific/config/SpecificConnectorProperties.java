@@ -47,7 +47,7 @@ public class SpecificConnectorProperties {
         private final String entityId;
 
         @NotEmpty
-        private final String publicKey;
+        private final String keyAlias;
 
         @NotEmpty
         @Pattern(regexp = "^(public|private)$", message = "invalid Service Provider type")
@@ -58,6 +58,11 @@ public class SpecificConnectorProperties {
     @AllArgsConstructor
     @ConstructorBinding
     public static class Metadata {
+        @NotEmpty
+        private final String trustStore;
+
+        @NotEmpty
+        private final String trustStorePassword;
 
         @NotEmpty
         private final String keyStore;

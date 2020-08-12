@@ -6,13 +6,14 @@ import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeLegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeNaturalPersonSpec;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.FileUrlResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.Assert;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
@@ -23,10 +24,15 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 
 @Configuration
 @ConfigurationPropertiesScan
@@ -70,7 +76,6 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    @Qualifier("eidasAttributeRegistry")
     public AttributeRegistry eidasAttributeRegistry() {
         return AttributeRegistries.copyOf(NaturalPersonSpec.REGISTRY, RepresentativeNaturalPersonSpec.REGISTRY,
                 LegalPersonSpec.REGISTRY, RepresentativeLegalPersonSpec.REGISTRY);
@@ -80,5 +85,23 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     public String specificConnectorIP(SpecificConnectorProperties specificConnectorProperties) throws MalformedURLException, UnknownHostException {
         String issuerUrl = specificConnectorProperties.getMetadata().getEntityId();
         return InetAddress.getByName(new URL(issuerUrl).getHost()).getHostAddress();
+    }
+
+    @Bean
+    public KeyStore metadataKeyStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+        Resource resource = resourceLoader.getResource(connectorProperties.getMetadata().getKeyStore());
+        keystore.load(resource.getInputStream(), connectorProperties.getMetadata().getKeyStorePassword().toCharArray());
+        return keystore;
+    }
+
+    @Bean
+    public KeyStore metadataTrustStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+        Resource resource = resourceLoader.getResource(connectorProperties.getMetadata().getTrustStore());
+        keystore.load(resource.getInputStream(), connectorProperties.getMetadata().getTrustStorePassword().toCharArray());
+        return keystore;
     }
 }
