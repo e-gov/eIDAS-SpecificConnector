@@ -184,7 +184,6 @@ public class ResponderMetadataGenerator {
         return contactPerson;
     }
 
-
     private Extensions generateExtensions() {
         Extensions eidasExtensions = generateMetadataExtension();
         generateSpType(eidasExtensions);
