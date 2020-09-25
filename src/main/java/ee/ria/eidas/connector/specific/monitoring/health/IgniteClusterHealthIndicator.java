@@ -29,6 +29,11 @@ public class IgniteClusterHealthIndicator extends AbstractHealthIndicator {
     @Qualifier("nodeSpecificConnectorResponseCache")
     private Cache<String, String> nodeSpecificConnectorResponseCache;
 
+    @Lazy
+    @Autowired
+    @Qualifier("specificMSSpRequestCorrelationMap")
+    private Cache<String, String> specificMSSpRequestCorrelationMap;
+
     public IgniteClusterHealthIndicator() {
         super("Ignite cluster health check failed");
     }
@@ -37,7 +42,8 @@ public class IgniteClusterHealthIndicator extends AbstractHealthIndicator {
     protected void doHealthCheck(Health.Builder builder) {
         if (igniteInstance.cluster().active()
                 && isCacheHealthy(specificNodeConnectorRequestCache)
-                && isCacheHealthy(nodeSpecificConnectorResponseCache)) {
+                && isCacheHealthy(nodeSpecificConnectorResponseCache)
+                && isCacheHealthy(specificMSSpRequestCorrelationMap)) {
             builder.up().build();
         } else {
             builder.down().build();
