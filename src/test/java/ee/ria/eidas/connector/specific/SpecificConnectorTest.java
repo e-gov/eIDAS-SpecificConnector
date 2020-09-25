@@ -84,6 +84,10 @@ public abstract class SpecificConnectorTest {
     @Qualifier("nodeSpecificConnectorResponseCache")
     protected Cache<String, String> nodeSpecificConnectorResponseCache;
 
+    @SpyBean
+    @Qualifier("specificMSSpRequestCorrelationMap")
+    protected Cache<String, String> specificMSSpRequestCorrelationMap;
+
     @BeforeAll
     static void beforeAllTests() {
         startMockEidasNodeServer();

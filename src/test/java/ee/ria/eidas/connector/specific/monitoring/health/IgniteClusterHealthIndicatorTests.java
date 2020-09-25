@@ -62,8 +62,8 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
         Response healthResponse = getHealthResponse();
         assertDependenciesUp(healthResponse, Dependencies.IGNITE_CLUSTER);
 
-        assertEquals(2, cachePuts.get());
-        assertEquals(2, cacheRemoves.get());
+        assertEquals(3, cachePuts.get());
+        assertEquals(3, cacheRemoves.get());
     }
 
     @Test
@@ -122,6 +122,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     @SuppressWarnings({"unchecked"})
     public void cleanMocks() {
         Mockito.reset(specificNodeConnectorRequestCache,
-                nodeSpecificConnectorResponseCache);
+                nodeSpecificConnectorResponseCache,
+                specificMSSpRequestCorrelationMap);
     }
 }
