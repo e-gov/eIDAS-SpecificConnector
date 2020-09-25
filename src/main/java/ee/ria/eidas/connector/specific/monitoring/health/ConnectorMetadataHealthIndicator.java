@@ -20,7 +20,7 @@ public class ConnectorMetadataHealthIndicator extends AbstractHealthIndicator {
     @Value("${connector.metadata.url}")
     private String connectorMetadataUrl;
 
-    @Value("${eidas.connector.health.dependencies.connect-timeout:3}")
+    @Value("${eidas.connector.health.dependencies.connect-timeout:3s}")
     private Duration connectTimeout;
 
     public ConnectorMetadataHealthIndicator() {
