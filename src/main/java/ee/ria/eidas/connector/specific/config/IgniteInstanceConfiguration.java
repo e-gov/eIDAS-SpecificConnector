@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.config;
 
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +13,7 @@ import org.springframework.core.io.ResourceLoader;
 import javax.cache.Cache;
 import java.io.IOException;
 
-import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.CacheProperties.*;
+import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.CacheProperties.CacheNames.*;
 
 @Configuration
 public class IgniteInstanceConfiguration {
@@ -21,9 +22,9 @@ public class IgniteInstanceConfiguration {
     @Bean
     public Ignite igniteClient(SpecificConnectorProperties specificConnectorProperties, ResourceLoader resourceLoader) throws IOException {
         SpecificConnectorProperties.CacheProperties cacheProperties = specificConnectorProperties.getCommunicationCache();
-        Resource resource = getResource(cacheProperties, resourceLoader, cacheProperties.getIgniteConfigurationFileLocation());
+        Resource igniteConfiguration = getIgniteConfiguration(cacheProperties, resourceLoader);
         Ignition.setClientMode(true);
-        IgniteConfiguration cfg = Ignition.loadSpringBean(resource.getInputStream(), cacheProperties.getIgniteConfigurationBeanName());
+        IgniteConfiguration cfg = Ignition.loadSpringBean(igniteConfiguration.getInputStream(), cacheProperties.getIgniteConfigurationBeanName());
         cfg.setIgniteInstanceName(cfg.getIgniteInstanceName() + "Client");
         return Ignition.getOrStart(cfg);
     }
@@ -31,23 +32,23 @@ public class IgniteInstanceConfiguration {
     @Lazy
     @Bean("specificNodeConnectorRequestCache")
     public Cache<String, String> specificNodeConnectorRequestCache(Ignite igniteClient) {
-        return igniteClient.cache(SpecificConnectorProperties.CacheProperties.getCacheName(INCOMING_NODE_REQUESTS_CACHE));
+        return igniteClient.cache(INCOMING_NODE_REQUESTS_CACHE.getName());
     }
 
     @Lazy
     @Bean("nodeSpecificConnectorResponseCache")
     public Cache<String, String> nodeSpecificConnectorResponseCache(Ignite igniteClient) {
-        return igniteClient.cache(SpecificConnectorProperties.CacheProperties.getCacheName(OUTGOING_NODE_RESPONSES_CACHE));
+        return igniteClient.cache(OUTGOING_NODE_RESPONSES_CACHE.getName());
     }
 
     @Lazy
     @Bean("specificMSSpRequestCorrelationMap")
     public Cache<String, String> specificMSSpRequestCorrelationMap(Ignite igniteClient) {
-        return igniteClient.cache(SpecificConnectorProperties.CacheProperties.getCacheName(SP_REQUEST_CORRELATION_CACHE));
+        return igniteClient.cache(SP_REQUEST_CORRELATION_CACHE.getName());
     }
 
-    private Resource getResource(SpecificConnectorProperties.CacheProperties properties, ResourceLoader resourceLoader, String resourceLocation) {
-        Resource resource = resourceLoader.getResource(resourceLocation);
+    private Resource getIgniteConfiguration(SpecificConnectorProperties.CacheProperties properties, ResourceLoader resourceLoader) {
+        Resource resource = resourceLoader.getResource(properties.getIgniteConfigurationFileLocation());
         if (!resource.exists())
             throw new IllegalStateException("Required Ignite configuration file not found: " + properties.getIgniteConfigurationFileLocation());
         return resource;

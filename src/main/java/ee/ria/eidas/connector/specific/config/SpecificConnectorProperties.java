@@ -1,12 +1,11 @@
 package ee.ria.eidas.connector.specific.config;
 
-import com.google.common.collect.ImmutableMap;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
-import org.springframework.util.Assert;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
@@ -174,27 +173,19 @@ public class SpecificConnectorProperties {
     @AllArgsConstructor
     @ConstructorBinding
     public static class CacheProperties {
-        public static final String INCOMING_NODE_REQUESTS_CACHE = "incoming-node-requests-cache";
-        public static final String OUTGOING_NODE_RESPONSES_CACHE = "outgoing-node-responses-cache";
-        public static final String SP_REQUEST_CORRELATION_CACHE = "sp-request-correlation-cache";
-
-        private static final ImmutableMap<String, String> cacheNameMapping = ImmutableMap.<String, String>builder()
-                .put(INCOMING_NODE_REQUESTS_CACHE, "specificNodeConnectorRequestCache")
-                .put(OUTGOING_NODE_RESPONSES_CACHE, "nodeSpecificConnectorResponseCache")
-                .put(SP_REQUEST_CORRELATION_CACHE, "specificMSSpRequestCorrelationMap")
-                .build();
 
         @NotNull
         private final String igniteConfigurationFileLocation;
-        private final String igniteConfigurationBeanName;
 
-        public static String getCacheName(String cacheName) {
-            Assert.isTrue(cacheNameMapping.containsKey(cacheName), "Cache name mapping is required for " + cacheName + "!");
-            return cacheNameMapping.get(cacheName);
-        }
+        private final String igniteConfigurationBeanName = "igniteSpecificCommunication.cfg";
 
-        public String getIgniteConfigurationBeanName() {
-            return igniteConfigurationBeanName == null ? "igniteSpecificCommunication.cfg" : igniteConfigurationBeanName;
+        @Getter
+        @RequiredArgsConstructor
+        public enum CacheNames {
+            INCOMING_NODE_REQUESTS_CACHE("specificNodeConnectorRequestCache"),
+            OUTGOING_NODE_RESPONSES_CACHE("nodeSpecificConnectorResponseCache"),
+            SP_REQUEST_CORRELATION_CACHE("specificMSSpRequestCorrelationMap");
+            private final String name;
         }
     }
 }
