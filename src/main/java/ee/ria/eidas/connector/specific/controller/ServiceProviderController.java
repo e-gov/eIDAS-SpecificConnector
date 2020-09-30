@@ -3,7 +3,10 @@ package ee.ria.eidas.connector.specific.controller;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
+import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
+import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataResolver;
 import ee.ria.eidas.connector.specific.saml.LightRequestFactory;
+import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
 import eu.eidas.auth.commons.EidasParameterKeys;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
@@ -11,6 +14,7 @@ import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -24,6 +28,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URL;
+import java.util.Base64;
 
 import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
 
@@ -44,6 +49,9 @@ public class ServiceProviderController {
     @Autowired
     private LightRequestFactory lightRequestFactory;
 
+    @Autowired
+    private ServiceProviderMetadataResolver spMetadataResolver;
+
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") String samlRequest,
                             @RequestParam("country") String country,
@@ -62,7 +70,12 @@ public class ServiceProviderController {
     @NotNull
     @SneakyThrows
     private ModelAndView execute(String samlRequest, String country, String relayState) {
-        ILightRequest lightRequest = lightRequestFactory.createLightRequest(samlRequest, country, relayState);
+        byte[] decodedAuthnRequest = Base64.getDecoder().decode(samlRequest);
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
+        ServiceProviderMetadata spMetadata = spMetadataResolver.getByEntityId(authnRequest.getIssuer().getValue());
+        spMetadata.validate(authnRequest.getSignature());
+        String spType = spMetadata.getServiceProvider().getType();
+        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState, spType);
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
         specificConnectorCommunication.putRequestCorrelation(lightRequest);
         String token = BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken);
