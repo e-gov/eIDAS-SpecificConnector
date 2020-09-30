@@ -1,17 +1,16 @@
-package ee.ria.eidas.connector.specific.metadata;
+package ee.ria.eidas.connector.specific.metadata.sp;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ServiceProvider;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
-import ee.ria.eidas.connector.specific.metadata.validation.ServiceProviderValidationFilter;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.http.impl.client.HttpClients;
 import org.opensaml.core.criterion.EntityIdCriterion;
+import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.saml.common.xml.SAMLSchemaBuilder;
 import org.opensaml.saml.criterion.EntityRoleCriterion;
 import org.opensaml.saml.criterion.ProtocolCriterion;
@@ -44,7 +43,6 @@ import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureValidator;
 import org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngine;
 
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,12 +59,12 @@ public class ServiceProviderMetadata {
     private final ExplicitKeySignatureTrustEngine serviceProviderTrustEngine;
 
     @Builder
-    public ServiceProviderMetadata(ServiceProvider serviceProvider, ExplicitKeySignatureTrustEngine metadataIssuerTrustEngine,
-                                   ParserPool parserPool) throws ResolverException, ComponentInitializationException, CertificateException {
+    public ServiceProviderMetadata(ServiceProvider serviceProvider, ExplicitKeySignatureTrustEngine metadataIssuerTrustEngine)
+            throws ResolverException, ComponentInitializationException {
         log.info("Initializing metadata resolver for: {}", serviceProvider);
         this.serviceProvider = serviceProvider;
         this.metadataIssuerTrustEngine = metadataIssuerTrustEngine;
-        this.httpMetadataResolver = initHTTPMetadataResolver(parserPool);
+        this.httpMetadataResolver = initHTTPMetadataResolver();
         this.serviceProviderTrustEngine = initServiceProviderTrustEngine();
     }
 
@@ -127,10 +125,10 @@ public class ServiceProviderMetadata {
         return new ExplicitKeySignatureTrustEngine(metadataCredentialResolver, keyResolver);
     }
 
-    private HTTPMetadataResolver initHTTPMetadataResolver(ParserPool parserPool) throws ResolverException, ComponentInitializationException {
+    private HTTPMetadataResolver initHTTPMetadataResolver() throws ResolverException, ComponentInitializationException {
         HTTPMetadataResolver metadataResolver = new HTTPMetadataResolver(HttpClients.createDefault(), serviceProvider.getEntityId());
         metadataResolver.setId(serviceProvider.getId());
-        metadataResolver.setParserPool(parserPool);
+        metadataResolver.setParserPool(XMLObjectProviderRegistrySupport.getParserPool());
         metadataResolver.setRequireValidMetadata(true);
         metadataResolver.setFailFastInitialization(true);
 
@@ -139,7 +137,6 @@ public class ServiceProviderMetadata {
         metadataFilters.add(new SignatureValidationFilter(metadataIssuerTrustEngine));
         metadataFilters.add(new RequiredValidUntilFilter()); // TODO: consider using maxValidity
         metadataFilters.add(new SchemaValidationFilter(new SAMLSchemaBuilder(SAMLSchemaBuilder.SAML1Version.SAML_11)));
-
 
         MetadataFilterChain metadataFilterChain = new MetadataFilterChain();
         metadataFilterChain.setFilters(metadataFilters);

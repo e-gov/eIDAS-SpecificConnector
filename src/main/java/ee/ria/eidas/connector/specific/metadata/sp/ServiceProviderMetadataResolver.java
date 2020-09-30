@@ -1,4 +1,4 @@
-package ee.ria.eidas.connector.specific.metadata;
+package ee.ria.eidas.connector.specific.metadata.sp;
 
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 

@@ -3,7 +3,6 @@ package ee.ria.eidas.connector.specific.monitoring;
 import io.micrometer.core.instrument.search.Search;
 import io.restassured.response.Response;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -11,8 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;

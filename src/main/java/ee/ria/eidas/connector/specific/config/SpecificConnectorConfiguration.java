@@ -80,25 +80,25 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
 
     @Bean
     public String specificConnectorIP(SpecificConnectorProperties specificConnectorProperties) throws MalformedURLException, UnknownHostException {
-        String issuerUrl = specificConnectorProperties.getMetadata().getEntityId();
+        String issuerUrl = specificConnectorProperties.getResponderMetadata().getEntityId();
         return InetAddress.getByName(new URL(issuerUrl).getHost()).getHostAddress();
     }
 
     @Bean
-    public KeyStore metadataKeyStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
+    public KeyStore responderMetadataKeyStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
             IOException, CertificateException, NoSuchAlgorithmException {
         KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-        Resource resource = resourceLoader.getResource(connectorProperties.getMetadata().getKeyStore());
-        keystore.load(resource.getInputStream(), connectorProperties.getMetadata().getKeyStorePassword().toCharArray());
+        Resource resource = resourceLoader.getResource(connectorProperties.getResponderMetadata().getKeyStore());
+        keystore.load(resource.getInputStream(), connectorProperties.getResponderMetadata().getKeyStorePassword().toCharArray());
         return keystore;
     }
 
     @Bean
-    public KeyStore metadataTrustStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
+    public KeyStore responderMetadataTrustStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
             IOException, CertificateException, NoSuchAlgorithmException {
         KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-        Resource resource = resourceLoader.getResource(connectorProperties.getMetadata().getTrustStore());
-        keystore.load(resource.getInputStream(), connectorProperties.getMetadata().getTrustStorePassword().toCharArray());
+        Resource resource = resourceLoader.getResource(connectorProperties.getResponderMetadata().getTrustStore());
+        keystore.load(resource.getInputStream(), connectorProperties.getResponderMetadata().getTrustStorePassword().toCharArray());
         return keystore;
     }
 }

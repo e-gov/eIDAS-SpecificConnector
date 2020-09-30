@@ -4,6 +4,8 @@
 - [2. Integration with EidasNode webapp](#integrate_with_eidasnode)
   * [2.1. Configuring communication with EidasNode](#integrate_eidasnode)
   * [2.2. Ignite configuration](#ignite_conf)
+- [3. Metadata generation](#metdata_generation)
+- [4. Service provider integration](#service_providers)  
 - [6. Monitoring](#heartbeat)
 - [x. Appendix 1 - service configuration parameters](#configuration_parameters)  
 
@@ -41,10 +43,14 @@ Note that `SpecificConnector` requires access to four predefined maps in the clu
 | :---------------- | :---------- |
 | `specificNodeConnectorRequestCache` | Holds pending LightRequests from EidasNode webapp. |
 | `nodeSpecificConnectorResponseCache` | Holds LightResponses for EidasNode webapp. |
+| `specificMSSpRequestCorrelationMap` | Service provider request correlation map |
+
 
 Table 1 - Required shared map's in `SpecificConnector` webapp.
 
-## 6. Monitoring
+## 3. Metadata generation
+
+## 4. Service provider integration
 
 `SpecificConnector` webapp uses `Spring Boot Actuator` for monitoring. To customize Monitoring, Metrics, Auditing, and more see [Spring Boot Actuator documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready).    
 
@@ -57,7 +63,7 @@ Table 1 - Required shared map's in `SpecificConnector` webapp.
 
 ### 6.2 Custom application health endpoint configuration
 
-`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `truststore`. This endpoint is disabled by default.
+`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `truststore`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
 
 Request:
 
@@ -68,29 +74,33 @@ curl -X GET https://ee-eidas-connector:8084/SpecificConnector/heartbeat
 Response:
 ````
 {
-    "currentTime": "2020-07-23T09:42:46.307Z",
-    "upTime": "PT1M25S",
-    "buildTime": "2020-07-23T08:35:57.257Z",
-    "name": "ee-specific-connector",
-    "startTime": "2020-07-01T09:41:33.411Z",
-    "commitId": "7fb1482da3c091c361a7a9f4dbaf1e19817bc76f",
-    "version": "1.0.0-SNAPSHOT",
-    "commitBranch": "develop",
-    "status": "UP",
-    "dependencies": [        
-        {
-            "name": "igniteCluster",
-            "status": "UP"
-        },
-        {
-            "name": "connectorMetadata",
-            "status": "UP"
-        },
-        {
-            "name": "truststore",
-            "status": "UP"
-        }
-    ]
+  "currentTime": "2020-09-28T15:45:34.091Z",
+  "upTime": "PT28M13S",
+  "buildTime": "2020-09-28T14:53:39.502Z",
+  "name": "ee-specific-connector",
+  "startTime": "2020-09-28T15:17:37.850Z",
+  "commitId": "dbdb7bfa1e48237b3f69fb1de9357f55a1e2df9d",
+  "version": "1.0.0-SNAPSHOT",
+  "commitBranch": "develop",
+  "status": "UP",
+  "dependencies": [
+    {
+      "name": "igniteCluster",
+      "status": "UP"
+    },
+    {
+      "name": "truststore",
+      "status": "UP"
+    },
+    {
+      "name": "sp-ca-metadata",
+      "status": "UP"
+    },
+    {
+      "name": "connectorMetadata",
+      "status": "UP"
+    }
+  ]
 }
 ````
 

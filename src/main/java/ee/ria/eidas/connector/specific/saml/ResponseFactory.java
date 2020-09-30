@@ -3,8 +3,8 @@ package ee.ria.eidas.connector.specific.saml;
 import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
-import ee.ria.eidas.connector.specific.metadata.MetadataSigner;
-import ee.ria.eidas.connector.specific.metadata.ServiceProviderMetadata;
+import ee.ria.eidas.connector.specific.metadata.responder.ResponderMetadataSigner;
+import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
 import eu.eidas.auth.commons.attribute.AttributeValue;
 import eu.eidas.auth.commons.attribute.*;
 import eu.eidas.auth.commons.light.ILightResponse;
@@ -43,7 +43,7 @@ public class ResponseFactory {
     private SpecificConnectorProperties connectorProperties;
 
     @Autowired
-    private MetadataSigner metadataSigner;
+    private ResponderMetadataSigner responderMetadataSigner;
 
     @Autowired
     private String specificConnectorIP;
@@ -53,7 +53,7 @@ public class ResponseFactory {
     public String createBase64SamlResponse(ILightResponse lightResponse, ServiceProviderMetadata spMetadata) {
         try {
             Response response = createResponse(lightResponse, spMetadata);
-            metadataSigner.sign(response);
+            responderMetadataSigner.sign(response);
             return serializeResponse(response);
         } catch (Exception ex) {
             throw new TechnicalException("Unable to create SAML Response", ex);
@@ -75,6 +75,13 @@ public class ResponseFactory {
         return response;
     }
 
+    private String serializeResponse(Response response) throws MarshallingException {
+        MarshallerFactory marshallerFactory = XMLObjectProviderRegistrySupport.getMarshallerFactory();
+        Element responseElement = marshallerFactory.getMarshaller(response).marshall(response);
+        String samlResponse = SerializeSupport.nodeToString(responseElement);
+        return Base64.getEncoder().encodeToString(samlResponse.getBytes());
+    }
+
     private EncryptedAssertion createAssertion(ILightResponse lightResponse, DateTime issueInstant, ServiceProviderMetadata spMetadata)
             throws AttributeValueMarshallingException, MarshallingException, SecurityException, SignatureException, ResolverException,
             EncryptionException {
@@ -87,23 +94,16 @@ public class ResponseFactory {
         assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, lightResponse.getLevelOfAssurance()));
         assertion.setConditions(createConditions(issueInstant, spMetadata));
         if (spMetadata.getWantAssertionsSigned()) {
-            metadataSigner.sign(assertion);
+            responderMetadataSigner.sign(assertion);
         }
         return spMetadata.encrypt(assertion);
     }
 
     private Issuer createIssuer() {
         Issuer responseIssuer = new IssuerBuilder().buildObject();
-        responseIssuer.setValue(connectorProperties.getMetadata().getEntityId());
+        responseIssuer.setValue(connectorProperties.getResponderMetadata().getEntityId());
         responseIssuer.setFormat(NameIDType.ENTITY);
         return responseIssuer;
-    }
-
-    private String serializeResponse(Response response) throws MarshallingException {
-        MarshallerFactory marshallerFactory = XMLObjectProviderRegistrySupport.getMarshallerFactory();
-        Element responseElement = marshallerFactory.getMarshaller(response).marshall(response);
-        String samlResponse = SerializeSupport.nodeToString(responseElement);
-        return Base64.getEncoder().encodeToString(samlResponse.getBytes());
     }
 
     private Status createStatus(ILightResponse lightResponse) {
@@ -115,7 +115,6 @@ public class ResponseFactory {
         return status;
     }
 
-    @SuppressWarnings("unchecked")
     private AttributeStatement createAttributeStatement(ILightResponse lightResponse) throws AttributeValueMarshallingException {
         AttributeStatement attributeStatement = new AttributeStatementBuilder().buildObject();
         ImmutableAttributeMap responseAttributes = lightResponse.getAttributes();

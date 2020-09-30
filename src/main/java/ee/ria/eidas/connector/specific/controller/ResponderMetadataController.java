@@ -1,6 +1,6 @@
 package ee.ria.eidas.connector.specific.controller;
 
-import ee.ria.eidas.connector.specific.metadata.ResponderMetadataGenerator;
+import ee.ria.eidas.connector.specific.metadata.responder.ResponderMetadataGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,10 +14,9 @@ public class ResponderMetadataController {
     @Autowired
     private ResponderMetadataGenerator responderMetadataGenerator;
 
-    @GetMapping(value = "/ConnectorResponderMetadata", produces = {"application/xml", "text/xml"})
+    @GetMapping(value = "${eidas.connector.responder-metadata.path:/ConnectorResponderMetadata}", produces = {"application/xml", "text/xml"})
     @ResponseBody
     public String metadata() {
-        log.info("Metadata request");
-        return responderMetadataGenerator.getMetadata();
+        return responderMetadataGenerator.createSignedMetadata();
     }
 }

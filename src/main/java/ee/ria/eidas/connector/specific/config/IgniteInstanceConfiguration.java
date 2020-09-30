@@ -1,7 +1,6 @@
 package ee.ria.eidas.connector.specific.config;
 
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.springframework.context.annotation.Bean;

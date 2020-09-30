@@ -1,16 +1,13 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
-import ee.ria.eidas.connector.specific.metadata.ServiceProviderMetadataResolver;
+import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataResolver;
 import io.micrometer.core.instrument.TimeGauge;
 import io.restassured.response.Response;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
@@ -20,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
 import static java.lang.Double.valueOf;
@@ -28,19 +24,11 @@ import static java.time.Instant.ofEpochMilli;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toMap;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     protected static final String APPLICATION_HEALTH_ENDPOINT_REQUEST = "/heartbeat";
-    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
-    protected static final WireMockServer mockSPMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
-            .httpDisabled(true)
-            .keystorePath("src/test/resources/__files/mock_keys/sp-tls-keystore.p12")
-            .keystorePassword("changeit")
-            .keyManagerPassword("changeit")
-            .keystoreType("PKCS12")
-            .httpsPort(8888)
-    );
 
     @Autowired
     protected ServiceProviderMetadataResolver serviceProviderMetadataResolver;
@@ -54,19 +42,6 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     @AfterAll
     static void afterAllHealthTests() {
         mockSPMetadataServer.stop();
-    }
-
-    private static void startServiceProviderMetadataServer() {
-        mockSPMetadataServer.start();
-        updateServiceProviderMetadata("valid-metadata.xml");
-    }
-
-    protected static void updateServiceProviderMetadata(String metadataFile) {
-        mockSPMetadataServer.resetAll();
-        mockSPMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
-                .withHeader("Content-Type", "application/xml;charset=UTF-8")
-                .withStatus(200)
-                .withBodyFile("sp_metadata/" + metadataFile)));
     }
 
     protected static void setClusterStateInactive() {

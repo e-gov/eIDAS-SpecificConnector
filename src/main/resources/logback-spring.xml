@@ -71,7 +71,7 @@
         </rollingPolicy>
     </appender>
     <logger name="ee.ria.eidas" level="${log.level.specificconnector}" />
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="FILE" />
         <appender-ref ref="STDOUT" />
     </root>

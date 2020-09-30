@@ -12,8 +12,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
 import static java.time.ZoneId.of;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;

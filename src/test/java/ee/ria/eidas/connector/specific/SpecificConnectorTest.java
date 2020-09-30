@@ -44,14 +44,26 @@ import static org.slf4j.LoggerFactory.getLogger;
 @Slf4j
 @ActiveProfiles("test")
 public abstract class SpecificConnectorTest {
+
     protected static final WireMockServer mockEidasNodeServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
             .keystorePath("src/test/resources/__files/mock_keys/sc-tls-keystore.p12")
             .keystorePassword("changeit")
             .keyManagerPassword("changeit")
             .keystoreType("PKCS12")
-            .httpsPort(8084)
+            .httpsPort(8443)
     );
+
+    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
+    protected static final WireMockServer mockSPMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
+            .httpDisabled(true)
+            .keystorePath("src/test/resources/__files/mock_keys/sp-tls-keystore.p12")
+            .keystorePassword("changeit")
+            .keyManagerPassword("changeit")
+            .keystoreType("PKCS12")
+            .httpsPort(8888)
+    );
+
     protected static Ignite eidasNodeIgnite;
     protected static ListAppender<ILoggingEvent> mockAppender;
 
@@ -122,6 +134,19 @@ public abstract class SpecificConnectorTest {
             cfg.setIncludeEventTypes(EVT_CACHE_OBJECT_PUT, EVT_CACHE_OBJECT_READ, EVT_CACHE_OBJECT_REMOVED);
             eidasNodeIgnite = Ignition.getOrStart(cfg);
         }
+    }
+
+    protected static void startServiceProviderMetadataServer() {
+        mockSPMetadataServer.start();
+        updateServiceProviderMetadata("valid-metadata.xml");
+    }
+
+    protected static void updateServiceProviderMetadata(String metadataFile) {
+        mockSPMetadataServer.resetAll();
+        mockSPMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
+                .withHeader("Content-Type", "application/xml;charset=UTF-8")
+                .withStatus(200)
+                .withBodyFile("sp_metadata/" + metadataFile)));
     }
 
     private static void configureRestAssured() {

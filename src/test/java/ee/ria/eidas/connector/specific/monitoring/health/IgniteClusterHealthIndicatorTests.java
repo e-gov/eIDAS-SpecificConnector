@@ -16,8 +16,6 @@ import javax.cache.Cache;
 import javax.cache.CacheException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
 import static org.apache.ignite.events.EventType.EVT_CACHE_OBJECT_PUT;
 import static org.apache.ignite.events.EventType.EVT_CACHE_OBJECT_REMOVED;
 import static org.junit.jupiter.api.Assertions.assertEquals;

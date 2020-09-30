@@ -19,7 +19,7 @@
 	<!-- issuer name -->
 	<entry key="issuer.name">specificConnectorCA</entry>
 	<!-- node's url to send the binary light token related to the request -->
-	<entry key="specific.connector.request.url">https://ee-eidas-connector:8084/EidasNode/SpecificConnectorRequest</entry>
+	<entry key="specific.connector.request.url">https://ee-eidas-connector:8443/EidasNode/SpecificConnectorRequest</entry>
 	<!--hazelcast distributed maps activation-->
 	<entry key="distributedMapsSpecificConnector">false</entry>
 	<entry key="relaystate.randomize.null">false</entry>

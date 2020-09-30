@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT,
@@ -23,7 +21,7 @@ public class ConnectorMetadataHealthIndicatorTests extends ApplicationHealthTest
         mockEidasNodeServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata"))
                 .willReturn(aResponse()
                         .withStatus(404)));
-        Response healthResponse =getHealthResponse();
+        Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.CONNECTOR_METADATA);
     }
 }

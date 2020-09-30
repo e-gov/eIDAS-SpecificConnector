@@ -1,12 +1,10 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
-import ee.ria.eidas.connector.specific.metadata.ServiceProviderMetadataResolver;
 import ee.ria.eidas.connector.specific.monitoring.ApplicationHealthTest;
 import io.restassured.response.Response;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;

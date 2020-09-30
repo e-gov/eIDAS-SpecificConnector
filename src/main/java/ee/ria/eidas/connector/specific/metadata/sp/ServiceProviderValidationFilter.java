@@ -1,4 +1,4 @@
-package ee.ria.eidas.connector.specific.metadata.validation;
+package ee.ria.eidas.connector.specific.metadata.sp;
 
 import ee.ria.eidas.connector.specific.exception.SpecificConnectorException;
 import lombok.extern.slf4j.Slf4j;
