@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.config;
 
+import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
 import lombok.*;
@@ -14,10 +15,10 @@ import javax.validation.constraints.*;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Collections.emptySet;
-import static java.util.Collections.unmodifiableSet;
+import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata.SUPPORTED_EIDAS_ATTRIBUTES;
+import static java.util.Arrays.asList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.toSet;
-import static java.util.stream.Stream.of;
 import static org.apache.xml.security.signature.XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256_MGF1;
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.*;
@@ -64,8 +65,8 @@ public class SpecificConnectorProperties {
 
     @Data
     public static class ResponderMetadata {
-
-        public static final Set<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableSet(of(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY)
+        public static final List<AttributeRegistry> SUPPORTED_EIDAS_ATTRIBUTES = unmodifiableList(asList(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY));
+        public static final Set<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableSet(SUPPORTED_EIDAS_ATTRIBUTES.stream()
                 .flatMap(registry -> registry.getAttributes().stream())
                 .map(def -> SupportedAttribute.builder()
                         .name(def.getNameUri().toString())
@@ -167,11 +168,23 @@ public class SpecificConnectorProperties {
 
     @Builder
     @Getter
-    @AllArgsConstructor
     @ConstructorBinding
     @EqualsAndHashCode
     @ToString
     public static class SupportedAttribute {
+
+        public SupportedAttribute(@NotEmpty String name, @NotEmpty String friendlyName) {
+            this.name = name;
+            this.friendlyName = friendlyName;
+            validateSupportedAttribute(name, friendlyName);
+        }
+
+        protected void validateSupportedAttribute(String name, String friendlyName) {
+            SUPPORTED_EIDAS_ATTRIBUTES.stream()
+                    .flatMap(registry -> registry.getAttributes().stream())
+                    .filter(def -> def.getNameUri().toString().equals(name) && def.getFriendlyName().equals(friendlyName)).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unsupported eIDAS attribute. Name: " + name + ", FriendlyName: " + friendlyName));
+        }
 
         @NotEmpty
         private final String name;
@@ -229,4 +242,5 @@ public class SpecificConnectorProperties {
         SP_REQUEST_CORRELATION_CACHE("specificMSSpRequestCorrelationMap");
         private final String name;
     }
+
 }
