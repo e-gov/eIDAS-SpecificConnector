@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static java.lang.Double.valueOf;
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
 import static java.time.Instant.ofEpochMilli;
@@ -81,12 +80,12 @@ public class ApplicationHealthEndpoint {
 
     private String getServiceStartTime() {
         TimeGauge startTime = meterRegistry.find("process.start.time").timeGauge();
-        return startTime != null ? ofEpochMilli(valueOf(startTime.value(MILLISECONDS)).longValue()).toString() : null;
+        return startTime != null ? ofEpochMilli((long) startTime.value(MILLISECONDS)).toString() : null;
     }
 
     private String getServiceUpTime() {
         TimeGauge upTime = meterRegistry.find("process.uptime").timeGauge();
-        return upTime != null ? ofSeconds(valueOf(upTime.value(SECONDS)).longValue()).toString() : null;
+        return upTime != null ? ofSeconds((long) upTime.value(SECONDS)).toString() : null;
     }
 
     private Map<String, Status> getHealthIndicatorStatuses() {
@@ -104,11 +103,14 @@ public class ApplicationHealthEndpoint {
         return anyNotUp.isPresent() ? Status.DOWN : Status.UP;
     }
 
-    private List<HashMap<String, String>> getFormattedStatuses(Map<String, Status> healthIndicatorStatuses) {
+    private List<Map<String, String>> getFormattedStatuses(Map<String, Status> healthIndicatorStatuses) {
         return healthIndicatorStatuses.entrySet().stream()
-                .map(healthIndicator -> new HashMap<String, String>() {{
-                    put("name", healthIndicator.getKey());
-                    put("status", healthIndicator.getValue().getCode());
-                }}).collect(toList());
+                .map(healthIndicator -> {
+                    Map<String, String> values = new HashMap<>();
+                    values.put("name", healthIndicator.getKey());
+                    values.put("status", healthIndicator.getValue().getCode());
+                    return values;
+                }).collect(toList());
     }
 }
+
