@@ -32,7 +32,7 @@ public class IDPSSODescriptorFactory {
         idpDescriptor.getKeyDescriptors().add(createKeyDescriptor(metadataSigningCredential));
         idpDescriptor.getSingleSignOnServices().addAll(createSingleSignOnServicesBindingLocations(responderMetadata));
         idpDescriptor.getAttributes().addAll(createSupportedAttributes(responderMetadata));
-        String nameIDFormat = responderMetadata.getNameIDFormat();
+        String nameIDFormat = responderMetadata.getNameIdFormat();
         if (nameIDFormat != null) {
             idpDescriptor.getNameIDFormats().add(createNameIDFormat(nameIDFormat));
         }

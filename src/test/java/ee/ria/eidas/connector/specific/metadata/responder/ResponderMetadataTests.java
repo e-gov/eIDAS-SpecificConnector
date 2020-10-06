@@ -125,14 +125,13 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
 
     @Test
     public void defaultSigningMethodsCanBeOverridden() {
-        List<SigningMethod> referenceList = asList(SigningMethod.builder().name(ALGO_ID_SIGNATURE_ECDSA_SHA512).minKeySize(128).maxKeySize(128).build(),
-                SigningMethod.builder().name(ALGO_ID_SIGNATURE_ECDSA_SHA256).minKeySize(256).maxKeySize(256).build());
+        List<SigningMethod> referenceList = asList(new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA512, 128, 128),
+                new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA256, 256, 256));
         NodeChildren nodeChildren = metadataResponse.xmlPath().getNodeChildren("EntityDescriptor.Extensions.SigningMethod");
         assertNotNull(nodeChildren);
-        List<SigningMethod> signingMethods = nodeChildren.list().stream().map(n -> SigningMethod.builder()
-                .name(n.getAttribute("Algorithm"))
-                .minKeySize(parseInt(n.getAttribute("MinKeySize")))
-                .maxKeySize(parseInt(n.getAttribute("MaxKeySize"))).build()).collect(toList());
+        List<SigningMethod> signingMethods = nodeChildren.list().stream().map(n -> new SigningMethod(n.getAttribute("Algorithm"),
+                parseInt(n.getAttribute("MinKeySize")),
+                parseInt(n.getAttribute("MaxKeySize")))).collect(toList());
         assertThat(signingMethods).containsExactlyElementsOf(referenceList);
     }
 
@@ -152,20 +151,18 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     @Test
     public void defaultSupportedAttributesCanBeOverridden() {
         List<SupportedAttribute> referenceList = of(NaturalPersonSpec.Definitions.PERSON_IDENTIFIER, NaturalPersonSpec.Definitions.DATE_OF_BIRTH)
-                .map(def -> SupportedAttribute.builder().name(def.getNameUri().toString()).friendlyName(def.getFriendlyName()).build())
+                .map(def -> new SupportedAttribute(def.getNameUri().toString(), def.getFriendlyName()))
                 .collect(toList());
         NodeChildren nodeChildren = metadataResponse.xmlPath().getNodeChildren("EntityDescriptor.IDPSSODescriptor.Attribute");
         assertNotNull(nodeChildren);
-        List<SupportedAttribute> signingMethods = nodeChildren.list().stream().map(n -> SupportedAttribute.builder()
-                .name(n.getAttribute("Name"))
-                .friendlyName(n.getAttribute("FriendlyName"))
-                .build()).collect(toList());
+        List<SupportedAttribute> signingMethods = nodeChildren.list().stream().map(n -> new SupportedAttribute(n.getAttribute("Name"),
+                n.getAttribute("FriendlyName"))).collect(toList());
         assertThat(signingMethods).containsExactlyElementsOf(referenceList);
     }
 
     @Test
     public void defaultNameIdFormatCanBeOverridden() {
-        assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", specificConnectorProperties.getResponderMetadata().getNameIDFormat());
+        assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", specificConnectorProperties.getResponderMetadata().getNameIdFormat());
         String nameIDFormat = metadataResponse.xmlPath().getString("EntityDescriptor.IDPSSODescriptor.NameIDFormat");
         assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", nameIDFormat);
     }

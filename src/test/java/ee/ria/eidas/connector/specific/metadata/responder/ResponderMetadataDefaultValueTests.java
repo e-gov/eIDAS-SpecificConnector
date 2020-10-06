@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Set;
@@ -70,11 +69,10 @@ public class ResponderMetadataDefaultValueTests extends SpecificConnectorTest {
     public void defaultSigningMethodsAreSet() {
         NodeChildren nodeChildren = metadataResponse.xmlPath().getNodeChildren("EntityDescriptor.Extensions.SigningMethod");
         assertNotNull(nodeChildren);
-        List<SigningMethod> signingMethods = nodeChildren.list().stream().map(n -> SigningMethod.builder()
-                .name(n.getAttribute("Algorithm"))
-                .minKeySize(parseInt(n.getAttribute("MinKeySize")))
-                .maxKeySize(parseInt(n.getAttribute("MaxKeySize"))).build()).collect(toList());
-        Set<SigningMethod> referenceList = SpecificConnectorProperties.ResponderMetadata.DEFAULT_SIGNING_METHODS;
+        List<SigningMethod> signingMethods = nodeChildren.list().stream().map(n -> new SigningMethod(n.getAttribute("Algorithm"),
+                parseInt(n.getAttribute("MinKeySize")),
+                parseInt(n.getAttribute("MaxKeySize")))).collect(toList());
+        List<SigningMethod> referenceList = SpecificConnectorProperties.ResponderMetadata.DEFAULT_SIGNING_METHODS;
         assertThat(signingMethods).containsExactlyElementsOf(referenceList);
     }
 
@@ -94,11 +92,9 @@ public class ResponderMetadataDefaultValueTests extends SpecificConnectorTest {
     public void defaultSupportedAttributesAreSet() {
         NodeChildren nodeChildren = metadataResponse.xmlPath().getNodeChildren("EntityDescriptor.IDPSSODescriptor.Attribute");
         assertNotNull(nodeChildren);
-        List<SupportedAttribute> signingMethods = nodeChildren.list().stream().map(n -> SupportedAttribute.builder()
-                .name(n.getAttribute("Name"))
-                .friendlyName(n.getAttribute("FriendlyName"))
-                .build()).collect(toList());
-        Set<SupportedAttribute> referenceList = SpecificConnectorProperties.ResponderMetadata.DEFAULT_SUPPORTED_ATTRIBUTES;
+        List<SupportedAttribute> signingMethods = nodeChildren.list().stream().map(n -> new SupportedAttribute(n.getAttribute("Name"), n.getAttribute("FriendlyName")))
+                .collect(toList());
+        List<SupportedAttribute> referenceList = SpecificConnectorProperties.ResponderMetadata.DEFAULT_SUPPORTED_ATTRIBUTES;
         assertThat(signingMethods).containsExactlyElementsOf(referenceList);
     }
 
