@@ -4,8 +4,6 @@ import eu.eidas.auth.commons.attribute.AttributeRegistries;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
-import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeLegalPersonSpec;
-import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeNaturalPersonSpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;

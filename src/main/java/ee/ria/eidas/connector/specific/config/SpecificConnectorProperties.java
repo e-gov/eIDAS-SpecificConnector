@@ -2,8 +2,6 @@ package ee.ria.eidas.connector.specific.config;
 
 import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
-import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeLegalPersonSpec;
-import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeNaturalPersonSpec;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.opensaml.saml.common.xml.SAMLConstants;
@@ -13,7 +11,6 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
-import java.security.KeyStore;
 import java.util.List;
 import java.util.Set;
 
@@ -39,9 +36,6 @@ public class SpecificConnectorProperties {
     @NotEmpty
     @Pattern(regexp = "^https://.*$", message = "Must use https protocol")
     private final String specificConnectorRequestUrl;
-
-    @Valid
-    private final CacheProperties communicationCache;
 
     @Valid
     private final ResponderMetadata responderMetadata;
@@ -228,22 +222,11 @@ public class SpecificConnectorProperties {
     }
 
     @Getter
-    @AllArgsConstructor
-    @ConstructorBinding
-    public static class CacheProperties {
-
-        @NotNull
-        private final String igniteConfigurationFileLocation;
-
-        private final String igniteConfigurationBeanName = "igniteSpecificCommunication.cfg";
-
-        @Getter
-        @RequiredArgsConstructor
-        public enum CacheNames {
-            INCOMING_NODE_REQUESTS_CACHE("specificNodeConnectorRequestCache"),
-            OUTGOING_NODE_RESPONSES_CACHE("nodeSpecificConnectorResponseCache"),
-            SP_REQUEST_CORRELATION_CACHE("specificMSSpRequestCorrelationMap");
-            private final String name;
-        }
+    @RequiredArgsConstructor
+    public enum CacheNames {
+        INCOMING_NODE_REQUESTS_CACHE("specificNodeConnectorRequestCache"),
+        OUTGOING_NODE_RESPONSES_CACHE("nodeSpecificConnectorResponseCache"),
+        SP_REQUEST_CORRELATION_CACHE("specificMSSpRequestCorrelationMap");
+        private final String name;
     }
 }
