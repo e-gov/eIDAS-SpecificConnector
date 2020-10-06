@@ -87,7 +87,7 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     @Bean
     public KeyStore responderMetadataKeyStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
             IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+        KeyStore keystore = KeyStore.getInstance(connectorProperties.getResponderMetadata().getKeyStoreType());
         Resource resource = resourceLoader.getResource(connectorProperties.getResponderMetadata().getKeyStore());
         keystore.load(resource.getInputStream(), connectorProperties.getResponderMetadata().getKeyStorePassword().toCharArray());
         return keystore;
@@ -96,7 +96,7 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     @Bean
     public KeyStore responderMetadataTrustStore(SpecificConnectorProperties connectorProperties, ResourceLoader resourceLoader) throws KeyStoreException,
             IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+        KeyStore keystore = KeyStore.getInstance(connectorProperties.getResponderMetadata().getTrustStoreType());
         Resource resource = resourceLoader.getResource(connectorProperties.getResponderMetadata().getTrustStore());
         keystore.load(resource.getInputStream(), connectorProperties.getResponderMetadata().getTrustStorePassword().toCharArray());
         return keystore;

@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+import java.security.KeyStore;
 import java.util.List;
 import java.util.Set;
 
@@ -99,10 +100,16 @@ public class SpecificConnectorProperties {
         private String trustStore;
 
         @NotEmpty
+        private String trustStoreType = "PKCS12";
+
+        @NotEmpty
         private String trustStorePassword;
 
         @NotEmpty
         private String keyStore;
+
+        @NotEmpty
+        private String keyStoreType = "PKCS12";
 
         @NotEmpty
         private String keyStorePassword;
