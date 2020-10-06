@@ -71,24 +71,17 @@ public class SpecificConnectorProperties {
     @Data
     public static class ResponderMetadata {
 
-        public static final Set<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableSet(of(
-                NaturalPersonSpec.Definitions.PERSON_IDENTIFIER,
-                NaturalPersonSpec.Definitions.DATE_OF_BIRTH,
-                NaturalPersonSpec.Definitions.CURRENT_FAMILY_NAME,
-                NaturalPersonSpec.Definitions.CURRENT_GIVEN_NAME,
-                RepresentativeNaturalPersonSpec.Definitions.PERSON_IDENTIFIER,
-                RepresentativeNaturalPersonSpec.Definitions.DATE_OF_BIRTH,
-                RepresentativeNaturalPersonSpec.Definitions.CURRENT_FAMILY_NAME,
-                RepresentativeNaturalPersonSpec.Definitions.CURRENT_GIVEN_NAME,
-                LegalPersonSpec.Definitions.LEGAL_PERSON_IDENTIFIER,
-                LegalPersonSpec.Definitions.LEGAL_NAME,
-                RepresentativeLegalPersonSpec.Definitions.LEGAL_PERSON_IDENTIFIER,
-                RepresentativeLegalPersonSpec.Definitions.LEGAL_NAME)
-                .map(def -> SupportedAttribute.builder().name(def.getNameUri().toString()).friendlyName(def.getFriendlyName()).build())
+        public static final Set<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableSet(of(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY)
+                .flatMap(registry -> registry.getAttributes().stream())
+                .map(def -> SupportedAttribute.builder()
+                        .name(def.getNameUri().toString())
+                        .friendlyName(def.getFriendlyName())
+                        .build())
                 .collect(toSet()));
 
         public static final Set<String> DEFAULT_DIGEST_METHODS = unmodifiableSet(asSet("http://www.w3.org/2001/04/xmlenc#sha256", "http://www.w3.org/2001/04/xmlenc#sha512"));
-        public static final Set<@Valid SigningMethod> DEFAULT_SIGNING_METHODS = unmodifiableSet(asSet(SigningMethod.builder().name(ALGO_ID_SIGNATURE_ECDSA_SHA512).minKeySize(384).maxKeySize(384).build(),
+        public static final Set<@Valid SigningMethod> DEFAULT_SIGNING_METHODS = unmodifiableSet(asSet(
+                SigningMethod.builder().name(ALGO_ID_SIGNATURE_ECDSA_SHA512).minKeySize(384).maxKeySize(384).build(),
                 SigningMethod.builder().name(ALGO_ID_SIGNATURE_ECDSA_SHA256).minKeySize(384).maxKeySize(384).build(),
                 SigningMethod.builder().name(ALGO_ID_SIGNATURE_RSA_SHA256_MGF1).minKeySize(4096).maxKeySize(4096).build()));
         public static final Set<String> DEFAULT_SUPPORTED_BINDINGS = unmodifiableSet(asSet(SAMLConstants.SAML2_POST_BINDING_URI, SAMLConstants.SAML2_REDIRECT_BINDING_URI));

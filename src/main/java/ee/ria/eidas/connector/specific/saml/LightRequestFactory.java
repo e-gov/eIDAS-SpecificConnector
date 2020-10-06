@@ -24,7 +24,7 @@ import static org.apache.commons.lang.StringUtils.isNotEmpty;
 public class LightRequestFactory {
 
     @Autowired
-    private AttributeRegistry eidasAttributeRegistry;
+    private AttributeRegistry supportedAttributesRegistry;
 
     public LightRequest createLightRequest(AuthnRequest authnRequest, String country, String relayState, String spType) {
         LightRequest.Builder builder = LightRequest.builder()
@@ -64,7 +64,7 @@ public class LightRequestFactory {
         requestedAttributes.getOrderedChildren().forEach(requestedAttribute -> {
             Element element = requestedAttribute.getDOM();
             if (element != null) {
-                AttributeDefinition<?> attribute = eidasAttributeRegistry.getByName(element.getAttribute("Name"));
+                AttributeDefinition<?> attribute = supportedAttributesRegistry.getByName(element.getAttribute("Name"));
                 if (attribute != null) {
                     requestedAttributesBuilder.put(attribute);
                 }

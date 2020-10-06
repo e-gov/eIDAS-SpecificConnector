@@ -73,9 +73,8 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public AttributeRegistry eidasAttributeRegistry() {
-        return AttributeRegistries.copyOf(NaturalPersonSpec.REGISTRY, RepresentativeNaturalPersonSpec.REGISTRY,
-                LegalPersonSpec.REGISTRY, RepresentativeLegalPersonSpec.REGISTRY);
+    public AttributeRegistry supportedAttributesRegistry() {
+        return AttributeRegistries.copyOf(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY);
     }
 
     @Bean

@@ -81,7 +81,7 @@ public class EidasNodeCommunication {
     private Cache<String, String> nodeSpecificConnectorResponseCache;
 
     @Autowired
-    private AttributeRegistry eidasAttributeRegistry;
+    private AttributeRegistry supportedAttributesRegistry;
 
     private static LightJAXBCodec codec;
 
@@ -121,7 +121,7 @@ public class EidasNodeCommunication {
         Assert.isTrue(StringUtils.isNotEmpty(binaryLightTokenBase64), "Token value cannot be null or empty!");
         try {
             final String lightTokenId = getBinaryLightTokenId(binaryLightTokenBase64, lightTokenResponseSecret, lightTokenResponseAlgorithm);
-            final ILightResponse lightResponse = codec.unmarshallResponse(nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId), eidasAttributeRegistry.getAttributes());
+            final ILightResponse lightResponse = codec.unmarshallResponse(nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId), supportedAttributesRegistry.getAttributes());
             // TODO: log LightResponse
             log.info("Removed LightResponse from communication cache. Token id: {}", lightTokenId);
             return lightResponse;
