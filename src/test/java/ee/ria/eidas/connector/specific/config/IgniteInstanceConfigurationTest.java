@@ -16,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.concurrent.CountDownLatch;
 
+import static ch.qos.logback.classic.Level.ERROR;
+import static ch.qos.logback.classic.Level.WARN;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.ignite.events.EventType.EVT_CLIENT_NODE_DISCONNECTED;
 import static org.apache.ignite.events.EventType.EVT_CLIENT_NODE_RECONNECTED;
@@ -29,10 +31,10 @@ class IgniteInstanceConfigurationTest extends SpecificConnectorTest {
     private static final long RECONNECT_TIMEOUT = 10_000;
 
     @Autowired
-    private Ignite igniteClient;
+    Ignite igniteClient;
 
     @Test
-    void igniteClientReconnectWhenDisconnected() throws Exception {
+    void igniteClientReconnectWhen_Disconnected() throws Exception {
         DiscoverySpi serverDiscoverySpi = eidasNodeIgnite.configuration().getDiscoverySpi();
         IgniteDiscoverySpi clientDiscoverySpi = (IgniteDiscoverySpi) igniteClient.configuration().getDiscoverySpi();
         CountDownLatch disconnectLatch = new CountDownLatch(1);
@@ -58,9 +60,9 @@ class IgniteInstanceConfigurationTest extends SpecificConnectorTest {
         clientSpiListener.stopBlockJoin();
         waitEvent(reconnectLatch);
 
-        assertWarningIsLogged(TcpDiscoverySpi.class, "Local node was dropped from cluster due to network problems");
-        assertErrorIsLogged(TcpDiscoverySpi.class, "Failed to send message: TcpDiscoveryClientMetricsUpdateMessage");
-        assertWarningIsLogged(TcpDiscoverySpi.class, "Client node was reconnected after it was already considered failed by the server topology");
+        assertTestLogs(TcpDiscoverySpi.class, WARN, "Local node was dropped from cluster due to network problems");
+        assertTestLogs(TcpDiscoverySpi.class, ERROR, "Failed to send message: TcpDiscoveryClientMetricsUpdateMessage");
+        assertTestLogs(TcpDiscoverySpi.class, WARN, "Client node was reconnected after it was already considered failed by the server topology");
     }
 
     private void waitEvent(CountDownLatch latch) throws Exception {

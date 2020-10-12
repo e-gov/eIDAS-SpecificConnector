@@ -10,10 +10,13 @@
         </encoder>
     </appender>
 
+    <appender name="applicationLogAppender" class="ch.qos.logback.core.read.ListAppender"/>
+
     <logger name="ee.ria.eidas" level="INFO" />
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
+        <appender-ref ref="applicationLogAppender" />
     </root>
 
 </configuration>

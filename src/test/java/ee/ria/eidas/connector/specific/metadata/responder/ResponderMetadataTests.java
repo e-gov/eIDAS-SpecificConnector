@@ -1,7 +1,6 @@
 package ee.ria.eidas.connector.specific.metadata.responder;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
-import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SigningMethod;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SupportedAttribute;
 import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
@@ -67,13 +66,10 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     private Response metadataResponse;
 
     @Autowired
-    private SpecificConnectorProperties specificConnectorProperties;
-
-    @Autowired
-    private ResponderMetadataSigner responderMetadataSigner;
+    ResponderMetadataSigner responderMetadataSigner;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         metadataRequestTime = DateTime.now();
         metadataResponse = given()
                 .when()
@@ -85,7 +81,7 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     }
 
     @Test
-    public void metadataIsSignedAndContainsSigningCertificate() throws CertificateEncodingException, UnmarshallingException, XMLParserException, SignatureException {
+    void metadataIsSignedAndContainsSigningCertificate() throws CertificateEncodingException, UnmarshallingException, XMLParserException, SignatureException {
         String X509Certificate = metadataResponse.xmlPath().getString("EntityDescriptor.Signature.KeyInfo.X509Data.X509Certificate");
         BasicX509Credential signingCredential = (BasicX509Credential) responderMetadataSigner.getSigningCredential();
         byte[] derEncoded = signingCredential.getEntityCertificate().getEncoded();
@@ -96,27 +92,27 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     }
 
     @Test
-    public void entityIdIsSet() {
+    void entityIdIsSet() {
         String entityID = metadataResponse.xmlPath().getString("EntityDescriptor.@entityID");
         assertEquals(specificConnectorProperties.getResponderMetadata().getEntityId(), entityID);
     }
 
     @Test
-    public void defaultSPTypeCanBeOverridden() {
+    void defaultSPTypeCanBeOverridden() {
         assertEquals("private", specificConnectorProperties.getResponderMetadata().getSpType());
         String spType = metadataResponse.xmlPath().getString("EntityDescriptor.Extensions.SPType");
         assertEquals("private", spType);
     }
 
     @Test
-    public void defaultValidityInDaysCanBeOverridden() {
+    void defaultValidityInDaysCanBeOverridden() {
         assertEquals(2, specificConnectorProperties.getResponderMetadata().getValidityInDays());
         DateTime validUntil = DateTime.parse(metadataResponse.xmlPath().getString("EntityDescriptor.@validUntil"));
         assertEquals(48, Hours.hoursBetween(metadataRequestTime, validUntil).getHours());
     }
 
     @Test
-    public void defaultDigestMethodsCanBeOverridden() {
+    void defaultDigestMethodsCanBeOverridden() {
         List<String> referenceList = asList("http://www.w3.org/2000/09/xmldsig#sha1", "http://www.w3.org/2001/04/xmldsig-more#sha224");
         List<String> metadataDigestMethods = metadataResponse.xmlPath().getList("EntityDescriptor.Extensions.DigestMethod.@Algorithm");
         assertThat(specificConnectorProperties.getResponderMetadata().getDigestMethods()).containsExactlyElementsOf(referenceList);
@@ -124,7 +120,7 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     }
 
     @Test
-    public void defaultSigningMethodsCanBeOverridden() {
+    void defaultSigningMethodsCanBeOverridden() {
         List<SigningMethod> referenceList = asList(new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA512, 128, 128),
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA256, 256, 256));
         NodeChildren nodeChildren = metadataResponse.xmlPath().getNodeChildren("EntityDescriptor.Extensions.SigningMethod");
@@ -136,7 +132,7 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     }
 
     @Test
-    public void defaultSupportedBindingsCanBeOverridden() {
+    void defaultSupportedBindingsCanBeOverridden() {
         List<String> referenceBindingList = singletonList(SAMLConstants.SAML2_REDIRECT_BINDING_URI);
         List<String> metadataSupportedBindings = metadataResponse.xmlPath().getList("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding");
         assertThat(specificConnectorProperties.getResponderMetadata().getSupportedBindings()).containsExactlyElementsOf(referenceBindingList);
@@ -149,7 +145,7 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     }
 
     @Test
-    public void defaultSupportedAttributesCanBeOverridden() {
+    void defaultSupportedAttributesCanBeOverridden() {
         List<SupportedAttribute> referenceList = of(NaturalPersonSpec.Definitions.PERSON_IDENTIFIER, NaturalPersonSpec.Definitions.DATE_OF_BIRTH)
                 .map(def -> new SupportedAttribute(def.getNameUri().toString(), def.getFriendlyName()))
                 .collect(toList());
@@ -161,7 +157,7 @@ public class ResponderMetadataTests extends SpecificConnectorTest {
     }
 
     @Test
-    public void defaultNameIdFormatCanBeOverridden() {
+    void defaultNameIdFormatCanBeOverridden() {
         assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", specificConnectorProperties.getResponderMetadata().getNameIdFormat());
         String nameIDFormat = metadataResponse.xmlPath().getString("EntityDescriptor.IDPSSODescriptor.NameIDFormat");
         assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", nameIDFormat);

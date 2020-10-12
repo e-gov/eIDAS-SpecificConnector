@@ -93,7 +93,7 @@ public class ResponseFactory {
         assertion.getAttributeStatements().add(createAttributeStatement(lightResponse));
         assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, lightResponse.getLevelOfAssurance()));
         assertion.setConditions(createConditions(issueInstant, spMetadata));
-        if (spMetadata.getWantAssertionsSigned()) {
+        if (spMetadata.isWantAssertionsSigned()) {
             responderMetadataSigner.sign(assertion);
         }
         return spMetadata.encrypt(assertion);

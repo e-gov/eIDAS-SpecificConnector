@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><saml2p:AuthnRequest xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified" Destination="https://eidas-caproxy:8443/EidasNode/ColleagueRequest" ForceAuthn="true" ID="_665014a2a6a2b2210a27ff11cf0d0896" IsPassive="false" IssueInstant="2020-10-10T22:46:12.392Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Version="2.0"><saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://localhost:9999/metadata/EidasNode/ConnectorMetadata</saml2:Issuer><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+<ds:SignedInfo>
+<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>
+<ds:Reference URI="#_665014a2a6a2b2210a27ff11cf0d0896">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>YXXodgD/nhgcXyBIakzHgrj6YrtYKE8lcq3rlddy6kg=</ds:DigestValue>
+</ds:Reference>
+</ds:SignedInfo>
+<ds:SignatureValue>
+KDXt246LJSAeo9rOPQXCCJ1t1FdRfLADfPpDfEjqYYNPw+PxEJsozqbWBvLByyitLRvpICBvJooi&#13;
+zt4vwH4RmQ==
+</ds:SignatureValue>
+<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIB4TCCAYagAwIBAgIEX4Ip0jAKBggqhkjOPQQDAjB4MQswCQYDVQQGEwJFRTENMAsGA1UECAwE
+dGVzdDENMAsGA1UEBwwEdGVzdDENMAsGA1UECgwEdGVzdDENMAsGA1UECwwEdGVzdDEtMCsGA1UE
+AwwkZWlkYXMtZWVzZXJ2aWNlcHJvdmlkZXItc2lnbi1leHBpcmVkMB4XDTE5MDkzMDIxMzgyNloX
+DTIwMDkzMDIxMzgyNloweDELMAkGA1UEBhMCRUUxDTALBgNVBAgMBHRlc3QxDTALBgNVBAcMBHRl
+c3QxDTALBgNVBAoMBHRlc3QxDTALBgNVBAsMBHRlc3QxLTArBgNVBAMMJGVpZGFzLWVlc2Vydmlj
+ZXByb3ZpZGVyLXNpZ24tZXhwaXJlZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABBVCFxhQTeuD
++9FWUYyJMFvZ8xnmzVjbQZerR4kxWwZt14W1NZ+THMv6d0E3AVbH05peC5Lm0GnMC2nulR9SvNQw
+CgYIKoZIzj0EAwIDSQAwRgIhAMEHaQ6ApXOjN5fQiD/aqPeUSSf0FforLGPB2NRtvPc8AiEAhuDH
+IiYsq/MufRCJVYXKu5hT9uz0n1CoblKVLKVCocM=</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature><saml2p:Extensions><eidas:SPType xmlns:eidas="http://eidas.europa.eu/saml-extensions">public</eidas:SPType><eidas:RequestedAttributes xmlns:eidas="http://eidas.europa.eu/saml-extensions"><eidas:RequestedAttribute FriendlyName="FirstName" Name="http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/><eidas:RequestedAttribute FriendlyName="FamilyName" Name="http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/><eidas:RequestedAttribute FriendlyName="DateOfBirth" Name="http://eidas.europa.eu/attributes/naturalperson/DateOfBirth" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/><eidas:RequestedAttribute FriendlyName="PersonIdentifier" Name="http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true"/></eidas:RequestedAttributes></saml2p:Extensions><saml2p:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"/><saml2p:RequestedAuthnContext Comparison="minimum"><saml2:AuthnContextClassRef xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">http://eidas.europa.eu/LoA/low</saml2:AuthnContextClassRef></saml2p:RequestedAuthnContext></saml2p:AuthnRequest>

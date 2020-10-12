@@ -27,7 +27,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
     TruststoreHealthIndicator truststoreHealthIndicator;
 
     @Test
-    public void noTruststoreWarningsWhenWarningPeriodNotMet() {
+    void noTruststoreWarningsWhen_WarningPeriodNotMet() {
         Instant expectedTime = Instant.parse("2021-04-13T08:50:00Z");
         Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(expectedTime, of("UTC")));
         Response healthResponse = getHealthResponse();
@@ -38,7 +38,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void truststoreWarningWhenCertificateAboutToExpire() {
+    void truststoreWarningWhen_CertificateAboutToExpire() {
         Instant expectedTime = Instant.parse("2021-04-14T08:50:00Z");
         Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(expectedTime, of("UTC")));
         Response healthResponse = getHealthResponse();
@@ -53,7 +53,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void truststoreWarningAndHealthStatusDownWhenCertificateExpired() {
+    void truststoreWarningAndHealthStatusDownWhen_CertificateExpired() {
         Instant expectedTime = Instant.parse("2021-05-13T08:51:00Z");
         Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(expectedTime, of("UTC")));
         Response healthResponse = getHealthResponse();

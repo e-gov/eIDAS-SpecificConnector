@@ -17,7 +17,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 public class ConnectorMetadataHealthIndicatorTests extends ApplicationHealthTest {
 
     @Test
-    public void healthStatusDownWhenEidasNodeDown() {
+    void healthStatusDownWhen_EidasNodeDown() {
         mockEidasNodeServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata"))
                 .willReturn(aResponse()
                         .withStatus(404)));

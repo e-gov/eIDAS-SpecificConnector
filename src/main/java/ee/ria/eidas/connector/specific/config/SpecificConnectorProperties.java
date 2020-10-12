@@ -1,21 +1,23 @@
 package ee.ria.eidas.connector.specific.config;
 
+import ee.ria.eidas.connector.specific.validation.SpELAssert;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.constraints.URL;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata.SUPPORTED_EIDAS_ATTRIBUTES;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
@@ -23,6 +25,7 @@ import static org.apache.xml.security.signature.XMLSignature.ALGO_ID_SIGNATURE_R
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.*;
 
+@Slf4j
 @Data
 @Validated
 @ConfigurationProperties(prefix = "eidas.connector")
@@ -32,22 +35,43 @@ public class SpecificConnectorProperties {
     private String appInstanceId;
 
     @NotEmpty
-    @Pattern(regexp = "^https://.*$", message = "Must use https protocol")
+    @URL(protocol = "https")
     private String specificConnectorRequestUrl;
 
     @Valid
     private ResponderMetadata responderMetadata;
 
+    @SpELAssert(value = "new java.util.HashSet(#this.![id]).size() == #this.size()", message = "Service provider not unique", appliesTo = "id")
+    @SpELAssert(value = "new java.util.HashSet(#this.![entityId]).size() == #this.size()", message = "Service provider not unique", appliesTo = "entityId")
+    @SpELAssert(value = "new java.util.HashSet(#this.![keyAlias]).size() == #this.size()", message = "Service provider not unique", appliesTo = "keyAlias")
     private List<@Valid ServiceProvider> serviceProviders = new ArrayList<>();
 
+    @NotNull
+    @Min(value = 1000L)
+    @Max(value = 31536000000L)
+    private Long serviceProviderMetadataMinRefreshDelay = 60000L;
+
+    @NotNull
+    @Min(value = 60000L)
+    @Max(value = 315360000000L)
+    private Long serviceProviderMetadataMaxRefreshDelay = 14400000L;
+
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    @DecimalMax(value = "1.0", inclusive = false)
+    private BigDecimal serviceProviderMetadataRefreshDelayFactor = BigDecimal.valueOf(0.75);
+
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ServiceProvider {
 
         @NotEmpty
         private String id;
 
         @NotEmpty
-        @Pattern(regexp = "^https://.*$", message = "Must use https protocol")
+        @URL(protocol = "https")
         private String entityId;
 
         @NotEmpty
@@ -55,13 +79,15 @@ public class SpecificConnectorProperties {
 
         @NotEmpty
         @Pattern(regexp = "^(public|private)$", message = "Invalid Service Provider type")
-        private String type;
+        private String type = "public";
     }
 
     @Data
     public static class ResponderMetadata {
+
         @Getter(AccessLevel.NONE)
         public static List<AttributeRegistry> SUPPORTED_EIDAS_ATTRIBUTES = unmodifiableList(asList(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY));
+
         @Getter(AccessLevel.NONE)
         public static List<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableList(SUPPORTED_EIDAS_ATTRIBUTES.stream()
                 .flatMap(registry -> registry.getAttributes().stream())
@@ -69,14 +95,18 @@ public class SpecificConnectorProperties {
                 .collect(toList()));
 
         @Getter(AccessLevel.NONE)
-        public static Set<String> DEFAULT_DIGEST_METHODS = unmodifiableSet(asSet("http://www.w3.org/2001/04/xmlenc#sha256", "http://www.w3.org/2001/04/xmlenc#sha512"));
+        public static Set<String> DEFAULT_DIGEST_METHODS = unmodifiableSet(asSet("http://www.w3.org/2001/04/xmlenc#sha256",
+                "http://www.w3.org/2001/04/xmlenc#sha512"));
+
         @Getter(AccessLevel.NONE)
         public static List<SigningMethod> DEFAULT_SIGNING_METHODS = unmodifiableList(asList(
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA512, 384, 384),
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA256, 384, 384),
                 new SigningMethod(ALGO_ID_SIGNATURE_RSA_SHA256_MGF1, 4096, 4096)));
+
         @Getter(AccessLevel.NONE)
-        public static Set<String> DEFAULT_SUPPORTED_BINDINGS = unmodifiableSet(asSet(SAMLConstants.SAML2_POST_BINDING_URI, SAMLConstants.SAML2_REDIRECT_BINDING_URI));
+        public static Set<String> DEFAULT_SUPPORTED_BINDINGS = unmodifiableSet(asSet(SAMLConstants.SAML2_POST_BINDING_URI,
+                SAMLConstants.SAML2_REDIRECT_BINDING_URI));
 
         @Pattern(regexp = "^/[a-zA-Z]+$", message = "Invalid responder metadata endpoint path")
         private String path;
@@ -111,16 +141,6 @@ public class SpecificConnectorProperties {
         @NotEmpty
         private String ssoServiceUrl;
 
-        private Set<@Pattern(regexp = "^(urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST|urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect)$",
-                message = "Invalid md:EntityDescriptor/md:IDPSSODescriptor/md:SingleSignOnService/@Binding") String> supportedBindings = DEFAULT_SUPPORTED_BINDINGS;
-
-        private Set<@Pattern(regexp = "^[A-Z]{2}$") String> supportedMemberStates = emptySet(); // TODO: SP request validation? SP metadata resolver chek?
-
-        @Valid
-        private Organization organization;
-
-        private List<@Valid Contact> contacts;
-
         @Pattern(regexp = "^(urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified|urn:oasis:names:tc:SAML:2.0:nameid-format:transient|urn:oasis:names:tc:SAML:2.0:nameid-format:persistent)$",
                 message = "Invalid md:EntityDescriptor/md:IDPSSODescriptor/md:NameIDFormat")
         private String nameIdFormat;
@@ -135,19 +155,30 @@ public class SpecificConnectorProperties {
         @Max(value = 365)
         private Integer validityInDays = 1;
 
+        @Valid
+        private Organization organization;
+
+        private Set<@Pattern(regexp = "^(urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST|urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect)$",
+                message = "Invalid md:EntityDescriptor/md:IDPSSODescriptor/md:SingleSignOnService/@Binding") String> supportedBindings = DEFAULT_SUPPORTED_BINDINGS;
+
+        private Set<@Pattern(regexp = "^[A-Z]{2}$") String> supportedMemberStates = emptySet(); // TODO: SP request country validation
+
+        private List<@Valid Contact> contacts;
+
         @Size(min = 1)
         private Set<@NotEmpty String> digestMethods = DEFAULT_DIGEST_METHODS; // TODO: Not sure how its used. SP metadata validation?
 
         @Size(min = 1)
         private List<@Valid SigningMethod> signingMethods = DEFAULT_SIGNING_METHODS; // TODO: Not sure how its used. SP metadata validation?
 
-        @Valid
         private List<@Valid SupportedAttribute> supportedAttributes = DEFAULT_SUPPORTED_ATTRIBUTES;
     }
 
     @Data
+    @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @SpELAssert(value = "#this.minKeySize <= #this.maxKeySize", message = "minKeySize <= maxKeySize", appliesTo = "minKeySize")
     public static class SigningMethod {
 
         @NotEmpty
@@ -160,30 +191,20 @@ public class SpecificConnectorProperties {
         private Integer maxKeySize;
     }
 
-    @Getter
+    @Data
     @ToString
-    @EqualsAndHashCode
-    @ConstructorBinding
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @SpELAssert(value = "@supportedAttributesRegistry.getByName(#this.name) != null", message = "eIDAS Attribute not supported", appliesTo = "name")
+    @SpELAssert(value = "@supportedAttributesRegistry.getByFriendlyName(#this.friendlyName).size() == 1", message = "eIDAS Attribute not supported", appliesTo = "friendlyName")
     public static class SupportedAttribute {
 
-        public SupportedAttribute(@NotEmpty String name, @NotEmpty String friendlyName) {
-            this.name = name;
-            this.friendlyName = friendlyName;
-            validateSupportedAttribute(name, friendlyName);
-        }
-
-        protected void validateSupportedAttribute(String name, String friendlyName) {
-            SUPPORTED_EIDAS_ATTRIBUTES.stream()
-                    .flatMap(registry -> registry.getAttributes().stream())
-                    .filter(def -> def.getNameUri().toString().equals(name) && def.getFriendlyName().equals(friendlyName)).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Unsupported eIDAS attribute. Name: " + name + ", FriendlyName: " + friendlyName));
-        }
+        @NotEmpty
+        private String name;
 
         @NotEmpty
-        private final String name;
-
-        @NotEmpty
-        private final String friendlyName;
+        private String friendlyName;
     }
 
     @Data
@@ -231,4 +252,5 @@ public class SpecificConnectorProperties {
         SP_REQUEST_CORRELATION_CACHE("specificMSSpRequestCorrelationMap");
         private final String name;
     }
+
 }

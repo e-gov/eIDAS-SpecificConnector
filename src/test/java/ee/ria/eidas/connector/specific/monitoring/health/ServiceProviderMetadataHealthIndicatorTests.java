@@ -7,6 +7,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static ch.qos.logback.classic.Level.INFO;
+import static ch.qos.logback.classic.Level.WARN;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,53 +29,65 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     public static final String ERROR_FILTERING_METADATA = "Error filtering metadata from https://localhost:8888/metadata";
 
     @Test
-    public void healthStatusUpWhenValidMetadata() throws ResolverException {
-        updateServiceProviderMetadata("valid-metadata.xml");
-        serviceProviderMetadataResolver.getByEntityId(SP_ENTITY_ID).refreshMetadata();
+    void healthStatusUpWhen_ValidMetadata() throws ResolverException {
+        updateServiceProviderMetadata("sp-valid-metadata.xml");
+        serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
         Response healthResponse = getHealthResponse();
         assertAllDependenciesUp(healthResponse);
     }
 
     @Test
-    public void healthStatusDownWhenInvalidEntityId() {
-        updateServiceProviderMetadata("invalid-entity-id.xml");
-        assertServiceProviderMetadata("Invalid Service provider metadata entity id");
+    void healthStatusDownWhen_InvalidEntityId() {
+        updateServiceProviderMetadata("sp-invalid-entity-id.xml");
+        assertServiceProviderMetadata("Invalid Service provider metadata entityId");
     }
 
     @Test
-    public void healthStatusDownWhenInvalidSPType() {
-        updateServiceProviderMetadata("invalid-sp-type.xml");
-        assertServiceProviderMetadata("Invalid Service provider metadata SPType");
+    void healthStatusDownWhen_InvalidSPType() {
+        updateServiceProviderMetadata("sp-invalid-sp-type.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid Service provider metadata SPType");
     }
 
     @Test
-    public void healthStatusDownWhenInvalidSignerCert() {
-        updateServiceProviderMetadata("invalid-signer-cert.xml");
+    void healthStatusDownWhen_InvalidSignerCert() {
+        updateServiceProviderMetadata("sp-invalid-signer-cert.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
+                "Signature trust establishment failed for metadata entry");
+    }
+
+    @Test
+    void healthStatusDownWhen_InvalidSignature() {
+        updateServiceProviderMetadata("sp-invalid-signature.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
+                "Signature trust establishment failed for metadata entry");
+    }
+
+    @Test
+    void healthStatusDownWhen_ModifiedContent() {
+        updateServiceProviderMetadata("sp-modified-content.xml");
         assertServiceProviderMetadata(ERROR_FILTERING_METADATA);
+        assertTestLogs(WARN, "Verification failed for URI \"#_hixqcccubh4zhy3k314yx8x2f6ucqyuyxz31cjb\"",
+                "Expected Digest: jFuAdSyo/nKvMNUjksbhIqTCbds1qlArJjS5QGUasGvAsl66y08C8ZgkK94bheYd6Ovf6S7dgIfg",
+                "Actual Digest: 1+C2BkDtXNgF4dB4FI2XzymY8kpRVmkXxRYV1J5Ctfs9lKBwvLBri3jnyJpRQG9VQ9erSa6kA9p/");
     }
 
     @Test
-    public void healthStatusDownWhenInvalidSignature() {
-        updateServiceProviderMetadata("invalid-signature.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA);
+    void healthStatusDownWhen_InvalidNameIdFormat() {
+        updateServiceProviderMetadata("sp-invalid-name-id-format.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
+                "Invalid Service Provider metadata NameIDFormat");
     }
 
     @Test
-    public void healthStatusDownWhenModifiedContent() {
-        updateServiceProviderMetadata("modified-content.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA);
-    }
-
-    @Test
-    public void healthStatusDownWhenMissingValidUntil() {
-        updateServiceProviderMetadata("missing-valid-until.xml");
+    void healthStatusDownWhen_MissingValidUntil() {
+        updateServiceProviderMetadata("sp-missing-valid-until.xml");
         assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
                 "Metadata did not include a validUntil attribute");
     }
 
     @Test
-    public void healthStatusDownWhenMissingAssertionConsumerService() {
-        updateServiceProviderMetadata("missing-assertion-consumer.xml");
+    void healthStatusDownWhen_MissingAssertionConsumerService() {
+        updateServiceProviderMetadata("sp-missing-assertion-consumer.xml");
         assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
                 "The content of element 'md:SPSSODescriptor' is not complete. " +
                         "One of '{\"urn:oasis:names:tc:SAML:2.0:metadata\":NameIDFormat, " +
@@ -81,37 +95,39 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     }
 
     @Test
-    public void healthStatusDownWhenMissingAssertionConsumerBinding() {
-        updateServiceProviderMetadata("missing-assertion-consumer-binding.xml");
-        assertServiceProviderMetadata("Invalid Service Provider metadata assertion consumer service binding");
+    void healthStatusDownWhen_MissingAssertionConsumerBinding() {
+        updateServiceProviderMetadata("sp-missing-assertion-consumer-binding.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid Service Provider metadata assertion consumer service binding");
     }
 
     @Test
-    public void healthStatusDownWhenInvalidSchema() {
-        updateServiceProviderMetadata("invalid-schema.xml");
+    void healthStatusDownWhen_InvalidSchema() {
+        updateServiceProviderMetadata("sp-invalid-schema.xml");
         assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
                 "Attribute 'Location' must appear on element 'md:AssertionConsumerService'");
     }
 
     @Test
-    public void healthStatusDownWhenExpiredMetadata() throws ResolverException {
-        updateServiceProviderMetadata("expired-valid-until.xml");
-        serviceProviderMetadataResolver.getByEntityId(SP_ENTITY_ID).refreshMetadata();
+    void healthStatusDownWhen_ExpiredMetadata() throws ResolverException {
+        updateServiceProviderMetadata("sp-expired-valid-until.xml");
+        serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
         mockSPMetadataServer.verify(1, getRequestedFor(urlEqualTo("/metadata")));
         Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.SP_METADATA);
+        assertLogs(WARN, "Metadata Resolver HTTPMetadataResolver service-provider: Entire metadata document from 'https://localhost:8888/metadata' was expired at time of loading, existing metadata retained");
+        assertLogs(INFO, "Metadata Resolver HTTPMetadataResolver service-provider: Next refresh cycle for metadata provider 'https://localhost:8888/metadata' will occur on ");
     }
 
     @Test
-    public void healthStatusDownWhenExpiredSigningCert() {
-        updateServiceProviderMetadata("expired-sp-signing-cert.xml");
-        assertServiceProviderMetadata("Expired Service Provider metadata SPSSODescriptor certificate");
+    void healthStatusDownWhen_ExpiredSigningCert() {
+        updateServiceProviderMetadata("sp-expired-request-signing-cert.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "NotAfter: Sat Aug 08 15:34:04 EEST 2020");
     }
 
     @Test
-    public void healthStatusDownWhenExpiredEncryptionCert() {
-        updateServiceProviderMetadata("expired-sp-encryption-cert.xml");
-        assertServiceProviderMetadata("Expired Service Provider metadata SPSSODescriptor certificate");
+    void healthStatusDownWhen_ExpiredEncryptionCert() {
+        updateServiceProviderMetadata("sp-expired-response-encryption-cert.xml");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "NotAfter: Sat Aug 08 15:47:13 EEST 2020");
     }
 
     private void assertServiceProviderMetadata(String errorMessage) {
@@ -120,7 +136,7 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
 
     private void assertServiceProviderMetadata(String expectedExceptionMessage, String expectedCauseMessage) {
         ResolverException resolverException = assertThrows(ResolverException.class, () -> {
-            serviceProviderMetadataResolver.getByEntityId(SP_ENTITY_ID).refreshMetadata();
+            serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
         });
         mockSPMetadataServer.verify(1, getRequestedFor(urlEqualTo("/metadata")));
         assertThat(resolverException.getMessage(), containsString(expectedExceptionMessage));

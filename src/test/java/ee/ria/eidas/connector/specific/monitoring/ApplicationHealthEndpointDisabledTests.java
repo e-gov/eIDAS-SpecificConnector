@@ -14,7 +14,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 class ApplicationHealthEndpointDisabledTests extends ApplicationHealthTest {
 
     @Test
-    public void healthEndpointNotAccessible() {
+    void healthEndpointNotAccessibleWhen_EndpointDisabled() {
         given()
                 .when()
                 .get(APPLICATION_HEALTH_ENDPOINT_REQUEST)

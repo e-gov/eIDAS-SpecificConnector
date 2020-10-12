@@ -4,7 +4,7 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
-import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataResolver;
+import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataRegistry;
 import ee.ria.eidas.connector.specific.saml.LightRequestFactory;
 import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
 import eu.eidas.auth.commons.EidasParameterKeys;
@@ -50,7 +50,7 @@ public class ServiceProviderController {
     private LightRequestFactory lightRequestFactory;
 
     @Autowired
-    private ServiceProviderMetadataResolver spMetadataResolver;
+    private ServiceProviderMetadataRegistry metadataRegistry;
 
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") String samlRequest,
@@ -72,9 +72,9 @@ public class ServiceProviderController {
     private ModelAndView execute(String samlRequest, String country, String relayState) {
         byte[] decodedAuthnRequest = Base64.getDecoder().decode(samlRequest);
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
-        ServiceProviderMetadata spMetadata = spMetadataResolver.getByEntityId(authnRequest.getIssuer().getValue());
+        ServiceProviderMetadata spMetadata = metadataRegistry.getByEntityId(authnRequest.getIssuer().getValue());
         spMetadata.validate(authnRequest.getSignature());
-        String spType = spMetadata.getServiceProvider().getType();
+        String spType = spMetadata.getType();
         ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState, spType);
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
         specificConnectorCommunication.putRequestCorrelation(lightRequest);

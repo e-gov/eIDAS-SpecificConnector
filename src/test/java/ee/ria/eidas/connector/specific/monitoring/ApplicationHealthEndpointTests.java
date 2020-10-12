@@ -27,13 +27,13 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
 
     @BeforeEach
-    public void resetSPMetadata() throws ResolverException {
-        updateServiceProviderMetadata("valid-metadata.xml");
-        serviceProviderMetadataResolver.getByEntityId(SP_ENTITY_ID).refreshMetadata();
+    void resetSPMetadata() throws ResolverException {
+        updateServiceProviderMetadata("sp-valid-metadata.xml");
+        serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
     }
 
     @Test
-    public void healthyApplicationState() {
+    void healthyApplicationState() {
         Instant testTime = Instant.now();
         when(gitProperties.getCommitId()).thenReturn("commit-id");
         when(gitProperties.getBranch()).thenReturn("branch");
@@ -55,8 +55,8 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void healthyApplicationStateWhenMissingBuildAndGitInfo() {
-        updateServiceProviderMetadata("valid-metadata.xml");
+    void healthyApplicationStateWhen_MissingBuildAndGitInfo() {
+        updateServiceProviderMetadata("sp-valid-metadata.xml");
         when(gitProperties.getCommitId()).thenReturn(null);
         when(gitProperties.getBranch()).thenReturn(null);
         when(buildProperties.getName()).thenReturn(null);
@@ -77,8 +77,8 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void healthyApplicationStateWhenMissingMetrics() {
-        updateServiceProviderMetadata("valid-metadata.xml");
+    void healthyApplicationStateWhen_MissingMetrics() {
+        updateServiceProviderMetadata("sp-valid-metadata.xml");
         Search nonExistentMetric = meterRegistry.find("non-existent");
         Mockito.when(meterRegistry.find("process.start.time")).thenReturn(nonExistentMetric);
         Mockito.when(meterRegistry.find("process.uptime")).thenReturn(nonExistentMetric);

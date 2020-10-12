@@ -4,10 +4,11 @@ import ee.ria.eidas.connector.specific.exception.AuthenticationException;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
-import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataResolver;
+import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataRegistry;
 import ee.ria.eidas.connector.specific.saml.ResponseFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
 import lombok.Data;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,7 +38,7 @@ public class ConnectorResponseController {
     private SpecificConnectorCommunication specificConnectorCommunication;
 
     @Autowired
-    private ServiceProviderMetadataResolver spMetadataResolver;
+    private ServiceProviderMetadataRegistry metadataRegistry;
 
     @Autowired
     private ResponseFactory responseFactory;
@@ -53,11 +54,12 @@ public class ConnectorResponseController {
         return execute(requestParameters);
     }
 
+    @SneakyThrows
     private ModelAndView execute(RequestParameters requestParameters) {
         String tokenBase64 = requestParameters.getToken().get(0);
         ILightResponse lightResponse = eidasNodeCommunication.getAndRemoveLightResponse(tokenBase64);
         String metadataEntityId = specificConnectorCommunication.getAndRemoveRequestCorrelation(lightResponse);
-        ServiceProviderMetadata spMetadata = spMetadataResolver.getByEntityId(metadataEntityId);
+        ServiceProviderMetadata spMetadata = metadataRegistry.getByEntityId(metadataEntityId);
 
         if (lightResponse.getStatus().isFailure()) {
             throw new AuthenticationException("Authentication failed: s%", lightResponse.getStatus().getStatusCode());

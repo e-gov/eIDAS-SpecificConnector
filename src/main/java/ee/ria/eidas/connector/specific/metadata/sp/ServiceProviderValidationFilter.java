@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.schema.XSAny;
+import org.opensaml.saml.metadata.resolver.filter.FilterException;
 import org.opensaml.saml.metadata.resolver.filter.MetadataFilter;
 import org.opensaml.saml.saml2.core.NameIDType;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
@@ -16,8 +17,6 @@ import org.opensaml.xmlsec.signature.X509Certificate;
 
 import javax.xml.namespace.QName;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -27,7 +26,7 @@ import static org.opensaml.saml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_
 
 @Slf4j
 public class ServiceProviderValidationFilter implements MetadataFilter {
-    public static final String INVALID_ENTITY_ID = "Invalid Service provider metadata entity id: %s";
+    public static final String INVALID_ENTITY_ID = "Invalid Service provider metadata entityId: %s";
     public static final String INVALID_SP_TYPE = "Invalid Service provider metadata SPType";
     private final String entityId;
     private final String spType;
@@ -41,15 +40,11 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
 
     @Nullable
     @Override
-    public XMLObject filter(@Nullable XMLObject metadata) {
-        if (metadata instanceof EntityDescriptor) {
-            EntityDescriptor entityDescriptor = (EntityDescriptor) metadata;
-            validateEntityId(entityDescriptor);
-            validateSPType(entityDescriptor);
-            validateSPSSODescriptor(entityDescriptor);
-        } else {
-            throw new SpecificConnectorException("Invalid Service provider metadata format");
-        }
+    public XMLObject filter(@Nullable XMLObject metadata) throws FilterException {
+        EntityDescriptor entityDescriptor = (EntityDescriptor) metadata;
+        validateEntityId(entityDescriptor);
+        validateSPType(entityDescriptor);
+        validateSPSSODescriptor(entityDescriptor);
         return metadata;
     }
 
@@ -59,22 +54,22 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
         }
     }
 
-    private void validateSPType(EntityDescriptor entityDescriptor) {
+    private void validateSPType(EntityDescriptor entityDescriptor) throws FilterException {
         List<XMLObject> spTypes = entityDescriptor.getExtensions().getUnknownXMLObjects(spTypeQName);
 
         if (spTypes.isEmpty() || !spType.equals(((XSAny) spTypes.get(0)).getTextContent())) {
-            throw new SpecificConnectorException(INVALID_SP_TYPE);
+            throw new FilterException(INVALID_SP_TYPE);
         }
     }
 
-    private void validateSPSSODescriptor(EntityDescriptor entityDescriptor) {
+    private void validateSPSSODescriptor(EntityDescriptor entityDescriptor) throws FilterException {
         SPSSODescriptor spDescriptor = getSPSSODescriptor(entityDescriptor);
         validateNameIDFormat(spDescriptor);
         validateAssertionConsumerServiceBinding(spDescriptor);
         validateSPSSOCertificates(spDescriptor);
     }
 
-    private void validateSPSSOCertificates(SPSSODescriptor spDescriptor) {
+    private void validateSPSSOCertificates(SPSSODescriptor spDescriptor) throws FilterException {
         List<X509Certificate> certificates = spDescriptor.getKeyDescriptors().stream()
                 .map(KeyDescriptor::getKeyInfo)
                 .flatMap(keyInfo -> keyInfo.getX509Datas().stream())
@@ -86,41 +81,39 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
         }
     }
 
-    private void validateAssertionConsumerServiceBinding(SPSSODescriptor spDescriptor) {
+    private void validateAssertionConsumerServiceBinding(SPSSODescriptor spDescriptor) throws FilterException {
         boolean isInvalidBinding = spDescriptor.getAssertionConsumerServices().stream()
                 .anyMatch(acs -> !SAML2_POST_BINDING_URI.equals(acs.getBinding()) && !SAML2_REDIRECT_BINDING_URI.equals(acs.getBinding()));
 
         if (isInvalidBinding) {
-            throw new SpecificConnectorException("Invalid Service Provider metadata assertion consumer service binding");
+            throw new FilterException("Invalid Service Provider metadata assertion consumer service binding");
         }
     }
 
-    private void validateNameIDFormat(SPSSODescriptor spDescriptor) {
+    private void validateNameIDFormat(SPSSODescriptor spDescriptor) throws FilterException {
         boolean isInvalidNameIDFormat = spDescriptor.getNameIDFormats().stream()
                 .anyMatch(nameIDFormat -> !NameIDType.UNSPECIFIED.equals(nameIDFormat.getFormat()));
 
         if (isInvalidNameIDFormat) {
-            throw new SpecificConnectorException("Invalid Service Provider metadata NameIDType");
+            throw new FilterException("Invalid Service Provider metadata NameIDFormat");
         }
     }
 
-    private SPSSODescriptor getSPSSODescriptor(EntityDescriptor entityDescriptor) {
+    private SPSSODescriptor getSPSSODescriptor(EntityDescriptor entityDescriptor) throws FilterException {
         List<RoleDescriptor> roles = entityDescriptor.getRoleDescriptors();
         return roles.stream()
                 .filter(SPSSODescriptor.class::isInstance)
                 .map(SPSSODescriptor.class::cast)
                 .findFirst()
-                .orElseThrow(() -> new SpecificConnectorException("Missing Service Provider metadata role descriptor"));
+                .orElseThrow(() -> new FilterException("Missing Service Provider metadata role descriptor"));
     }
 
-    private void validateCertificate(X509Certificate cert) {
+    private void validateCertificate(X509Certificate cert) throws FilterException {
         try {
             requireNonNull(cert.getValue());
             requireNonNull(X509Support.decodeCertificate(cert.getValue())).checkValidity();
-        } catch (CertificateNotYetValidException | CertificateExpiredException e) {
-            throw new SpecificConnectorException("Expired Service Provider metadata SPSSODescriptor certificate", e);
-        } catch (NullPointerException | CertificateException e) {
-            throw new SpecificConnectorException("Invalid Service Provider metadata SPSSODescriptor certificate", e);
+        } catch (CertificateException e) {
+            throw new FilterException("Invalid SPSSODescriptor certificate", e);
         }
     }
 }

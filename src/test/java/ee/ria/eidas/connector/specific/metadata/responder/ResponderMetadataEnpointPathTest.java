@@ -1,10 +1,8 @@
 package ee.ria.eidas.connector.specific.metadata.responder;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
-import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static io.restassured.RestAssured.given;
@@ -18,11 +16,8 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
         })
 public class ResponderMetadataEnpointPathTest extends SpecificConnectorTest {
 
-    @Autowired
-    private SpecificConnectorProperties specificConnectorProperties;
-
     @Test
-    public void metadataAvailableWhenCustomEndpointPathIsSet() {
+    void metadataAvailableWhen_CustomEndpointPathIsSet() {
         Response response = given()
                 .when()
                 .get("/CustomResponderMetadataPath")

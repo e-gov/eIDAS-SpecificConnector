@@ -6,8 +6,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import io.micrometer.core.instrument.MeterRegistry;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import io.restassured.RestAssured;
+import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,20 +17,26 @@ import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import javax.cache.Cache;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import static ch.qos.logback.classic.Level.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.config.RedirectConfig.redirectConfig;
 import static io.restassured.config.RestAssuredConfig.config;
@@ -39,7 +46,6 @@ import static org.apache.ignite.events.EventType.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
-import static org.slf4j.LoggerFactory.getLogger;
 
 @Slf4j
 @ActiveProfiles("test")
@@ -47,7 +53,7 @@ public abstract class SpecificConnectorTest {
 
     protected static final WireMockServer mockEidasNodeServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
-            .keystorePath("src/test/resources/__files/mock_keys/sc-tls-keystore.p12")
+            .keystorePath("src/test/resources/__files/mock_keys/specific-connector-tls-keystore.p12")
             .keystorePassword("changeit")
             .keyManagerPassword("changeit")
             .keystoreType("PKCS12")
@@ -57,19 +63,29 @@ public abstract class SpecificConnectorTest {
     protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
     protected static final WireMockServer mockSPMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
-            .keystorePath("src/test/resources/__files/mock_keys/sp-tls-keystore.p12")
+            .keystorePath("src/test/resources/__files/mock_keys/service-provider-tls-keystore.p12")
             .keystorePassword("changeit")
             .keyManagerPassword("changeit")
             .keystoreType("PKCS12")
             .httpsPort(8888)
     );
 
+    private static final Map<String, Object> EXPECTED_RESPONSE_HEADERS = new HashMap<String, Object>() {{
+        put("X-XSS-Protection", "1; mode=block");
+        put("X-Content-Type-Options", "nosniff");
+        put("X-Frame-Options", "DENY");
+        put("Pragma", "no-cache");
+        put("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
+        //put("Strict-Transport-Security", "max-age=600000 ; includeSubDomains") // TODO: App must be running on https
+    }};
+
     protected static Ignite eidasNodeIgnite;
-    protected static ListAppender<ILoggingEvent> mockAppender;
+    protected static Logger rootLogger = (Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
+    protected static ListAppender<ILoggingEvent> testLogAppender;
 
     static {
         String currentDirectory = System.getProperty("user.dir");
-        System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/sc-tls-truststore.p12");
+        System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/specific-connector-tls-truststore.p12");
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
         System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
@@ -86,9 +102,6 @@ public abstract class SpecificConnectorTest {
     protected GitProperties gitProperties;
 
     @SpyBean
-    protected MeterRegistry meterRegistry;
-
-    @SpyBean
     @Qualifier("specificNodeConnectorRequestCache")
     protected Cache<String, String> specificNodeConnectorRequestCache;
 
@@ -100,11 +113,14 @@ public abstract class SpecificConnectorTest {
     @Qualifier("specificMSSpRequestCorrelationMap")
     protected Cache<String, String> specificMSSpRequestCorrelationMap;
 
+    @Autowired
+    protected SpecificConnectorProperties specificConnectorProperties;
+
     @BeforeAll
     static void beforeAllTests() {
         startMockEidasNodeServer();
         startMockEidasNodeIgniteServer();
-        configureRestAssured();
+        setupRestAssured();
     }
 
     @AfterAll
@@ -113,9 +129,15 @@ public abstract class SpecificConnectorTest {
     }
 
     @BeforeEach
-    public void beforeEachTest() {
+    void beforeEachTest() {
+        RestAssured.responseSpecification = new ResponseSpecBuilder().expectHeaders(EXPECTED_RESPONSE_HEADERS).build();
         RestAssured.port = port;
-        setupMockLogAppender();
+        setupTestLogAppender();
+    }
+
+    @AfterEach
+    void afterEachTest() {
+        rootLogger.detachAppender(testLogAppender);
     }
 
     private static void startMockEidasNodeServer() {
@@ -138,55 +160,51 @@ public abstract class SpecificConnectorTest {
 
     protected static void startServiceProviderMetadataServer() {
         mockSPMetadataServer.start();
-        updateServiceProviderMetadata("valid-metadata.xml");
+        updateServiceProviderMetadata(mockSPMetadataServer, "sp-valid-metadata.xml");
     }
 
     protected static void updateServiceProviderMetadata(String metadataFile) {
-        mockSPMetadataServer.resetAll();
-        mockSPMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
+        updateServiceProviderMetadata(mockSPMetadataServer, metadataFile);
+    }
+
+    protected static void updateServiceProviderMetadata(WireMockServer spMockServer, String metadataFile) {
+        spMockServer.resetAll();
+        spMockServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
                 .withHeader("Content-Type", "application/xml;charset=UTF-8")
                 .withStatus(200)
                 .withBodyFile("sp_metadata/" + metadataFile)));
     }
 
-    private static void configureRestAssured() {
+    private static void setupRestAssured() {
         RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter());
         RestAssured.config = config().redirect(redirectConfig().followRedirects(false));
     }
 
-    private void setupMockLogAppender() {
-        mockAppender = new ListAppender<>();
-        mockAppender.start();
-        ((Logger) getLogger(ROOT_LOGGER_NAME)).addAppender(mockAppender);
+    private void setupTestLogAppender() {
+        testLogAppender = new ListAppender<>();
+        testLogAppender.start();
+        rootLogger.addAppender(testLogAppender);
     }
 
-    protected void assertInfoIsLogged(String... messagesInRelativeOrder) {
-        assertMessageIsLogged(null, INFO, messagesInRelativeOrder);
+    protected void assertLogs(Level loggingLevel, String... messagesInRelativeOrder) {
+        assertLogs(null, loggingLevel, messagesInRelativeOrder);
     }
 
-    protected void assertWarningIsLogged(String... messagesInRelativeOrder) {
-        assertMessageIsLogged(null, WARN, messagesInRelativeOrder);
+    protected void assertLogs(Class<?> loggerClass, Level loggingLevel, String... messagesInRelativeOrder) {
+        assertLogs((ListAppender<ILoggingEvent>) rootLogger.getAppender("applicationLogAppender"), loggerClass, loggingLevel, messagesInRelativeOrder);
     }
 
-    protected void assertErrorIsLogged(String... messagesInRelativeOrder) {
-        assertMessageIsLogged(null, ERROR, messagesInRelativeOrder);
+    protected void assertTestLogs(Level loggingLevel, String... messagesInRelativeOrder) {
+        assertLogs(testLogAppender, null, loggingLevel, messagesInRelativeOrder);
     }
 
-    protected void assertInfoIsLogged(Class<?> loggerClass, String... messagesInRelativeOrder) {
-        assertMessageIsLogged(loggerClass, INFO, messagesInRelativeOrder);
-    }
-
-    protected void assertWarningIsLogged(Class<?> loggerClass, String... messagesInRelativeOrder) {
-        assertMessageIsLogged(loggerClass, WARN, messagesInRelativeOrder);
-    }
-
-    protected void assertErrorIsLogged(Class<?> loggerClass, String... messagesInRelativeOrder) {
-        assertMessageIsLogged(loggerClass, ERROR, messagesInRelativeOrder);
+    protected void assertTestLogs(Class<?> loggerClass, Level loggingLevel, String... messagesInRelativeOrder) {
+        assertLogs(testLogAppender, loggerClass, loggingLevel, messagesInRelativeOrder);
     }
 
     @SuppressWarnings("unchecked")
-    private void assertMessageIsLogged(Class<?> loggerClass, Level loggingLevel, String... messagesInRelativeOrder) {
-        List<String> events = mockAppender.list.stream()
+    private void assertLogs(ListAppender<ILoggingEvent> logAppender, Class<?> loggerClass, Level loggingLevel, String... messagesInRelativeOrder) {
+        List<String> events = logAppender.list.stream()
                 .filter(e -> e.getLevel() == loggingLevel && (loggerClass == null || e.getLoggerName().equals(loggerClass.getCanonicalName())))
                 .map(ILoggingEvent::getFormattedMessage)
                 .collect(toList());
@@ -196,5 +214,14 @@ public abstract class SpecificConnectorTest {
     @Test
     @Order(1)
     void contextLoads() {
+    }
+
+    public static class TestContextInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+        @Override
+        public void initialize(@NotNull ConfigurableApplicationContext configurableApplicationContext) {
+            String currentDirectory = System.getProperty("user.dir");
+            System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
+            System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
+        }
     }
 }

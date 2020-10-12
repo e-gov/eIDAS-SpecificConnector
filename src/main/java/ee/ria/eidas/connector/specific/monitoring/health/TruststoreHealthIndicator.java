@@ -41,7 +41,7 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
     private String trustStorePassword;
     @Value("${javax.net.ssl.trustStoreType}")
     private String trustStoreType;
-    @Value("${eidas.proxy.health.trust-store-expiration-warning:30d}")
+    @Value("${eidas.connector.health.trust-store-expiration-warning:30d}")
     private Period trustStoreExpirationWarningPeriod;
 
     public TruststoreHealthIndicator() {

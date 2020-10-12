@@ -34,7 +34,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     private static IgnitePredicate<CacheEvent> eidasNodeCacheEventListener;
 
     @BeforeAll
-    public static void setEidasNodeCacheEventListener() {
+    static void setEidasNodeCacheEventListener() {
         eidasNodeCacheEventListener = evt -> {
             if ("CACHE_OBJECT_PUT".equals(evt.name())) {
                 cachePuts.incrementAndGet();
@@ -48,13 +48,13 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @AfterAll
-    public static void tearDownCacheEventListener() {
+    static void tearDownCacheEventListener() {
         if (eidasNodeCacheEventListener != null)
             eidasNodeIgnite.events().stopLocalListen(eidasNodeCacheEventListener);
     }
 
     @Test
-    public void healthStatusUpWhenHealthyCache() {
+    void healthStatusUpWhen_HealthyCache() {
         cachePuts.set(0);
         cacheRemoves.set(0);
         Response healthResponse = getHealthResponse();
@@ -65,7 +65,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void healthStatusDownWhenClusterStateInactive() {
+    void healthStatusDownWhen_ClusterStateInactive() {
         setClusterStateInactive();
         Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.IGNITE_CLUSTER);
@@ -76,7 +76,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void healthStatusDownWhen_UnhealthyEidasSpecificNodeConnectorRequestCache() {
+    void healthStatusDownWhen_UnhealthyEidasSpecificNodeConnectorRequestCache() {
         assertHealthDownOnCachePutException(specificNodeConnectorRequestCache);
         assertEquals(0, cachePuts.get());
         assertEquals(0, cacheRemoves.get());
@@ -86,7 +86,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @Test
-    public void healthStatusDownWhenUnhealthyEidasNodeSpecificConnectorResponseCache() {
+    void healthStatusDownWhen_UnhealthyEidasNodeSpecificConnectorResponseCache() {
         assertHealthDownOnCachePutException(nodeSpecificConnectorResponseCache);
         assertEquals(1, cachePuts.get());
         assertEquals(1, cacheRemoves.get());
@@ -118,7 +118,7 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     }
 
     @SuppressWarnings({"unchecked"})
-    public void cleanMocks() {
+    private void cleanMocks() {
         Mockito.reset(specificNodeConnectorRequestCache,
                 nodeSpecificConnectorResponseCache,
                 specificMSSpRequestCorrelationMap);
