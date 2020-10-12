@@ -121,13 +121,13 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     @Test
     void healthStatusDownWhen_ExpiredSigningCert() {
         updateServiceProviderMetadata("sp-expired-request-signing-cert.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "NotAfter: Sat Aug 08 15:34:04 EEST 2020");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid SPSSODescriptor certificate");
     }
 
     @Test
     void healthStatusDownWhen_ExpiredEncryptionCert() {
         updateServiceProviderMetadata("sp-expired-response-encryption-cert.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "NotAfter: Sat Aug 08 15:47:13 EEST 2020");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid SPSSODescriptor certificate");
     }
 
     private void assertServiceProviderMetadata(String errorMessage) {
@@ -141,7 +141,7 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
         mockSPMetadataServer.verify(1, getRequestedFor(urlEqualTo("/metadata")));
         assertThat(resolverException.getMessage(), containsString(expectedExceptionMessage));
         if (expectedCauseMessage != null) {
-            assertThat(ExceptionUtils.getRootCauseMessage(resolverException), containsString(expectedCauseMessage));
+            assertThat(ExceptionUtils.getStackTrace(resolverException), containsString(expectedCauseMessage));
         }
         Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.SP_METADATA);
