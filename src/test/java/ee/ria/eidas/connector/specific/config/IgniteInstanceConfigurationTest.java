@@ -13,6 +13,7 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -27,6 +28,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 
 @Slf4j
 @SpringBootTest(webEnvironment = RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 class IgniteInstanceConfigurationTest extends SpecificConnectorTest {
     private static final long RECONNECT_TIMEOUT = 10_000;
 
