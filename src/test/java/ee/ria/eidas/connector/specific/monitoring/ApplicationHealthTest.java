@@ -1,7 +1,6 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
-import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.TimeGauge;
 import io.restassured.response.Response;
@@ -9,7 +8,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.time.Duration;
@@ -34,9 +32,6 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
 
     @SpyBean
     protected MeterRegistry meterRegistry;
-
-    @Autowired
-    protected ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
     @BeforeAll
     static void beforeAllHealthTests() {

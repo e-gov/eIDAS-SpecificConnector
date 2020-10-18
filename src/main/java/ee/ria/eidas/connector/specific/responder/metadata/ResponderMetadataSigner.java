@@ -31,7 +31,6 @@ import java.util.Map;
 
 @Component
 public class ResponderMetadataSigner {
-
     private final SignatureSigningParameters signingParameters;
     private final XMLObjectBuilder<?> builderFactory;
     private final MarshallerFactory marshallerFactory;
@@ -72,7 +71,7 @@ public class ResponderMetadataSigner {
         return resolver.resolveSingle(criteria);
     }
 
-    protected void setDigestAlgorithm(Signature signature) {
+    private void setDigestAlgorithm(Signature signature) {
         ((SAMLObjectContentReference) signature.getContentReferences().get(0)).setDigestAlgorithm(signingParameters.getSignatureReferenceDigestMethod());
     }
 

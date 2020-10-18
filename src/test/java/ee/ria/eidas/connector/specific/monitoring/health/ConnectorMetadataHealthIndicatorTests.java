@@ -18,7 +18,7 @@ public class ConnectorMetadataHealthIndicatorTests extends ApplicationHealthTest
 
     @Test
     void healthStatusDownWhen_EidasNodeDown() {
-        mockEidasNodeServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata"))
+        mockEidasNodeMetadataServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata"))
                 .willReturn(aResponse()
                         .withStatus(404)));
         Response healthResponse = getHealthResponse();

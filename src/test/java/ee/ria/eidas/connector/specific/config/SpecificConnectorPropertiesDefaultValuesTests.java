@@ -3,7 +3,6 @@ package ee.ria.eidas.connector.specific.config;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SupportedAttribute;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,27 +11,20 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.validation.beanvalidation.SpringConstraintValidatorFactory;
 
-import javax.annotation.PostConstruct;
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
 import java.util.List;
-import java.util.Set;
 
 import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata.*;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = SpecificConnectorConfiguration.class, initializers = SpecificConnectorTest.TestContextInitializer.class)
+@ContextConfiguration(classes = {SpecificConnectorConfiguration.class, ResponderMetadataConfiguration.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
 @EnableConfigurationProperties(value = SpecificConnectorProperties.class)
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false)
 public class SpecificConnectorPropertiesDefaultValuesTests {
-    private Validator validator;
 
     @Autowired
     SpecificConnectorProperties specificConnectorProperties;
@@ -42,20 +34,6 @@ public class SpecificConnectorPropertiesDefaultValuesTests {
 
     @Autowired
     AttributeRegistry supportedAttributesRegistry;
-
-    @PostConstruct
-    void setupValidator() {
-        ValidatorFactory validatorFactory = Validation.byDefaultProvider()
-                .configure()
-                .constraintValidatorFactory(new SpringConstraintValidatorFactory(autowireCapableBeanFactory))
-                .buildValidatorFactory();
-        validator = validatorFactory.getValidator();
-    }
-
-    @BeforeEach
-    void validateProperties() {
-        validate();
-    }
 
     @Test
     void defaultSupportedAttributes() {
@@ -88,8 +66,13 @@ public class SpecificConnectorPropertiesDefaultValuesTests {
         assertEquals("public", specificConnectorProperties.getResponderMetadata().getSpType());
     }
 
-    private void validate() {
-        Set<ConstraintViolation<SpecificConnectorProperties>> constraintViolations = validator.validate(specificConnectorProperties);
-        assertEquals(0, constraintViolations.size());
+    @Test
+    void defaultValidityInDays() {
+        assertEquals(1, specificConnectorProperties.getResponderMetadata().getValidityInDays());
+    }
+
+    @Test
+    void defaultSignatureAlgorithm() {
+        assertEquals(ALGO_ID_SIGNATURE_RSA_SHA512, specificConnectorProperties.getResponderMetadata().getSignatureAlgorithm());
     }
 }

@@ -71,10 +71,10 @@ public class OpenSAMLConfiguration {
     @Getter
     @NoArgsConstructor
     public static final class SignatureRSASHA256MGF1 implements SignatureAlgorithm {
-        public String key = JCAConstants.KEY_ALGO_RSA;
-        public String URI = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256_MGF1;
-        public AlgorithmType type = AlgorithmType.Signature;
-        public String JCAAlgorithmID = "SHA256withRSAandMGF1";
-        public String digest = JCAConstants.DIGEST_SHA256;
+        String key = JCAConstants.KEY_ALGO_RSA;
+        String URI = XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256_MGF1;
+        AlgorithmType type = AlgorithmType.Signature;
+        String JCAAlgorithmID = "SHA256withRSAandMGF1";
+        String digest = JCAConstants.DIGEST_SHA256;
     }
 }

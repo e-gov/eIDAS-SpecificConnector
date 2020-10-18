@@ -6,7 +6,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -20,18 +19,15 @@ import org.hamcrest.Matcher;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
-import javax.cache.Cache;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -49,9 +45,18 @@ import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 @Slf4j
 @ActiveProfiles("test")
+@ContextConfiguration(initializers = SpecificConnectorTest.TestContextInitializer.class)
 public abstract class SpecificConnectorTest {
-
-    protected static final WireMockServer mockEidasNodeServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
+    private static final Logger rootLogger = (Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
+    private static final Map<String, Object> EXPECTED_RESPONSE_HEADERS = new HashMap<String, Object>() {{
+        put("X-XSS-Protection", "1; mode=block");
+        put("X-Content-Type-Options", "nosniff");
+        put("X-Frame-Options", "DENY");
+        put("Pragma", "no-cache");
+        put("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
+    }};
+    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
+    protected static final WireMockServer mockEidasNodeMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
             .keystorePath("src/test/resources/__files/mock_keys/specific-connector-tls-keystore.p12")
             .keystorePassword("changeit")
@@ -60,7 +65,16 @@ public abstract class SpecificConnectorTest {
             .httpsPort(8443)
     );
 
-    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
+    protected static final String SP_1_ENTITY_ID = "https://localhost:9999/metadata";
+    protected static final WireMockServer mockSP1MetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
+            .httpDisabled(true)
+            .keystorePath("src/test/resources/__files/mock_keys/service-provider-tls-keystore.p12")
+            .keystorePassword("changeit")
+            .keyManagerPassword("changeit")
+            .keystoreType("PKCS12")
+            .httpsPort(9999)
+    );
+
     protected static final WireMockServer mockSPMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
             .keystorePath("src/test/resources/__files/mock_keys/service-provider-tls-keystore.p12")
@@ -69,31 +83,14 @@ public abstract class SpecificConnectorTest {
             .keystoreType("PKCS12")
             .httpsPort(8888)
     );
-
-    private static final Map<String, Object> EXPECTED_RESPONSE_HEADERS = new HashMap<String, Object>() {{
-        put("X-XSS-Protection", "1; mode=block");
-        put("X-Content-Type-Options", "nosniff");
-        put("X-Frame-Options", "DENY");
-        put("Pragma", "no-cache");
-        put("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
-        //put("Strict-Transport-Security", "max-age=600000 ; includeSubDomains") // TODO: App must be running on https
-    }};
-
     protected static Ignite eidasNodeIgnite;
-    protected static Logger rootLogger = (Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
-    protected static ListAppender<ILoggingEvent> testLogAppender;
+    private static ListAppender<ILoggingEvent> testLogAppender;
 
     static {
-        String currentDirectory = System.getProperty("user.dir");
         System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/specific-connector-tls-truststore.p12");
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
-        System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
-        System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
     }
-
-    @LocalServerPort
-    protected int port;
 
     @MockBean
     protected BuildProperties buildProperties;
@@ -101,31 +98,21 @@ public abstract class SpecificConnectorTest {
     @MockBean
     protected GitProperties gitProperties;
 
-    @SpyBean
-    @Qualifier("specificNodeConnectorRequestCache")
-    protected Cache<String, String> specificNodeConnectorRequestCache;
-
-    @SpyBean
-    @Qualifier("nodeSpecificConnectorResponseCache")
-    protected Cache<String, String> nodeSpecificConnectorResponseCache;
-
-    @SpyBean
-    @Qualifier("specificMSSpRequestCorrelationMap")
-    protected Cache<String, String> specificMSSpRequestCorrelationMap;
-
-    @Autowired
-    protected SpecificConnectorProperties specificConnectorProperties;
+    @LocalServerPort
+    protected int port;
 
     @BeforeAll
     static void beforeAllTests() {
-        startMockEidasNodeServer();
+        startMockEidasNodeMetadataServer();
         startMockEidasNodeIgniteServer();
         setupRestAssured();
     }
 
     @AfterAll
     static void afterAllTests() {
-        mockEidasNodeServer.stop();
+        mockEidasNodeMetadataServer.stop();
+        mockSPMetadataServer.stop();
+        mockSP1MetadataServer.stop();
     }
 
     @BeforeEach
@@ -140,12 +127,16 @@ public abstract class SpecificConnectorTest {
         rootLogger.detachAppender(testLogAppender);
     }
 
-    private static void startMockEidasNodeServer() {
-        mockEidasNodeServer.start();
-        mockEidasNodeServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata")).willReturn(aResponse().withStatus(200)));
+    @Test
+    void contextLoads() {
     }
 
-    private static void startMockEidasNodeIgniteServer() {
+    protected static void startMockEidasNodeMetadataServer() {
+        mockEidasNodeMetadataServer.start();
+        mockEidasNodeMetadataServer.stubFor(get(urlEqualTo("/EidasNode/ConnectorMetadata")).willReturn(aResponse().withStatus(200)));
+    }
+
+    protected static void startMockEidasNodeIgniteServer() {
         if (eidasNodeIgnite == null) {
             System.setProperty("IGNITE_QUIET", "false");
             System.setProperty("IGNITE_HOME", System.getProperty("java.io.tmpdir"));
@@ -160,16 +151,25 @@ public abstract class SpecificConnectorTest {
 
     protected static void startServiceProviderMetadataServer() {
         mockSPMetadataServer.start();
-        updateServiceProviderMetadata(mockSPMetadataServer, "sp-valid-metadata.xml");
+        updateServiceProviderMetadata("sp-valid-metadata.xml");
+    }
+
+    protected static void startServiceProvider1MetadataServer() {
+        mockSP1MetadataServer.start();
+        updateServiceProvider1Metadata("sp1-valid-metadata.xml");
     }
 
     protected static void updateServiceProviderMetadata(String metadataFile) {
-        updateServiceProviderMetadata(mockSPMetadataServer, metadataFile);
+        updateServiceProvider1Metadata(mockSPMetadataServer, metadataFile);
     }
 
-    protected static void updateServiceProviderMetadata(WireMockServer spMockServer, String metadataFile) {
-        spMockServer.resetAll();
-        spMockServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
+    protected static void updateServiceProvider1Metadata(String metadataFile) {
+        updateServiceProvider1Metadata(mockSP1MetadataServer, metadataFile);
+    }
+
+    private static void updateServiceProvider1Metadata(WireMockServer mockMetadataServer, String metadataFile) {
+        mockMetadataServer.resetAll();
+        mockMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
                 .withHeader("Content-Type", "application/xml;charset=UTF-8")
                 .withStatus(200)
                 .withBodyFile("sp_metadata/" + metadataFile)));
@@ -209,11 +209,6 @@ public abstract class SpecificConnectorTest {
                 .map(ILoggingEvent::getFormattedMessage)
                 .collect(toList());
         assertThat(events, containsInRelativeOrder(stream(messagesInRelativeOrder).map(CoreMatchers::startsWith).toArray(Matcher[]::new)));
-    }
-
-    @Test
-    @Order(1)
-    void contextLoads() {
     }
 
     public static class TestContextInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {

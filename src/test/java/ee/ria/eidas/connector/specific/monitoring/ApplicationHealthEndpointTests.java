@@ -1,11 +1,13 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import io.micrometer.core.instrument.search.Search;
 import io.restassured.response.Response;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
@@ -25,6 +27,9 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
                 "eidas.connector.service-providers[0].type=public"
         })
 public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
+
+    @Autowired
+    protected ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
     @BeforeEach
     void resetSPMetadata() throws ResolverException {

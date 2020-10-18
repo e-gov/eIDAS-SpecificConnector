@@ -26,7 +26,7 @@ import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = SpecificConnectorConfiguration.class, initializers = SpecificConnectorTest.TestContextInitializer.class)
+@ContextConfiguration(classes = {SpecificConnectorConfiguration.class, ResponderMetadataConfiguration.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
 @EnableConfigurationProperties(value = SpecificConnectorProperties.class)
 @TestPropertySource(value = "classpath:application-test.properties")
 public class SpecificConnectorPropertiesValidationTests {

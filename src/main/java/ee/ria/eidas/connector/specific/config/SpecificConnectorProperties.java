@@ -39,6 +39,7 @@ public class SpecificConnectorProperties {
     private String specificConnectorRequestUrl;
 
     @Valid
+    @NotNull
     private ResponderMetadata responderMetadata;
 
     @SpELAssert(value = "new java.util.HashSet(#this.![id]).size() == #this.size()", message = "Service provider not unique", appliesTo = "id")
@@ -148,6 +149,7 @@ public class SpecificConnectorProperties {
         @Pattern(regexp = "^(public|private)$", message = "Invalid Service Provider type")
         private String spType = "public";
 
+        @NotEmpty
         private String signatureAlgorithm = ALGO_ID_SIGNATURE_RSA_SHA512;
 
         @NotNull

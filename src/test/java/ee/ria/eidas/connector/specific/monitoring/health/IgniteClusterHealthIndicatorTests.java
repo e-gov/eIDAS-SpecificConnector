@@ -10,7 +10,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import javax.cache.Cache;
 import javax.cache.CacheException;
@@ -32,6 +34,18 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     private static final AtomicInteger cachePuts = new AtomicInteger();
     private static final AtomicInteger cacheRemoves = new AtomicInteger();
     private static IgnitePredicate<CacheEvent> eidasNodeCacheEventListener;
+
+    @SpyBean
+    @Qualifier("specificNodeConnectorRequestCache")
+    Cache<String, String> specificNodeConnectorRequestCache;
+
+    @SpyBean
+    @Qualifier("nodeSpecificConnectorResponseCache")
+    Cache<String, String> nodeSpecificConnectorResponseCache;
+
+    @SpyBean
+    @Qualifier("specificMSSpRequestCorrelationMap")
+    Cache<String, String> specificMSSpRequestCorrelationMap;
 
     @BeforeAll
     static void setEidasNodeCacheEventListener() {
