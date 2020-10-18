@@ -1,6 +1,6 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
-import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health;

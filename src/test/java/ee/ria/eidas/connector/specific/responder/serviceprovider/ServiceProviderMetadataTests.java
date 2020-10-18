@@ -1,7 +1,7 @@
-package ee.ria.eidas.connector.specific.metadata.sp;
+package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
-import ee.ria.eidas.connector.specific.metadata.responder.ResponderMetadataSigner;
-import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;

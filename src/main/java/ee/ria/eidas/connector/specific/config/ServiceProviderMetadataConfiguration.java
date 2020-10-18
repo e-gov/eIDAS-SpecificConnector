@@ -1,7 +1,7 @@
 package ee.ria.eidas.connector.specific.config;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ServiceProvider;
-import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;

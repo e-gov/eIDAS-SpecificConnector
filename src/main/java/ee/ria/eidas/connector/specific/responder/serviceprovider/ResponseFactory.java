@@ -1,10 +1,10 @@
-package ee.ria.eidas.connector.specific.saml;
+package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
-import ee.ria.eidas.connector.specific.metadata.responder.ResponderMetadataSigner;
-import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadata;
+import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import eu.eidas.auth.commons.attribute.AttributeValue;
 import eu.eidas.auth.commons.attribute.*;
 import eu.eidas.auth.commons.light.ILightResponse;

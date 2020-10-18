@@ -4,6 +4,7 @@ import eu.eidas.auth.commons.attribute.AttributeRegistries;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
@@ -32,6 +33,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
+@Slf4j
 @Configuration
 @ConfigurationPropertiesScan
 public class SpecificConnectorConfiguration implements WebMvcConfigurer {

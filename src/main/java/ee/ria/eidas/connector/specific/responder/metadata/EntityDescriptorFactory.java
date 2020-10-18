@@ -1,7 +1,7 @@
-package ee.ria.eidas.connector.specific.metadata.responder;
+package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
-import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.schema.XSAny;
@@ -15,8 +15,8 @@ import org.opensaml.security.credential.Credential;
 
 import java.util.List;
 
-import static ee.ria.eidas.connector.specific.metadata.responder.OrganizationContactFactory.createContacts;
-import static ee.ria.eidas.connector.specific.metadata.responder.OrganizationContactFactory.createOrganization;
+import static ee.ria.eidas.connector.specific.responder.metadata.OrganizationContactFactory.createContacts;
+import static ee.ria.eidas.connector.specific.responder.metadata.OrganizationContactFactory.createOrganization;
 import static java.util.stream.Collectors.toList;
 
 public class EntityDescriptorFactory {

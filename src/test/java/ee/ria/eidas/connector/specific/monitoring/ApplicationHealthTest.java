@@ -1,7 +1,7 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
-import ee.ria.eidas.connector.specific.metadata.sp.ServiceProviderMetadataRegistry;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.TimeGauge;
 import io.restassured.response.Response;

@@ -1,4 +1,4 @@
-package ee.ria.eidas.connector.specific.saml;
+package ee.ria.eidas.connector.specific.responder.saml;
 
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;

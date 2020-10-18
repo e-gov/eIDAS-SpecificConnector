@@ -1,4 +1,4 @@
-package ee.ria.eidas.connector.specific.metadata.responder;
+package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;

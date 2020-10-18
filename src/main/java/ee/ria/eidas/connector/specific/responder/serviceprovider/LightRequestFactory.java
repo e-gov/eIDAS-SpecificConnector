@@ -1,4 +1,4 @@
-package ee.ria.eidas.connector.specific.saml;
+package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import eu.eidas.auth.commons.attribute.AttributeDefinition;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;

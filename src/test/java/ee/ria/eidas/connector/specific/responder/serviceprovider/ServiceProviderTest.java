@@ -1,9 +1,9 @@
-package ee.ria.eidas.connector.specific.metadata.sp;
+package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
-import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import net.shibboleth.utilities.java.support.logic.ConstraintViolationException;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.awaitility.Durations;

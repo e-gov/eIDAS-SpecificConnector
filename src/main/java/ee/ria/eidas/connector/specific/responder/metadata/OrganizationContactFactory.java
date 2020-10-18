@@ -1,7 +1,7 @@
-package ee.ria.eidas.connector.specific.metadata.responder;
+package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
-import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import org.opensaml.saml.saml2.metadata.*;
 
 import java.util.Collections;

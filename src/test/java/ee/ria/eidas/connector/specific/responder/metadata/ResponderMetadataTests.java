@@ -1,9 +1,9 @@
-package ee.ria.eidas.connector.specific.metadata.responder;
+package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SigningMethod;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SupportedAttribute;
-import ee.ria.eidas.connector.specific.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
 import io.restassured.path.xml.element.NodeChildren;
 import io.restassured.response.Response;

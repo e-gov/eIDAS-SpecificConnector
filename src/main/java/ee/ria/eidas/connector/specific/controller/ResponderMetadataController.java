@@ -1,6 +1,6 @@
 package ee.ria.eidas.connector.specific.controller;
 
-import ee.ria.eidas.connector.specific.metadata.responder.ResponderMetadataGenerator;
+import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
