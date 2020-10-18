@@ -1,5 +1,11 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
+import ee.ria.eidas.connector.specific.SpecificConnectorTest;
+import ee.ria.eidas.connector.specific.config.OpenSAMLConfiguration;
+import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
+import ee.ria.eidas.connector.specific.config.ServiceProviderMetadataConfiguration;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorConfiguration;
+import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataGenerator;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import lombok.SneakyThrows;
@@ -7,19 +13,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.util.ResourceUtils.getFile;
 
 @Slf4j
-@SpringBootTest(webEnvironment = RANDOM_PORT,
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = {OpenSAMLConfiguration.class, SpecificConnectorConfiguration.class, ResponderMetadataConfiguration.class,
+        ServiceProviderMetadataConfiguration.class,
+        ServiceProviderMetadataRegistry.class, ResponderMetadataGenerator.class, ResponderMetadataSigner.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
+@TestPropertySource(value = "classpath:application-test.properties",
         properties = {
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
@@ -30,7 +41,6 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "eidas.connector.service-providers[1].key-alias=service-provider-1-metadata-signing",
                 "eidas.connector.service-providers[1].type=public"
         })
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class ServiceProviderMetadataTests extends ServiceProviderTest {
 
     @Autowired
@@ -42,7 +52,7 @@ public class ServiceProviderMetadataTests extends ServiceProviderTest {
     @BeforeAll
     static void beforeAll() {
         startServiceProviderMetadataServer();
-        startServiceProvider1MetadataServer("sp1-valid-metadata.xml");
+        startServiceProvider1MetadataServer();
     }
 
     @AfterAll

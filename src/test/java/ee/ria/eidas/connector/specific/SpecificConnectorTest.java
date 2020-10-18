@@ -55,7 +55,6 @@ public abstract class SpecificConnectorTest {
         put("Pragma", "no-cache");
         put("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
     }};
-    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
     protected static final WireMockServer mockEidasNodeMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
             .keystorePath("src/test/resources/__files/mock_keys/specific-connector-tls-keystore.p12")
@@ -64,17 +63,7 @@ public abstract class SpecificConnectorTest {
             .keystoreType("PKCS12")
             .httpsPort(8443)
     );
-
-    protected static final String SP_1_ENTITY_ID = "https://localhost:9999/metadata";
-    protected static final WireMockServer mockSP1MetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
-            .httpDisabled(true)
-            .keystorePath("src/test/resources/__files/mock_keys/service-provider-tls-keystore.p12")
-            .keystorePassword("changeit")
-            .keyManagerPassword("changeit")
-            .keystoreType("PKCS12")
-            .httpsPort(9999)
-    );
-
+    protected static final String SP_ENTITY_ID = "https://localhost:8888/metadata";
     protected static final WireMockServer mockSPMetadataServer = new WireMockServer(WireMockConfiguration.wireMockConfig()
             .httpDisabled(true)
             .keystorePath("src/test/resources/__files/mock_keys/service-provider-tls-keystore.p12")
@@ -83,6 +72,7 @@ public abstract class SpecificConnectorTest {
             .keystoreType("PKCS12")
             .httpsPort(8888)
     );
+
     protected static Ignite eidasNodeIgnite;
     private static ListAppender<ILoggingEvent> testLogAppender;
 
@@ -112,7 +102,6 @@ public abstract class SpecificConnectorTest {
     static void afterAllTests() {
         mockEidasNodeMetadataServer.stop();
         mockSPMetadataServer.stop();
-        mockSP1MetadataServer.stop();
     }
 
     @BeforeEach
@@ -154,22 +143,9 @@ public abstract class SpecificConnectorTest {
         updateServiceProviderMetadata("sp-valid-metadata.xml");
     }
 
-    protected static void startServiceProvider1MetadataServer() {
-        mockSP1MetadataServer.start();
-        updateServiceProvider1Metadata("sp1-valid-metadata.xml");
-    }
-
     protected static void updateServiceProviderMetadata(String metadataFile) {
-        updateServiceProvider1Metadata(mockSPMetadataServer, metadataFile);
-    }
-
-    protected static void updateServiceProvider1Metadata(String metadataFile) {
-        updateServiceProvider1Metadata(mockSP1MetadataServer, metadataFile);
-    }
-
-    private static void updateServiceProvider1Metadata(WireMockServer mockMetadataServer, String metadataFile) {
-        mockMetadataServer.resetAll();
-        mockMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
+        mockSPMetadataServer.resetAll();
+        mockSPMetadataServer.stubFor(get(urlEqualTo("/metadata")).willReturn(aResponse()
                 .withHeader("Content-Type", "application/xml;charset=UTF-8")
                 .withStatus(200)
                 .withBodyFile("sp_metadata/" + metadataFile)));

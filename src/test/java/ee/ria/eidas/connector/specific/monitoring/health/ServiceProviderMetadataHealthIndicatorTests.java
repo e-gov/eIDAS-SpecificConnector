@@ -1,10 +1,12 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
 import ee.ria.eidas.connector.specific.monitoring.ApplicationHealthTest;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import io.restassured.response.Response;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static ch.qos.logback.classic.Level.INFO;
@@ -27,6 +29,9 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
         })
 public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHealthTest {
     public static final String ERROR_FILTERING_METADATA = "Error filtering metadata from https://localhost:8888/metadata";
+
+    @Autowired
+    ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
     @Test
     void healthStatusUpWhen_ValidMetadata() throws ResolverException {
