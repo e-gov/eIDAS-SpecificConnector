@@ -27,9 +27,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @ContextConfiguration(classes = {ServiceProviderMetadataConfiguration.class, ResponderMetadataConfiguration.class, OpenSAMLConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false,
         properties = {
-                "eidas.connector.service-provider-metadata-min-refresh-delay=1000",
-                "eidas.connector.service-provider-metadata-max-refresh-delay=60000",
-                "eidas.connector.service-provider-metadata-refresh-delay-factor=0.99",
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
