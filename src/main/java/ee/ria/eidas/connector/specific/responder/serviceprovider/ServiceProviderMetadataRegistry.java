@@ -26,8 +26,8 @@ public class ServiceProviderMetadataRegistry {
     @PostConstruct
     private void initialize() {
         spMetadataEntityIdMap = serviceProviders.stream()
-                .peek(this::registerHealthContributor)
                 .collect(toMap(ServiceProviderMetadata::getEntityId, sp -> sp));
+        serviceProviders.forEach(this::registerHealthContributor);
     }
 
     private void registerHealthContributor(ServiceProviderMetadata sp) {
@@ -38,7 +38,6 @@ public class ServiceProviderMetadataRegistry {
 
     public void refreshMetadata(String entityId) throws ResolverException {
         getByEntityId(entityId).refreshMetadata();
-        ;
     }
 
     public ServiceProviderMetadata getByEntityId(String entityId) {

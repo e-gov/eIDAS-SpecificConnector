@@ -87,26 +87,26 @@ public class SpecificConnectorProperties {
     public static class ResponderMetadata {
 
         @Getter(AccessLevel.NONE)
-        public static List<AttributeRegistry> SUPPORTED_EIDAS_ATTRIBUTES = unmodifiableList(asList(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY));
+        public static final List<AttributeRegistry> SUPPORTED_EIDAS_ATTRIBUTES = unmodifiableList(asList(NaturalPersonSpec.REGISTRY, LegalPersonSpec.REGISTRY));
 
         @Getter(AccessLevel.NONE)
-        public static List<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableList(SUPPORTED_EIDAS_ATTRIBUTES.stream()
+        public static final List<SupportedAttribute> DEFAULT_SUPPORTED_ATTRIBUTES = unmodifiableList(SUPPORTED_EIDAS_ATTRIBUTES.stream()
                 .flatMap(registry -> registry.getAttributes().stream())
                 .map(def -> new SupportedAttribute(def.getNameUri().toString(), def.getFriendlyName()))
                 .collect(toList()));
 
         @Getter(AccessLevel.NONE)
-        public static Set<String> DEFAULT_DIGEST_METHODS = unmodifiableSet(asSet("http://www.w3.org/2001/04/xmlenc#sha256",
+        public static final Set<String> DEFAULT_DIGEST_METHODS = unmodifiableSet(asSet("http://www.w3.org/2001/04/xmlenc#sha256",
                 "http://www.w3.org/2001/04/xmlenc#sha512"));
 
         @Getter(AccessLevel.NONE)
-        public static List<SigningMethod> DEFAULT_SIGNING_METHODS = unmodifiableList(asList(
+        public static final List<SigningMethod> DEFAULT_SIGNING_METHODS = unmodifiableList(asList(
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA512, 384, 384),
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA256, 384, 384),
                 new SigningMethod(ALGO_ID_SIGNATURE_RSA_SHA256_MGF1, 4096, 4096)));
 
         @Getter(AccessLevel.NONE)
-        public static Set<String> DEFAULT_SUPPORTED_BINDINGS = unmodifiableSet(asSet(SAMLConstants.SAML2_POST_BINDING_URI,
+        public static final Set<String> DEFAULT_SUPPORTED_BINDINGS = unmodifiableSet(asSet(SAMLConstants.SAML2_POST_BINDING_URI,
                 SAMLConstants.SAML2_REDIRECT_BINDING_URI));
 
         @Pattern(regexp = "^/[a-zA-Z]+$", message = "Invalid responder metadata endpoint path")
