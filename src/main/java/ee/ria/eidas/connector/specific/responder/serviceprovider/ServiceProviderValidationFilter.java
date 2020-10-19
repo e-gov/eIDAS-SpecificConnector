@@ -41,6 +41,9 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
     @Nullable
     @Override
     public XMLObject filter(@Nullable XMLObject metadata) throws FilterException {
+        if (metadata == null) {
+            return null;
+        }
         EntityDescriptor entityDescriptor = (EntityDescriptor) metadata;
         validateEntityId(entityDescriptor);
         validateSPType(entityDescriptor);
