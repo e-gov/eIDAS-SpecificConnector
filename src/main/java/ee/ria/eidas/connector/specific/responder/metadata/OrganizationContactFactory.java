@@ -2,6 +2,8 @@ package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.opensaml.saml.saml2.metadata.*;
 
 import java.util.Collections;
@@ -14,6 +16,7 @@ import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.opensaml.saml.saml2.metadata.ContactPersonTypeEnumeration.*;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class OrganizationContactFactory {
     private static final Set<ContactPersonTypeEnumeration> CONTACT_TYPES = asSet(SUPPORT, TECHNICAL, ADMINISTRATIVE, BILLING, OTHER);
 

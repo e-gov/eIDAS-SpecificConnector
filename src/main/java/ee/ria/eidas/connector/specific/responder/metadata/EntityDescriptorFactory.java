@@ -2,6 +2,8 @@ package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang.RandomStringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.schema.XSAny;
@@ -19,6 +21,7 @@ import static ee.ria.eidas.connector.specific.responder.metadata.OrganizationCon
 import static ee.ria.eidas.connector.specific.responder.metadata.OrganizationContactFactory.createOrganization;
 import static java.util.stream.Collectors.toList;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class EntityDescriptorFactory {
     private static final String NS_SAML_EXTENSIONS = "http://eidas.europa.eu/saml-extensions";
 

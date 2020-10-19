@@ -2,6 +2,8 @@ package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.Attribute;
 import org.opensaml.saml.saml2.metadata.IDPSSODescriptor;
@@ -23,6 +25,7 @@ import static java.util.stream.Collectors.toList;
 import static org.opensaml.saml.saml2.core.Attribute.URI_REFERENCE;
 import static org.opensaml.security.credential.UsageType.SIGNING;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class IDPSSODescriptorFactory {
 
     public static IDPSSODescriptor create(ResponderMetadata responderMetadata, Credential metadataSigningCredential) throws SecurityException {
