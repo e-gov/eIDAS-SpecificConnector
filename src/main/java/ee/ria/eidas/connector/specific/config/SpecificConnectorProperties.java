@@ -8,6 +8,8 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.constraints.URL;
 import org.opensaml.saml.common.xml.SAMLConstants;
+import org.opensaml.xmlsec.encryption.support.EncryptionConstants;
+import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -23,7 +25,8 @@ import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.apache.xml.security.signature.XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256_MGF1;
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
-import static org.opensaml.xmlsec.signature.support.SignatureConstants.*;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA256;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA512;
 
 @Slf4j
 @Data
@@ -150,7 +153,13 @@ public class SpecificConnectorProperties {
         private String spType = "public";
 
         @NotEmpty
-        private String signatureAlgorithm = ALGO_ID_SIGNATURE_RSA_SHA512;
+        private String signatureAlgorithm = SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
+
+        @NotEmpty
+        private String keyTransportAlgorithm = EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP;
+
+        @NotEmpty
+        private String encryptionAlgorithm = EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256_GCM;
 
         @NotNull
         @Min(value = 1)

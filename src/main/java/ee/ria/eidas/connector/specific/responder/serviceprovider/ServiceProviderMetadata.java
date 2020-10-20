@@ -3,7 +3,6 @@ package ee.ria.eidas.connector.specific.responder.serviceprovider;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ServiceProvider;
 import ee.ria.eidas.connector.specific.exception.SpecificConnectorException;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
@@ -35,7 +34,6 @@ import org.opensaml.security.criteria.UsageCriterion;
 import org.opensaml.security.x509.X509Credential;
 import org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap;
 import org.opensaml.xmlsec.encryption.support.DataEncryptionParameters;
-import org.opensaml.xmlsec.encryption.support.EncryptionConstants;
 import org.opensaml.xmlsec.encryption.support.EncryptionException;
 import org.opensaml.xmlsec.encryption.support.KeyEncryptionParameters;
 import org.opensaml.xmlsec.keyinfo.KeyInfoCredentialResolver;
@@ -63,11 +61,15 @@ public class ServiceProviderMetadata {
     private final HTTPMetadataResolver httpMetadataResolver;
     private final ExplicitKeySignatureTrustEngine metadataIssuerTrustEngine;
     private final ExplicitKeySignatureTrustEngine serviceProviderSSOTrustEngine;
+    private final String supportedKeyTransportAlgorithm;
+    private final String supportedEncryptionAlgorithm;
 
-    @Builder
-    public ServiceProviderMetadata(ServiceProvider serviceProvider, KeyStore responderTrustStore, long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor)
+    public ServiceProviderMetadata(ServiceProvider serviceProvider, KeyStore responderTrustStore, String supportedKeyTransportAlgorithm, String supportedEncryptionAlgorithm,
+                                   long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor)
             throws ResolverException, ComponentInitializationException, KeyStoreException {
         this.serviceProvider = serviceProvider;
+        this.supportedKeyTransportAlgorithm = supportedKeyTransportAlgorithm;
+        this.supportedEncryptionAlgorithm = supportedEncryptionAlgorithm;
         this.metadataIssuerTrustEngine = createServiceProviderMetadataTrustEngine(responderTrustStore, serviceProvider.getKeyAlias());
         this.httpMetadataResolver = createReloadingMetadataResolver(minRefreshDelay, maxRefreshDelay, refreshDelayFactor);
         this.serviceProviderSSOTrustEngine = createServiceProviderSSOTrustEngine();
@@ -78,7 +80,7 @@ public class ServiceProviderMetadata {
     }
 
     public EncryptedAssertion encrypt(Assertion assertion) throws EncryptionException, ResolverException {
-        return createAssertionEncrypter().encrypt(assertion);
+        return createEncrypter().encrypt(assertion);
     }
 
     public boolean isUpdatedAndValid() {
@@ -136,7 +138,7 @@ public class ServiceProviderMetadata {
         List<MetadataFilter> metadataFilters = new ArrayList<>();
         metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId(), serviceProvider.getType()));
         metadataFilters.add(new SignatureValidationFilter(metadataIssuerTrustEngine));
-        metadataFilters.add(new RequiredValidUntilFilter()); // TODO: consider using maxValidity
+        metadataFilters.add(new RequiredValidUntilFilter());
         metadataFilters.add(new SchemaValidationFilter(new SAMLSchemaBuilder(SAMLSchemaBuilder.SAML1Version.SAML_11)));
         MetadataFilterChain metadataFilterChain = new MetadataFilterChain();
         metadataFilterChain.setFilters(metadataFilters);
@@ -145,18 +147,17 @@ public class ServiceProviderMetadata {
         return metadataResolver;
     }
 
-    private Encrypter createAssertionEncrypter() throws ResolverException {
+    private Encrypter createEncrypter() throws ResolverException {
         KeyEncryptionParameters kekParams = new KeyEncryptionParameters();
         kekParams.setEncryptionCredential(resolveCredential(ENCRYPTION));
-        kekParams.setAlgorithm(EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP); // TODO:
-
+        kekParams.setAlgorithm(supportedKeyTransportAlgorithm);
         X509KeyInfoGeneratorFactory keyInfoGeneratorFactory = new X509KeyInfoGeneratorFactory();
         keyInfoGeneratorFactory.setEmitEntityCertificate(true);
         KeyInfoGenerator keyInfoGenerator = keyInfoGeneratorFactory.newInstance();
         kekParams.setKeyInfoGenerator(keyInfoGenerator);
 
         DataEncryptionParameters encryptParams = new DataEncryptionParameters();
-        encryptParams.setAlgorithm(EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES128); // TODO:
+        encryptParams.setAlgorithm(supportedEncryptionAlgorithm);
 
         Encrypter encrypter = new Encrypter(encryptParams, kekParams);
         encrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);

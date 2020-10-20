@@ -5,6 +5,8 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.Suppor
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.opensaml.xmlsec.encryption.support.EncryptionConstants;
+import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,7 +20,6 @@ import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {SpecificConnectorConfiguration.class, ResponderMetadataConfiguration.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
@@ -73,6 +74,16 @@ public class SpecificConnectorPropertiesDefaultValuesTests {
 
     @Test
     void defaultSignatureAlgorithm() {
-        assertEquals(ALGO_ID_SIGNATURE_RSA_SHA512, specificConnectorProperties.getResponderMetadata().getSignatureAlgorithm());
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512, specificConnectorProperties.getResponderMetadata().getSignatureAlgorithm());
+    }
+
+    @Test
+    void defaultKeyTransportAlgorithm() {
+        assertEquals(EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP, specificConnectorProperties.getResponderMetadata().getKeyTransportAlgorithm());
+    }
+
+    @Test
+    void defaultEncryptionAlgorithm() {
+        assertEquals(EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256_GCM, specificConnectorProperties.getResponderMetadata().getEncryptionAlgorithm());
     }
 }
