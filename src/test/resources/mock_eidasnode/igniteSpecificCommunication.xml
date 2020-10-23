@@ -23,20 +23,20 @@
                     <property name="name" value="specificNodeConnectorRequestCache" />
                     <property name="atomicityMode" value="ATOMIC" />
                     <property name="backups" value="1" />
-                    <property name="expiryPolicyFactory" ref="7_minutes_duration" />
+                    <property name="expiryPolicyFactory" ref="2_seconds_duration" />
                 </bean>
                 <bean class="org.apache.ignite.configuration.CacheConfiguration">
                     <property name="name" value="nodeSpecificConnectorResponseCache" />
                     <property name="atomicityMode" value="ATOMIC" />
                     <property name="backups" value="1" />
-                    <property name="expiryPolicyFactory" ref="7_minutes_duration" />
+                    <property name="expiryPolicyFactory" ref="2_seconds_duration" />
                 </bean>
                 <!-- specificMSSpRequestCorrelationMap -->
                 <bean class="org.apache.ignite.configuration.CacheConfiguration">
                     <property name="name" value="specificMSSpRequestCorrelationMap"/>
                     <property name="atomicityMode" value="ATOMIC"/>
                     <property name="backups" value="1"/>
-                    <property name="expiryPolicyFactory" ref="7_minutes_duration"/>
+                    <property name="expiryPolicyFactory" ref="2_seconds_duration"/>
                 </bean>
             </list>
         </property>
@@ -87,11 +87,11 @@
     <!--
          Defines expiry policy based on moment of creation for ignite cache.
      -->
-    <bean id="7_minutes_duration" class="javax.cache.expiry.CreatedExpiryPolicy" factory-method="factoryOf" scope="prototype">
+    <bean id="2_seconds_duration" class="javax.cache.expiry.CreatedExpiryPolicy" factory-method="factoryOf" scope="prototype">
         <constructor-arg>
             <bean class="javax.cache.expiry.Duration">
-                <constructor-arg value="MINUTES" />
-                <constructor-arg value="7" />
+                <constructor-arg value="SECONDS"/>
+                <constructor-arg value="2"/>
             </bean>
         </constructor-arg>
     </bean>

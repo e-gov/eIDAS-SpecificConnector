@@ -133,7 +133,7 @@ public abstract class SpecificConnectorTest {
             InputStream cfgXml = SpecificConnectorTest.class.getClassLoader()
                     .getResourceAsStream("mock_eidasnode/igniteSpecificCommunication.xml");
             IgniteConfiguration cfg = Ignition.loadSpringBean(cfgXml, "igniteSpecificCommunication.cfg");
-            cfg.setIncludeEventTypes(EVT_CACHE_OBJECT_PUT, EVT_CACHE_OBJECT_READ, EVT_CACHE_OBJECT_REMOVED);
+            cfg.setIncludeEventTypes(EVT_CACHE_OBJECT_PUT, EVT_CACHE_OBJECT_READ, EVT_CACHE_OBJECT_REMOVED, EVT_CACHE_OBJECT_EXPIRED);
             eidasNodeIgnite = Ignition.getOrStart(cfg);
         }
     }

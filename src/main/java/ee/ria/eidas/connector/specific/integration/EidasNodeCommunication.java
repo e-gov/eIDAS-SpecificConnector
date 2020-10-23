@@ -162,7 +162,7 @@ public class EidasNodeCommunication {
     }
 
     @Slf4j
-    private static class LightJAXBCodec {
+    static class LightJAXBCodec {
         private final JAXBContext jaxbCtx;
 
         public LightJAXBCodec(JAXBContext jaxbCtx) {
