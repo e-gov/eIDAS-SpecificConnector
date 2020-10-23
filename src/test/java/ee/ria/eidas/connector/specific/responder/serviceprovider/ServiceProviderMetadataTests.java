@@ -64,14 +64,14 @@ public class ServiceProviderMetadataTests extends ServiceProviderTest {
     @Test
     @SneakyThrows
     void requestSignatureValidationSucceedsWhen_ValidRequestSignature() {
-        ServiceProviderMetadata spMetadata = serviceProviderMetadataRegistry.getByEntityId(SP_ENTITY_ID);
+        ServiceProviderMetadata spMetadata = serviceProviderMetadataRegistry.get(SP_ENTITY_ID);
         assertNotNull(spMetadata);
         assertTrue(spMetadata.isUpdatedAndValid());
         byte[] decodedAuthnRequest = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
         spMetadata.validate(authnRequest.getSignature());
 
-        ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID);
+        ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID);
         assertNotNull(sp1Metadata);
         assertTrue(sp1Metadata.isUpdatedAndValid());
         byte[] decodedAuthnRequest1 = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp1-valid-request-signature.xml"));
@@ -82,7 +82,7 @@ public class ServiceProviderMetadataTests extends ServiceProviderTest {
     @Test
     @SneakyThrows
     void signatureValidationFailsWhen_InvalidRequestSignature() {
-        ServiceProviderMetadata spMetadata = serviceProviderMetadataRegistry.getByEntityId(SP_ENTITY_ID);
+        ServiceProviderMetadata spMetadata = serviceProviderMetadataRegistry.get(SP_ENTITY_ID);
         assertNotNull(spMetadata);
         assertTrue(spMetadata.isUpdatedAndValid());
         byte[] decodedAuthnRequest = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-expired-request-signature.xml"));
@@ -92,7 +92,7 @@ public class ServiceProviderMetadataTests extends ServiceProviderTest {
         });
         assertEquals("Signature cryptographic validation not successful", signatureException.getMessage());
 
-        ServiceProviderMetadata spMetadata1 = serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID);
+        ServiceProviderMetadata spMetadata1 = serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID);
         assertNotNull(spMetadata1);
         assertTrue(spMetadata1.isUpdatedAndValid());
         byte[] decodedAuthnRequest1 = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp1-expired-request-signature.xml"));

@@ -37,13 +37,11 @@ public class ServiceProviderMetadataConfiguration {
         Long minRefreshDelay = specificConnectorProperties.getServiceProviderMetadataMinRefreshDelay();
         Long maxRefreshDelay = specificConnectorProperties.getServiceProviderMetadataMaxRefreshDelay();
         BigDecimal delayFactor = specificConnectorProperties.getServiceProviderMetadataRefreshDelayFactor();
+        String supportedKeyTransportAlgorithm = specificConnectorProperties.getResponderMetadata().getKeyTransportAlgorithm();
+        String supportedEncryptionAlgorithm = specificConnectorProperties.getResponderMetadata().getEncryptionAlgorithm();
 
-        return ServiceProviderMetadata.builder()
-                .serviceProvider(serviceProvider)
-                .responderTrustStore(responderMetadataTrustStore)
-                .minRefreshDelay(minRefreshDelay)
-                .maxRefreshDelay(maxRefreshDelay)
-                .refreshDelayFactor(delayFactor.floatValue())
-                .build();
+        return new ServiceProviderMetadata(serviceProvider, responderMetadataTrustStore,
+                supportedKeyTransportAlgorithm, supportedEncryptionAlgorithm,
+                minRefreshDelay, maxRefreshDelay, delayFactor.floatValue());
     }
 }

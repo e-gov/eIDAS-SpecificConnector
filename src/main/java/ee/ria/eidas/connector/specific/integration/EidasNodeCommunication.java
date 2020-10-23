@@ -43,6 +43,8 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.xml.bind.Marshaller.JAXB_ENCODING;
 import static javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT;
+import static net.logstash.logback.argument.StructuredArguments.value;
+import static net.logstash.logback.marker.Markers.append;
 
 @Slf4j
 @Service
@@ -50,9 +52,6 @@ public class EidasNodeCommunication {
 
     @Value("${lightToken.connector.request.issuer.name}")
     private String lightTokenRequestIssuerName;
-
-    @Value("${lightToken.connector.request.node.id}")
-    private String lightTokenRequestNodeId;
 
     @Value("${lightToken.connector.request.secret}")
     private String lightTokenRequestSecret;
@@ -106,11 +105,10 @@ public class EidasNodeCommunication {
 
     public BinaryLightToken putLightRequest(ILightRequest lightRequest) {
         try {
-            final BinaryLightToken binaryLightToken = createBinaryLightToken(lightTokenRequestIssuerName, lightTokenRequestSecret, lightTokenRequestAlgorithm);
-            final String tokenId = binaryLightToken.getToken().getId();
+            BinaryLightToken binaryLightToken = createBinaryLightToken(lightTokenRequestIssuerName, lightTokenRequestSecret, lightTokenRequestAlgorithm);
+            String tokenId = binaryLightToken.getToken().getId();
             boolean isInserted = specificNodeConnectorRequestCache.putIfAbsent(tokenId, codec.marshall(lightRequest));
-            // TODO: log LightRequest
-            log.info("Added LightRequest to communication cache. Token id: {}", tokenId);
+            logCacheEvent(lightRequest, tokenId, isInserted);
             return binaryLightToken;
         } catch (SpecificCommunicationException ex) {
             throw new TechnicalException("Unable to put LightRequest to cache", ex);
@@ -120,18 +118,51 @@ public class EidasNodeCommunication {
     public ILightResponse getAndRemoveLightResponse(String binaryLightTokenBase64) {
         Assert.isTrue(StringUtils.isNotEmpty(binaryLightTokenBase64), "Token value cannot be null or empty!");
         try {
-            final String lightTokenId = getBinaryLightTokenId(binaryLightTokenBase64, lightTokenResponseSecret, lightTokenResponseAlgorithm);
-            final ILightResponse lightResponse = codec.unmarshallResponse(nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId), supportedAttributesRegistry.getAttributes());
-            // TODO: log LightResponse
-            log.info("Removed LightResponse from communication cache. Token id: {}", lightTokenId);
+            String lightTokenId = getBinaryLightTokenId(binaryLightTokenBase64, lightTokenResponseSecret, lightTokenResponseAlgorithm);
+            ILightResponse lightResponse = codec.unmarshallResponse(nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId), supportedAttributesRegistry.getAttributes());
+            logCacheEvent(lightTokenId, lightResponse);
             return lightResponse;
         } catch (SpecificCommunicationException | SecurityEIDASException e) {
             throw new BadRequestException("Invalid token", e);
         }
     }
 
+    private void logCacheEvent(ILightRequest lightRequest, String tokenId, boolean isInserted) {
+        if (isInserted) {
+            log.info(append("light_request", lightRequest).and(append("communication_cache.name", specificNodeConnectorRequestCache.getName()))
+                            .and(append("event.kind", "event"))
+                            .and(append("event.category", "authentication"))
+                            .and(append("event.type", "info")),
+                    "LightRequest with tokenId: '{}' was saved", value("light_request.light_token_id", tokenId));
+        } else {
+            log.warn(append("light_request", lightRequest).and(append("communication_cache.name", specificNodeConnectorRequestCache.getName()))
+                            .and(append("event.kind", "event"))
+                            .and(append("event.category", "authentication"))
+                            .and(append("event.type", "info")),
+                    "LightRequest was not saved. A LightRequest with tokenId: '{}' already exists", value("light_request.light_token_id", tokenId));
+        }
+    }
+
+    private void logCacheEvent(String lightTokenId, ILightResponse lightResponse) {
+        if (lightResponse != null) {
+            log.info(append("light_response.id", lightResponse.getId())
+                            .and(append("light_response.in_response_to_id", lightResponse.getInResponseToId()))
+                            .and(append("communication_cache.name", nodeSpecificConnectorResponseCache.getName()))
+                            .and(append("event.kind", "event"))
+                            .and(append("event.category", "authentication"))
+                            .and(append("event.type", "info")),
+                    "LightResponse retrieved from cache for tokenId: {}", value("light_response.light_token_id", lightTokenId));
+        } else {
+            log.warn(append("communication_cache.name", nodeSpecificConnectorResponseCache.getName())
+                            .and(append("event.kind", "event"))
+                            .and(append("event.category", "authentication"))
+                            .and(append("event.type", "info")),
+                    "LightResponse was not found from cache for tokenId: {}", value("light_response.light_token_id", lightTokenId));
+        }
+    }
+
     @Slf4j
-    public static class LightJAXBCodec {
+    private static class LightJAXBCodec {
         private final JAXBContext jaxbCtx;
 
         public LightJAXBCodec(JAXBContext jaxbCtx) {

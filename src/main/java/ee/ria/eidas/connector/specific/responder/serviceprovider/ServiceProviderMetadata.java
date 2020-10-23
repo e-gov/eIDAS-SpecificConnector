@@ -50,6 +50,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.opensaml.saml.common.xml.SAMLConstants.SAML20P_NS;
 import static org.opensaml.security.credential.UsageType.ENCRYPTION;
@@ -170,7 +171,11 @@ public class ServiceProviderMetadata {
         criteriaSet.add(new EntityRoleCriterion(SPSSODescriptor.DEFAULT_ELEMENT_NAME));
         criteriaSet.add(new ProtocolCriterion(SAML20P_NS));
         criteriaSet.add(new EntityIdCriterion(serviceProvider.getEntityId()));
-        return serviceProviderSSOTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
+        Credential credential = serviceProviderSSOTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
+        if (credential == null) {
+            throw new ResolverException(format("Metadata %s certificate missing or invalid", credentialUsageType.name()));
+        }
+        return credential;
     }
 
     private ExplicitKeySignatureTrustEngine createServiceProviderSSOTrustEngine() throws ComponentInitializationException {

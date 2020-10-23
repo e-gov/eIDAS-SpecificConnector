@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.opensaml.core.criterion.EntityIdCriterion;
@@ -14,8 +15,6 @@ import org.opensaml.security.SecurityException;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.impl.KeyStoreCredentialResolver;
 import org.opensaml.xmlsec.SignatureSigningParameters;
-import org.opensaml.xmlsec.algorithm.AlgorithmDescriptor;
-import org.opensaml.xmlsec.algorithm.AlgorithmSupport;
 import org.opensaml.xmlsec.algorithm.DigestAlgorithm;
 import org.opensaml.xmlsec.algorithm.SignatureAlgorithm;
 import org.opensaml.xmlsec.keyinfo.KeyInfoGenerator;
@@ -23,7 +22,6 @@ import org.opensaml.xmlsec.keyinfo.impl.X509KeyInfoGeneratorFactory;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.*;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 import java.security.KeyStore;
 import java.util.HashMap;
@@ -37,8 +35,8 @@ public class ResponderMetadataSigner {
     private final Credential signingCredential;
 
     public ResponderMetadataSigner(SpecificConnectorProperties connectorProperties, KeyStore responderMetadataKeyStore) throws ResolverException {
-        SignatureAlgorithm signatureAlgorithm = getSignatureAlgorithm(connectorProperties.getResponderMetadata().getSignatureAlgorithm());
-        DigestAlgorithm digestAlgorithm = getRelatedDigestAlgorithm(signatureAlgorithm);
+        SignatureAlgorithm signatureAlgorithm = OpenSAMLUtils.getSignatureAlgorithm(connectorProperties.getResponderMetadata().getSignatureAlgorithm());
+        DigestAlgorithm digestAlgorithm = OpenSAMLUtils.getRelatedDigestAlgorithm(signatureAlgorithm);
         signingCredential = resolveSigningCredential(connectorProperties, responderMetadataKeyStore);
         signingParameters = getSignatureSigningParameters(signingCredential, signatureAlgorithm, digestAlgorithm);
         builderFactory = XMLObjectProviderRegistrySupport.getBuilderFactory().getBuilder(Signature.DEFAULT_ELEMENT_NAME);
@@ -77,19 +75,6 @@ public class ResponderMetadataSigner {
 
     private Signature buildSignature() {
         return (Signature) builderFactory.buildObject(Signature.DEFAULT_ELEMENT_NAME);
-    }
-
-    private SignatureAlgorithm getSignatureAlgorithm(String signatureAlgorithmId) {
-        AlgorithmDescriptor signatureAlgorithm = AlgorithmSupport.getGlobalAlgorithmRegistry().get(signatureAlgorithmId);
-        Assert.notNull(signatureAlgorithm, "No signature algorithm support for: " + signatureAlgorithmId);
-        Assert.isInstanceOf(SignatureAlgorithm.class, signatureAlgorithm, "This is not a valid XML signature algorithm! Please check your configuration!");
-        return (SignatureAlgorithm) signatureAlgorithm;
-    }
-
-    private DigestAlgorithm getRelatedDigestAlgorithm(SignatureAlgorithm signatureAlgorithm) {
-        DigestAlgorithm digestAlgorithm = AlgorithmSupport.getGlobalAlgorithmRegistry().getDigestAlgorithm(signatureAlgorithm.getDigest());
-        Assert.notNull(digestAlgorithm, "No corresponding message digest algorithm support for signature algorithm: " + signatureAlgorithm.getURI());
-        return digestAlgorithm;
     }
 
     private SignatureSigningParameters getSignatureSigningParameters(Credential credential, SignatureAlgorithm signatureAlgorithm, DigestAlgorithm digestAlgorithm) {

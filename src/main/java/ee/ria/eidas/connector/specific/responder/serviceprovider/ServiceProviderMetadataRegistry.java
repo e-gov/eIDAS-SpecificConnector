@@ -1,6 +1,5 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
-import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.monitoring.health.ServiceProviderMetadataHealthIndicator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +7,7 @@ import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.springframework.boot.actuate.health.HealthContributorRegistry;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
@@ -36,15 +36,12 @@ public class ServiceProviderMetadataRegistry {
         healthContributorRegistry.registerContributor(name, new ServiceProviderMetadataHealthIndicator(sp));
     }
 
-    public void refreshMetadata(String entityId) throws ResolverException {
-        getByEntityId(entityId).refreshMetadata();
+    public void refreshMetadata(String issuerId) throws ResolverException {
+        get(issuerId).refreshMetadata();
     }
 
-    public ServiceProviderMetadata getByEntityId(String entityId) {
-        ServiceProviderMetadata serviceProviderMetadata = spMetadataEntityIdMap.get(entityId);
-        if (serviceProviderMetadata == null) {
-            throw new TechnicalException("Service provider metadata resolver not found for entity id: %s", entityId);
-        }
-        return serviceProviderMetadata;
+    @Nullable
+    public ServiceProviderMetadata get(String issuerId) {
+        return spMetadataEntityIdMap.get(issuerId);
     }
 }

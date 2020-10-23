@@ -1,13 +1,12 @@
 package ee.ria.eidas.connector.specific.exception;
 
+import lombok.Getter;
+
+@Getter
 public class BadRequestException extends SpecificConnectorException {
 
     public BadRequestException(String message) {
-        super(message);
-    }
-
-    public BadRequestException(String format, Object... args) {
-        super(format, args);
+        this(message, null);
     }
 
     public BadRequestException(String message, Throwable cause) {

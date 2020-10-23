@@ -2,11 +2,15 @@ package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
+import ee.ria.eidas.connector.specific.exception.AuthenticationStatus;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
+import eu.eidas.auth.commons.EIDASStatusCode;
+import eu.eidas.auth.commons.EIDASSubStatusCode;
 import eu.eidas.auth.commons.attribute.AttributeValue;
 import eu.eidas.auth.commons.attribute.*;
 import eu.eidas.auth.commons.light.ILightResponse;
+import eu.eidas.auth.commons.light.IResponseStatus;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.security.RandomIdentifierGenerationStrategy;
@@ -28,7 +32,6 @@ import org.springframework.stereotype.Component;
 import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +52,7 @@ public class ResponseFactory {
 
     private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy();
 
-    public String createBase64SamlResponse(ILightResponse lightResponse, ServiceProviderMetadata spMetadata) {
+    public String createSamlResponse(ILightResponse lightResponse, ServiceProviderMetadata spMetadata) {
         try {
             Response response = createResponse(lightResponse, spMetadata);
             responderMetadataSigner.sign(response);
@@ -59,17 +62,38 @@ public class ResponseFactory {
         }
     }
 
+    public String createSamlErrorResponse(ServiceProviderMetadata spMetadata, String inResponseToId, AuthenticationStatus error) {
+        try {
+            Response response = createErrorResponse(spMetadata, inResponseToId, error);
+            responderMetadataSigner.sign(response);
+            return serializeResponse(response);
+        } catch (Exception ex) {
+            throw new TechnicalException("Unable to create SAML Response", ex);
+        }
+    }
+
+    private Response createErrorResponse(ServiceProviderMetadata spMetadata, String inResponseToId, AuthenticationStatus error) throws ResolverException {
+        Response response = new ResponseBuilder().buildObject();
+        response.setID(secureRandomIdGenerator.generateIdentifier());
+        response.setDestination(spMetadata.getAssertionConsumerServiceUrl());
+        response.setInResponseTo(inResponseToId);
+        response.setIssueInstant(new DateTime());
+        response.setVersion(VERSION_20);
+        response.setIssuer(createIssuer());
+        response.setStatus(createStatus(error.getStatusCode(), error.getSubStatusCode(), error.getStatusMessage()));
+        return response;
+    }
+
     private Response createResponse(ILightResponse lightResponse, ServiceProviderMetadata spMetadata) throws EncryptionException,
             AttributeValueMarshallingException, SecurityException, MarshallingException, SignatureException, ResolverException {
         Response response = new ResponseBuilder().buildObject();
+        response.setID(lightResponse.getId());
         response.setDestination(spMetadata.getAssertionConsumerServiceUrl());
-        response.setID(secureRandomIdGenerator.generateIdentifier());
         response.setInResponseTo(lightResponse.getInResponseToId());
         response.setIssueInstant(new DateTime());
         response.setVersion(VERSION_20);
         response.setIssuer(createIssuer());
-        response.setStatus(createStatus(lightResponse));
-        response.setID(lightResponse.getId());
+        response.setStatus(createStatus(lightResponse.getStatus()));
         response.getEncryptedAssertions().add(createAssertion(lightResponse, response.getIssueInstant(), spMetadata));
         return response;
     }
@@ -77,8 +101,7 @@ public class ResponseFactory {
     private String serializeResponse(Response response) throws MarshallingException {
         MarshallerFactory marshallerFactory = XMLObjectProviderRegistrySupport.getMarshallerFactory();
         Element responseElement = marshallerFactory.getMarshaller(response).marshall(response);
-        String samlResponse = SerializeSupport.nodeToString(responseElement);
-        return Base64.getEncoder().encodeToString(samlResponse.getBytes());
+        return SerializeSupport.nodeToString(responseElement);
     }
 
     private EncryptedAssertion createAssertion(ILightResponse lightResponse, DateTime issueInstant, ServiceProviderMetadata spMetadata)
@@ -105,12 +128,31 @@ public class ResponseFactory {
         return responseIssuer;
     }
 
-    private Status createStatus(ILightResponse lightResponse) {
-        String statusCodeUri = lightResponse.getStatus().getStatusCode();
-        StatusCode statusCode = new StatusCodeBuilder().buildObject();
-        statusCode.setValue(statusCodeUri);
+    private Status createStatus(IResponseStatus status) {
+        EIDASStatusCode eidasStatusCode = EIDASStatusCode.fromString(status.getStatusCode());
+        EIDASSubStatusCode eidasSubStatusCode = status.getSubStatusCode() == null ? null : EIDASSubStatusCode.fromString(status.getSubStatusCode());
+        return createStatus(eidasStatusCode, eidasSubStatusCode, status.getStatusMessage());
+    }
+
+    private Status createStatus(EIDASStatusCode eidasStatusCode, EIDASSubStatusCode eidasSubStatusCode, String message) {
         Status status = new StatusBuilder().buildObject();
-        status.setStatusCode(statusCode);
+        StatusCode statusCode = null;
+
+        if (eidasStatusCode != null) {
+            statusCode = new StatusCodeBuilder().buildObject();
+            statusCode.setValue(eidasStatusCode.getValue());
+            status.setStatusCode(statusCode);
+        }
+
+        if (statusCode != null && eidasSubStatusCode != null) {
+            StatusCode subStatusCode = new StatusCodeBuilder().buildObject();
+            subStatusCode.setValue(eidasSubStatusCode.getValue());
+            statusCode.setStatusCode(subStatusCode);
+        }
+
+        StatusMessage statusMessage = new StatusMessageBuilder().buildObject();
+        statusMessage.setMessage(message);
+        status.setStatusMessage(statusMessage);
         return status;
     }
 

@@ -151,7 +151,8 @@ class ResponderMetadataGeneratorTest {
     }
 
     private void assertValidUntil(EntityDescriptor metadata, DateTime metadataRequestTime) {
-        assertEquals(48, Hours.hoursBetween(metadataRequestTime, metadata.getValidUntil()).getHours());
+        int hours = Hours.hoursBetween(metadataRequestTime, metadata.getValidUntil()).getHours();
+        assertThat(hours).isIn(48, 49);
     }
 
     private void assertMetadataSigningCertificate(Signature signature) {

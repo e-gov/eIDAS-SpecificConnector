@@ -6,7 +6,6 @@ import ee.ria.eidas.connector.specific.config.ServiceProviderMetadataConfigurati
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import lombok.extern.slf4j.Slf4j;
-import net.shibboleth.utilities.java.support.logic.ConstraintViolationException;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.awaitility.Durations;
@@ -73,18 +72,18 @@ public class ServiceProviderMetadataInitializationTests extends ServiceProviderT
     }
 
     private void assertRequestSignatureValidationFails() throws IOException, net.shibboleth.utilities.java.support.xml.XMLParserException, org.opensaml.core.xml.io.UnmarshallingException {
-        ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID);
+        ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID);
         assertNotNull(sp1Metadata);
         assertFalse(sp1Metadata.isUpdatedAndValid());
 
         byte[] decodedAuthnRequest = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp1-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
-        ConstraintViolationException constraintViolationException = assertThrows(ConstraintViolationException.class, () -> sp1Metadata.validate(authnRequest.getSignature()));
-        assertEquals("Validation credential cannot be null", constraintViolationException.getMessage());
+        ResolverException resolverException = assertThrows(ResolverException.class, () -> sp1Metadata.validate(authnRequest.getSignature()));
+        assertEquals("Metadata SIGNING certificate missing or invalid", resolverException.getMessage());
     }
 
     private void assertRequestSignatureValidationSucceeds() throws IOException, net.shibboleth.utilities.java.support.xml.XMLParserException, org.opensaml.core.xml.io.UnmarshallingException, SignatureException, ResolverException {
-        ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID);
+        ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID);
         assertNotNull(sp1Metadata);
 
         await()

@@ -59,6 +59,7 @@
                     <fieldName>error.type</fieldName>
                 </throwableRootCauseClassName>
                 <logstashMarkers />
+                <stackHash />
                 <arguments />
             </providers>
         </encoder>

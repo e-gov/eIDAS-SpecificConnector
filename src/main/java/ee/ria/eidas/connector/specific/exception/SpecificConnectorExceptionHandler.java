@@ -1,40 +1,91 @@
 package ee.ria.eidas.connector.specific.exception;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.NotImplementedException;
+import org.opensaml.core.xml.io.MarshallingException;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.validation.BindException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.ConstraintViolationException;
 import java.io.IOException;
+import java.util.Base64;
 
+import static eu.eidas.auth.commons.EidasParameterKeys.SAML_RESPONSE;
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static net.logstash.logback.marker.Markers.append;
+import static net.logstash.logback.marker.Markers.appendRaw;
+import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
 
 @Slf4j
 @ControllerAdvice
+@RequiredArgsConstructor
 public class SpecificConnectorExceptionHandler {
     public static final String BAD_REQUEST_ERROR_MESSAGE = "Bad request exception: %s";
+    public static final String AUTHENTICATION_FAILED_ERROR_MESSAGE = "Authentication failed: %s";
+    private final MappingJackson2XmlHttpMessageConverter xmlMapper;
 
-    @ExceptionHandler({BindException.class})
-    public ModelAndView handleBindException(BindException ex, HttpServletResponse response) throws IOException {
+    @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
+    public ModelAndView handleHttpRequestMethodNotSupportedException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+        return new ModelAndView();
+    }
+
+    @ExceptionHandler({MissingServletRequestParameterException.class, ConstraintViolationException.class, BindException.class})
+    public ModelAndView handleValidationException(Exception ex, HttpServletResponse response) throws IOException {
         log.error(format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()));
         response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         return new ModelAndView();
     }
 
     @ExceptionHandler({BadRequestException.class})
-    public ModelAndView handleBadRequestException(BadRequestException ex, HttpServletResponse response) throws IOException {
-        log.error(format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()));
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    public ModelAndView handleBadRequestException(BadRequestException ex, HttpServletResponse response) throws IOException, MarshallingException {
+        log.error(append("event.kind", "event")
+                        .and(append("event.category", "authentication"))
+                        .and(append("event.type", "end"))
+                        .and(append("event.outcome", "failure")),
+                format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()), ex.getCause());
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         return new ModelAndView();
     }
 
     @ExceptionHandler({AuthenticationException.class})
-    public ModelAndView handleAuthenticationException(AuthenticationException ex, HttpServletResponse response) throws IOException {
-        log.error("AuthenticationException exception", ex);
-        throw new NotImplementedException("AuthenticationException handler not implemented");
+    public RedirectView handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) throws IOException {
+        String samlResponse = ex.getSamlResponse();
+        JsonNode samlResponseJson = xmlMapper.getObjectMapper().readTree(samlResponse);
+
+        log.error(appendRaw("saml_response", samlResponseJson.toString())
+                        .and(append("event.kind", "event"))
+                        .and(append("event.category", "authentication"))
+                        .and(append("event.type", "end"))
+                        .and(append("event.outcome", "failure")),
+                format(AUTHENTICATION_FAILED_ERROR_MESSAGE, ex.getMessage()));
+
+        String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
+        String uri = UriComponentsBuilder.fromHttpUrl(ex.getAssertionConsumerServiceURL())
+                .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(samlResponseBase64, UTF_8))
+                .build(true)
+                .toUri()
+                .toString();
+
+        if (HttpMethod.POST.matches(request.getMethod())) {
+            request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.TEMPORARY_REDIRECT);
+        }
+        return new RedirectView(uri);
     }
 
     @ExceptionHandler({TechnicalException.class})

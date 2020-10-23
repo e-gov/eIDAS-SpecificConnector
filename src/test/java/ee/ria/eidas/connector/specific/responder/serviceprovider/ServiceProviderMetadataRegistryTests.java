@@ -4,7 +4,6 @@ import ee.ria.eidas.connector.specific.config.OpenSAMLConfiguration;
 import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.ServiceProviderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
-import ee.ria.eidas.connector.specific.exception.SpecificConnectorException;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
@@ -48,7 +47,7 @@ public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
 
     @Test
     void initializedServiceProviderAvailableAndInValidStateWhen_RequestedFromRegistry() throws ResolverException {
-        ServiceProviderMetadata spMetadataFromRegistry = serviceProviderMetadataRegistry.getByEntityId(SP_ENTITY_ID);
+        ServiceProviderMetadata spMetadataFromRegistry = serviceProviderMetadataRegistry.get(SP_ENTITY_ID);
         assertNotNull(spMetadataFromRegistry);
         assertTrue(spMetadataFromRegistry.isUpdatedAndValid());
         assertEquals("service-provider", spMetadataFromRegistry.getId());
@@ -60,7 +59,7 @@ public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
 
     @Test
     void uninitializedServiceProviderAvailableAndInInvalidStateWhen_RequestedFromRegistry() {
-        ServiceProviderMetadata spMetadata1FromRegistry = serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID);
+        ServiceProviderMetadata spMetadata1FromRegistry = serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID);
         assertNotNull(spMetadata1FromRegistry);
         assertFalse(spMetadata1FromRegistry.isUpdatedAndValid());
         assertEquals("service-provider-1", spMetadata1FromRegistry.getId());
@@ -68,11 +67,5 @@ public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
         assertEquals("public", spMetadata1FromRegistry.getType());
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::getAssertionConsumerServiceUrl);
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::isWantAssertionsSigned);
-    }
-
-    @Test
-    void exceptionWhen_UnknownServiceProviderRequestedFromRegistry() {
-        SpecificConnectorException specificConnectorException = assertThrows(SpecificConnectorException.class, () -> serviceProviderMetadataRegistry.getByEntityId("unknown"));
-        assertEquals("Service provider metadata resolver not found for entity id: unknown", specificConnectorException.getMessage());
     }
 }

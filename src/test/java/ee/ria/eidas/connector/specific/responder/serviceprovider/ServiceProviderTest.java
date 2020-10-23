@@ -85,14 +85,14 @@ abstract class ServiceProviderTest {
     protected void assertInvalidMetadataState() throws ResolverException {
         serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
         assertThrows(ResolverException.class, () -> serviceProviderMetadataRegistry.refreshMetadata(SP_1_ENTITY_ID));
-        assertTrue(serviceProviderMetadataRegistry.getByEntityId(SP_ENTITY_ID).isUpdatedAndValid());
-        assertFalse(serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID).isUpdatedAndValid());
+        assertTrue(serviceProviderMetadataRegistry.get(SP_ENTITY_ID).isUpdatedAndValid());
+        assertFalse(serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID).isUpdatedAndValid());
     }
 
     protected void assertValidMetadataState() throws ResolverException {
         serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
         serviceProviderMetadataRegistry.refreshMetadata(SP_1_ENTITY_ID);
-        assertTrue(serviceProviderMetadataRegistry.getByEntityId(SP_ENTITY_ID).isUpdatedAndValid());
-        assertTrue(serviceProviderMetadataRegistry.getByEntityId(SP_1_ENTITY_ID).isUpdatedAndValid());
+        assertTrue(serviceProviderMetadataRegistry.get(SP_ENTITY_ID).isUpdatedAndValid());
+        assertTrue(serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID).isUpdatedAndValid());
     }
 }

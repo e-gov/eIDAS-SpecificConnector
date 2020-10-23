@@ -5,6 +5,7 @@ import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import lombok.extern.slf4j.Slf4j;
+import net.shibboleth.utilities.java.support.security.RandomIdentifierGenerationStrategy;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.saml.saml2.core.AuthnContextClassRef;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -16,19 +17,21 @@ import org.w3c.dom.Element;
 import javax.xml.namespace.QName;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 @Slf4j
 @Component
 public class LightRequestFactory {
+    private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy();
 
     @Autowired
     private AttributeRegistry supportedAttributesRegistry;
 
     public LightRequest createLightRequest(AuthnRequest authnRequest, String country, String relayState, String spType) {
         LightRequest.Builder builder = LightRequest.builder()
-                .id(authnRequest.getID())
+                .id(authnRequest.getID()) // TODO: secureRandomIdGenerator.generateIdentifier() vs authnRequest.getID()?
                 .citizenCountryCode(country)
                 .issuer(authnRequest.getIssuer().getValue())
                 .nameIdFormat(authnRequest.getNameIDPolicy().getFormat())
@@ -41,6 +44,8 @@ public class LightRequestFactory {
 
         if (isNotEmpty(relayState)) {
             builder.relayState(relayState);
+        } else {
+            builder.relayState(UUID.randomUUID().toString());
         }
 
         return builder.build();
