@@ -61,7 +61,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
                 "eidas.connector.service-providers[0].type=public"
         })
-class ServiceProviderControllerTest extends SpecificConnectorTest {
+class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @SpyBean
     ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
