@@ -90,7 +90,7 @@ public class ConnectorResponseController {
                             .and(append("authn_request.relay_state", relayState))
                             .and(append("event.kind", "event"))
                             .and(append("event.category", "authentication"))
-                            .and(append("event.type", "start"))
+                            .and(append("event.type", "end"))
                             .and(append("event.outcome", "success")),
                     "SAML response created");
         } catch (JsonProcessingException e) {
