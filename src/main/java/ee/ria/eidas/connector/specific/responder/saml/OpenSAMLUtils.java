@@ -17,6 +17,7 @@ import org.opensaml.xmlsec.algorithm.AlgorithmDescriptor;
 import org.opensaml.xmlsec.algorithm.AlgorithmSupport;
 import org.opensaml.xmlsec.algorithm.DigestAlgorithm;
 import org.opensaml.xmlsec.algorithm.SignatureAlgorithm;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.w3c.dom.Element;
 
@@ -43,9 +44,13 @@ public class OpenSAMLUtils {
         return SerializeSupport.nodeToString(entityDescriptorElement);
     }
 
+    @Nullable
     public AuthnRequest unmarshallAuthnRequest(String samlRequest) throws UnmarshallingException, XMLParserException {
+        if (samlRequest == null) {
+            return null;
+        }
         byte[] decodedAuthnRequest = Base64.getDecoder().decode(samlRequest);
-        return OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
+        return unmarshall(decodedAuthnRequest, AuthnRequest.class);
     }
 
     public <T extends SAMLObject> T unmarshall(byte[] saml, Class<T> type) throws XMLParserException, UnmarshallingException {

@@ -134,7 +134,7 @@ public class ServiceProviderController {
             throw new BadRequestException("SAML request is invalid - invalid signature", e);
         } catch (ResolverException e) {
             try {
-                String samlResponse = responseFactory.createSamlErrorResponse(spMetadata, authnRequest.getID(), SP_SIGNING_CERT_MISSING_OR_INVALID);
+                String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_SIGNING_CERT_MISSING_OR_INVALID);
                 throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(), SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), e);
             } catch (ResolverException resolverException) {
                 throw new BadRequestException("SAML request is invalid - invalid signature", e);
@@ -158,7 +158,7 @@ public class ServiceProviderController {
                 .filter(Objects::nonNull)
                 .filter(loa -> minimalLoA.compareTo(loa) > 0).findFirst();
         if (invalidLoA.isPresent()) {
-            String samlResponse = responseFactory.createSamlErrorResponse(spMetadata, authnRequest.getID(), SP_LOA_MISSING_OR_INVALID);
+            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_LOA_MISSING_OR_INVALID);
             throw new AuthenticationException(samlResponse, authnRequest.getAssertionConsumerServiceURL(), SP_LOA_MISSING_OR_INVALID.getStatusMessage());
         }
     }
@@ -191,8 +191,8 @@ public class ServiceProviderController {
     private String createLightRequestToken(ServiceProviderMetadata spMetadata, AuthnRequest authnRequest, String country, String relayState) {
         String spType = spMetadata.getType();
         ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState, spType);
+        specificConnectorCommunication.putRequestCorrelation(authnRequest);
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
-        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
         return BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken);
     }
 

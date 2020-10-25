@@ -31,7 +31,7 @@ public class LightRequestFactory {
 
     public LightRequest createLightRequest(AuthnRequest authnRequest, String country, String relayState, String spType) {
         LightRequest.Builder builder = LightRequest.builder()
-                .id(authnRequest.getID()) // TODO: secureRandomIdGenerator.generateIdentifier() vs authnRequest.getID()?
+                .id(authnRequest.getID())
                 .citizenCountryCode(country)
                 .issuer(authnRequest.getIssuer().getValue())
                 .nameIdFormat(authnRequest.getNameIDPolicy().getFormat())

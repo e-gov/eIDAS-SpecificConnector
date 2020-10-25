@@ -1,28 +1,26 @@
 package ee.ria.eidas.connector.specific.integration;
 
 import com.google.common.collect.ImmutableSet;
-import ee.ria.eidas.connector.specific.exception.BadRequestException;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import eu.eidas.auth.commons.attribute.*;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap.ImmutableAttributeEntry;
-import eu.eidas.auth.commons.exceptions.SecurityEIDASException;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.ILightResponse;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
+import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
 import eu.eidas.specificcommunication.protocol.util.SecurityUtils;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-import org.xml.sax.SAXException;
 
 import javax.annotation.PostConstruct;
 import javax.cache.Cache;
@@ -30,21 +28,19 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.sax.SAXSource;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Optional;
 
-import static eu.eidas.specificcommunication.BinaryLightTokenHelper.createBinaryLightToken;
-import static eu.eidas.specificcommunication.BinaryLightTokenHelper.getBinaryLightTokenId;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.xml.bind.Marshaller.JAXB_ENCODING;
 import static javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT;
 import static net.logstash.logback.argument.StructuredArguments.value;
 import static net.logstash.logback.marker.Markers.append;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 @Slf4j
 @Service
@@ -59,7 +55,6 @@ public class EidasNodeCommunication {
     @Value("${lightToken.connector.request.algorithm}")
     private String lightTokenRequestAlgorithm;
 
-    @Getter
     @Value("${lightToken.connector.response.issuer.name}")
     private String lightTokenResponseIssuerName;
 
@@ -103,73 +98,60 @@ public class EidasNodeCommunication {
         Assert.notNull(lightTokenResponseAlgorithm, "lightToken.connector.response.algorithm cannot be null. Please check your configuration");
     }
 
-    public BinaryLightToken putLightRequest(ILightRequest lightRequest) {
+    @NonNull
+    public BinaryLightToken putLightRequest(@NonNull ILightRequest lightRequest) {
+        BinaryLightToken binaryLightToken = createBinaryLightToken();
+        String alwaysUniqueTokenId = binaryLightToken.getToken().getId();
+        specificNodeConnectorRequestCache.put(alwaysUniqueTokenId, codec.marshall(lightRequest));
+        log.info(append("light_request", lightRequest).
+                        and(append("communication_cache.name", specificNodeConnectorRequestCache.getName()))
+                        .and(append("event.kind", "event"))
+                        .and(append("event.category", "authentication"))
+                        .and(append("event.type", "info")),
+                "Put LightRequest to cache with tokenId: '{}'", value("light_request.light_token_id", alwaysUniqueTokenId));
+        return binaryLightToken;
+    }
+
+    @Nullable
+    public ILightResponse getAndRemoveLightResponse(@NonNull String binaryLightTokenBase64) {
+        Assert.isTrue(isNotEmpty(binaryLightTokenBase64), "Token value cannot be null or empty!");
+        String lightTokenId = getBinaryLightTokenId(binaryLightTokenBase64);
+        String lightResponseXml = nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId);
+        ILightResponse lightResponse = codec.unmarshallResponse(lightResponseXml, supportedAttributesRegistry.getAttributes());
+        log.info(append("communication_cache.name", nodeSpecificConnectorResponseCache.getName())
+                        .and(append("event.kind", "event"))
+                        .and(append("event.category", "authentication"))
+                        .and(append("event.type", "info")),
+                "Get and remove LightResponse from cache for tokenId: {},  Result found: {}",
+                value("light_response.light_token_id", lightTokenId), value("communication_cache.result", lightResponseXml != null));
+        return lightResponse;
+    }
+
+    private BinaryLightToken createBinaryLightToken() {
         try {
-            BinaryLightToken binaryLightToken = createBinaryLightToken(lightTokenRequestIssuerName, lightTokenRequestSecret, lightTokenRequestAlgorithm);
-            String tokenId = binaryLightToken.getToken().getId();
-            boolean isInserted = specificNodeConnectorRequestCache.putIfAbsent(tokenId, codec.marshall(lightRequest));
-            logCacheEvent(lightRequest, tokenId, isInserted);
-            return binaryLightToken;
+            return BinaryLightTokenHelper.createBinaryLightToken(lightTokenRequestIssuerName, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         } catch (SpecificCommunicationException ex) {
-            throw new TechnicalException("Unable to put LightRequest to cache", ex);
+            throw new TechnicalException("Unable to create BinaryLightToken", ex);
         }
     }
 
-    public ILightResponse getAndRemoveLightResponse(String binaryLightTokenBase64) {
-        Assert.isTrue(StringUtils.isNotEmpty(binaryLightTokenBase64), "Token value cannot be null or empty!");
+    private String getBinaryLightTokenId(String binaryLightTokenBase64) {
         try {
-            String lightTokenId = getBinaryLightTokenId(binaryLightTokenBase64, lightTokenResponseSecret, lightTokenResponseAlgorithm);
-            ILightResponse lightResponse = codec.unmarshallResponse(nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId), supportedAttributesRegistry.getAttributes());
-            logCacheEvent(lightTokenId, lightResponse);
-            return lightResponse;
-        } catch (SpecificCommunicationException | SecurityEIDASException e) {
-            throw new BadRequestException("Invalid token", e);
-        }
-    }
-
-    private void logCacheEvent(ILightRequest lightRequest, String tokenId, boolean isInserted) {
-        if (isInserted) {
-            log.info(append("light_request", lightRequest).and(append("communication_cache.name", specificNodeConnectorRequestCache.getName()))
-                            .and(append("event.kind", "event"))
-                            .and(append("event.category", "authentication"))
-                            .and(append("event.type", "info")),
-                    "LightRequest with tokenId: '{}' was saved", value("light_request.light_token_id", tokenId));
-        } else {
-            log.warn(append("light_request", lightRequest).and(append("communication_cache.name", specificNodeConnectorRequestCache.getName()))
-                            .and(append("event.kind", "event"))
-                            .and(append("event.category", "authentication"))
-                            .and(append("event.type", "info")),
-                    "LightRequest was not saved. A LightRequest with tokenId: '{}' already exists", value("light_request.light_token_id", tokenId));
-        }
-    }
-
-    private void logCacheEvent(String lightTokenId, ILightResponse lightResponse) {
-        if (lightResponse != null) {
-            log.info(append("light_response.id", lightResponse.getId())
-                            .and(append("light_response.in_response_to_id", lightResponse.getInResponseToId()))
-                            .and(append("communication_cache.name", nodeSpecificConnectorResponseCache.getName()))
-                            .and(append("event.kind", "event"))
-                            .and(append("event.category", "authentication"))
-                            .and(append("event.type", "info")),
-                    "LightResponse retrieved from cache for tokenId: {}", value("light_response.light_token_id", lightTokenId));
-        } else {
-            log.warn(append("communication_cache.name", nodeSpecificConnectorResponseCache.getName())
-                            .and(append("event.kind", "event"))
-                            .and(append("event.category", "authentication"))
-                            .and(append("event.type", "info")),
-                    "LightResponse was not found from cache for tokenId: {}", value("light_response.light_token_id", lightTokenId));
+            return BinaryLightTokenHelper.getBinaryLightTokenId(binaryLightTokenBase64, lightTokenResponseSecret, lightTokenResponseAlgorithm);
+        } catch (SpecificCommunicationException ex) {
+            throw new TechnicalException("Unable to create BinaryLightTokenId", ex);
         }
     }
 
     @Slf4j
-    static class LightJAXBCodec {
+    public static class LightJAXBCodec {
         private final JAXBContext jaxbCtx;
 
         public LightJAXBCodec(JAXBContext jaxbCtx) {
             this.jaxbCtx = jaxbCtx;
         }
 
-        public <T> String marshall(T input) throws SpecificCommunicationException {
+        public <T> String marshall(T input) {
             if (input == null) {
                 return null;
             }
@@ -177,19 +159,19 @@ public class EidasNodeCommunication {
             try {
                 createMarshaller().marshal(input, writer);
             } catch (JAXBException e) {
-                throw new SpecificCommunicationException(e);
+                throw new TechnicalException("Invalid LightResponse", e);
             }
             return writer.toString();
         }
 
+        @Nullable
         @SuppressWarnings("unchecked")
-        public <T extends ILightResponse> T unmarshallResponse(String input, Collection<AttributeDefinition<?>> registry)
-                throws SpecificCommunicationException {
+        public <T extends ILightResponse> T unmarshallResponse(String input, Collection<AttributeDefinition<?>> registry) {
             if (input == null) {
                 return null;
             }
             if (registry == null) {
-                throw new SpecificCommunicationException("missing registry");
+                throw new TechnicalException("Invalid LightResponse. Missing attribute registry");
             }
             try {
                 SAXSource secureSaxSource = SecurityUtils.createSecureSaxSource(input);
@@ -203,8 +185,8 @@ public class EidasNodeCommunication {
                     mapBuilder.put(definition, values);
                 }
                 return (T) resultBuilder.attributes(mapBuilder.build()).build();
-            } catch (JAXBException | AttributeValueMarshallingException | SAXException | ParserConfigurationException e) {
-                throw new SpecificCommunicationException(e);
+            } catch (Exception e) {
+                throw new TechnicalException("Invalid LightResponse", e);
             }
         }
 
@@ -218,7 +200,7 @@ public class EidasNodeCommunication {
             return valuesBuilder.build();
         }
 
-        private AttributeDefinition<?> getByName(URI nameUri, Collection<AttributeDefinition<?>> registry) throws SpecificCommunicationException {
+        private AttributeDefinition<?> getByName(URI nameUri, Collection<AttributeDefinition<?>> registry) {
             Assert.notNull(nameUri, "nameUri cannot be null");
             Optional<AttributeDefinition<?>> firstMatch = registry.stream()
                     .filter(attributeDefinition -> nameUri.equals(attributeDefinition.getNameUri()))
@@ -226,7 +208,7 @@ public class EidasNodeCommunication {
             if (firstMatch.isPresent()) {
                 return firstMatch.get();
             } else {
-                throw new SpecificCommunicationException(format("Attribute %s not present in the registry", nameUri));
+                throw new TechnicalException(format("Invalid LightResponse. Attribute %s not present in the registry", nameUri));
             }
         }
 

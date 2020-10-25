@@ -23,11 +23,8 @@ import org.springframework.test.context.TestPropertySource;
 import javax.cache.Cache;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import static eu.eidas.specificcommunication.BinaryLightTokenHelper.createBinaryLightToken;
 import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

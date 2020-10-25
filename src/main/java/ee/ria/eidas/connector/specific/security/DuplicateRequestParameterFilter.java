@@ -20,7 +20,7 @@ public class DuplicateRequestParameterFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         Optional<Map.Entry<String, String[]>> duplicateParameter = request.getParameterMap().entrySet().stream().filter(es -> es.getValue().length > 1).findFirst();
         if (duplicateParameter.isPresent()) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, format("Duplicate request parameter: %s", duplicateParameter.get().getKey()));
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, format("Duplicate request parameter '%s'", duplicateParameter.get().getKey()));
             return;
         }
         filterChain.doFilter(request, response);

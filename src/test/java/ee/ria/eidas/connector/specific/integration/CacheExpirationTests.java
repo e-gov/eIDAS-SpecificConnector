@@ -25,7 +25,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false)
 public class CacheExpirationTests extends SpecificConnectorTest {
-    private static final long EVENT_TIMEOUT = 4_000;
+    private static final long EVENT_TIMEOUT = 10_000;
 
     @SpyBean
     @Qualifier("specificNodeConnectorRequestCache")

@@ -1,7 +1,6 @@
 package ee.ria.eidas.connector.specific.exception;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensaml.core.xml.io.MarshallingException;
@@ -90,7 +89,7 @@ public class SpecificConnectorExceptionHandler {
 
     @ExceptionHandler({TechnicalException.class})
     public ModelAndView handleTechnicalException(TechnicalException ex, HttpServletResponse response) throws IOException {
-        log.error("Technical exception", ex);
+        log.error(ex.getMessage(), ex);
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         return new ModelAndView();
     }

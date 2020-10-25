@@ -6,6 +6,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
+import eu.eidas.auth.commons.attribute.AttributeDefinition;
+import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
+import eu.eidas.auth.commons.light.impl.LightRequest;
+import eu.eidas.auth.commons.light.impl.LightResponse;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -28,6 +33,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +79,7 @@ public abstract class SpecificConnectorTest {
             .keystoreType("PKCS12")
             .httpsPort(8888)
     );
-
+    protected static EidasNodeCommunication.LightJAXBCodec lightJAXBCodec;
     protected static Ignite eidasNodeIgnite;
     private static ListAppender<ILoggingEvent> testLogAppender;
 
@@ -80,6 +87,13 @@ public abstract class SpecificConnectorTest {
         System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/specific-connector-tls-truststore.p12");
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
+
+        try {
+            lightJAXBCodec = new EidasNodeCommunication.LightJAXBCodec(JAXBContext.newInstance(LightRequest.class, LightResponse.class,
+                    ImmutableAttributeMap.class, AttributeDefinition.class));
+        } catch (JAXBException e) {
+            log.error("Unable to instantiate in static initializer ", e);
+        }
     }
 
     @MockBean

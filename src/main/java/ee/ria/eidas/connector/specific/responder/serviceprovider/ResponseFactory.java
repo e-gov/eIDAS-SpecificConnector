@@ -5,8 +5,7 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.exception.AuthenticationStatus;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
-import eu.eidas.auth.commons.EIDASStatusCode;
-import eu.eidas.auth.commons.EIDASSubStatusCode;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import eu.eidas.auth.commons.attribute.AttributeValue;
 import eu.eidas.auth.commons.attribute.*;
 import eu.eidas.auth.commons.light.ILightResponse;
@@ -14,11 +13,8 @@ import eu.eidas.auth.commons.light.IResponseStatus;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.security.RandomIdentifierGenerationStrategy;
-import net.shibboleth.utilities.java.support.xml.SerializeSupport;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
-import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
-import org.opensaml.core.xml.io.MarshallerFactory;
 import org.opensaml.core.xml.io.MarshallingException;
 import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
@@ -29,7 +25,6 @@ import org.opensaml.xmlsec.encryption.support.EncryptionException;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;
 import java.util.List;
@@ -48,6 +43,9 @@ public class ResponseFactory {
     private ResponderMetadataSigner responderMetadataSigner;
 
     @Autowired
+    private ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
+
+    @Autowired
     private String specificConnectorIP;
 
     private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy();
@@ -56,31 +54,48 @@ public class ResponseFactory {
         try {
             Response response = createResponse(lightResponse, spMetadata);
             responderMetadataSigner.sign(response);
-            return serializeResponse(response);
+            return OpenSAMLUtils.getXmlString(response);
         } catch (Exception ex) {
             throw new TechnicalException("Unable to create SAML Response", ex);
         }
     }
 
-    public String createSamlErrorResponse(ServiceProviderMetadata spMetadata, String inResponseToId, AuthenticationStatus error) {
+    public String createSamlErrorResponse(AuthnRequest authnRequest, ILightResponse lightResponse) {
         try {
-            Response response = createErrorResponse(spMetadata, inResponseToId, error);
+            IResponseStatus responseStatus = lightResponse.getStatus();
+            Status status = createStatus(responseStatus.getStatusCode(), responseStatus.getSubStatusCode(), responseStatus.getStatusMessage());
+            Response response = createErrorResponse(authnRequest, status);
             responderMetadataSigner.sign(response);
-            return serializeResponse(response);
+            return OpenSAMLUtils.getXmlString(response);
         } catch (Exception ex) {
-            throw new TechnicalException("Unable to create SAML Response", ex);
+            throw new TechnicalException("Unable to create SAML Error Response", ex);
         }
     }
 
-    private Response createErrorResponse(ServiceProviderMetadata spMetadata, String inResponseToId, AuthenticationStatus error) throws ResolverException {
+    public String createSamlErrorResponse(AuthnRequest authnRequest, AuthenticationStatus error) {
+        try {
+            Status status = createStatus(error.getStatusCode().getValue(), error.getSubStatusCode().getValue(), error.getStatusMessage());
+            Response response = createErrorResponse(authnRequest, status);
+            responderMetadataSigner.sign(response);
+            return OpenSAMLUtils.getXmlString(response);
+        } catch (Exception ex) {
+            throw new TechnicalException("Unable to create SAML Error Response", ex);
+        }
+    }
+
+    private Response createErrorResponse(AuthnRequest authnRequest, Status status) throws ResolverException {
+        ServiceProviderMetadata spMetadata = serviceProviderMetadataRegistry.get(authnRequest.getIssuer().getValue());
+        if (spMetadata == null) {
+            throw new TechnicalException("Unable to create SAML Error response. Service provider metadata not found: %s", authnRequest.getIssuer().getValue());
+        }
         Response response = new ResponseBuilder().buildObject();
         response.setID(secureRandomIdGenerator.generateIdentifier());
         response.setDestination(spMetadata.getAssertionConsumerServiceUrl());
-        response.setInResponseTo(inResponseToId);
+        response.setInResponseTo(authnRequest.getID());
         response.setIssueInstant(new DateTime());
         response.setVersion(VERSION_20);
         response.setIssuer(createIssuer());
-        response.setStatus(createStatus(error.getStatusCode(), error.getSubStatusCode(), error.getStatusMessage()));
+        response.setStatus(status);
         return response;
     }
 
@@ -96,12 +111,6 @@ public class ResponseFactory {
         response.setStatus(createStatus(lightResponse.getStatus()));
         response.getEncryptedAssertions().add(createAssertion(lightResponse, response.getIssueInstant(), spMetadata));
         return response;
-    }
-
-    private String serializeResponse(Response response) throws MarshallingException {
-        MarshallerFactory marshallerFactory = XMLObjectProviderRegistrySupport.getMarshallerFactory();
-        Element responseElement = marshallerFactory.getMarshaller(response).marshall(response);
-        return SerializeSupport.nodeToString(responseElement);
     }
 
     private EncryptedAssertion createAssertion(ILightResponse lightResponse, DateTime issueInstant, ServiceProviderMetadata spMetadata)
@@ -129,24 +138,25 @@ public class ResponseFactory {
     }
 
     private Status createStatus(IResponseStatus status) {
-        EIDASStatusCode eidasStatusCode = EIDASStatusCode.fromString(status.getStatusCode());
-        EIDASSubStatusCode eidasSubStatusCode = status.getSubStatusCode() == null ? null : EIDASSubStatusCode.fromString(status.getSubStatusCode());
-        return createStatus(eidasStatusCode, eidasSubStatusCode, status.getStatusMessage());
+        if (status == null) {
+            throw new TechnicalException("LightResponse status cannot be null");
+        }
+        return createStatus(status.getStatusCode(), status.getSubStatusCode(), status.getStatusMessage());
     }
 
-    private Status createStatus(EIDASStatusCode eidasStatusCode, EIDASSubStatusCode eidasSubStatusCode, String message) {
+    private Status createStatus(String eidasStatusCode, String eidasSubStatusCode, String message) {
         Status status = new StatusBuilder().buildObject();
         StatusCode statusCode = null;
 
         if (eidasStatusCode != null) {
             statusCode = new StatusCodeBuilder().buildObject();
-            statusCode.setValue(eidasStatusCode.getValue());
+            statusCode.setValue(eidasStatusCode);
             status.setStatusCode(statusCode);
         }
 
-        if (statusCode != null && eidasSubStatusCode != null) {
+        if (statusCode != null && eidasSubStatusCode != null && !"##".equals(eidasSubStatusCode)) {
             StatusCode subStatusCode = new StatusCodeBuilder().buildObject();
-            subStatusCode.setValue(eidasSubStatusCode.getValue());
+            subStatusCode.setValue(eidasSubStatusCode);
             statusCode.setStatusCode(subStatusCode);
         }
 
@@ -186,7 +196,7 @@ public class ResponseFactory {
         Subject subject = new SubjectBuilder().buildObject();
         NameID nameID = new NameIDBuilder().buildObject();
         nameID.setValue(lightResponse.getSubject());
-        nameID.setFormat(NameIDType.UNSPECIFIED); // TODO: Correct?
+        nameID.setFormat(lightResponse.getSubjectNameIdFormat());
         subject.setNameID(nameID);
 
         SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder().buildObject();

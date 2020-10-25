@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<lightResponse>
+    <id>_7.t.B2GE0lkaDDkpvwZJfrdOLrKQqiINw.0XnzAEucYP7yO7WVBC_hR2kkQ-hwy</id>
+    <issuer>https://localhost:8888/metadata</issuer>
+    <subject>assertion_subject</subject>
+    <subjectNameIdFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</subjectNameIdFormat>
+    <status>
+        <failure>false</failure>
+        <statusCode>urn:oasis:names:tc:SAML:2.0:status:Success</statusCode>
+        <statusMessage>urn:oasis:names:tc:SAML:2.0:status:Success</statusMessage>
+        <subStatusCode>urn:oasis:names:tc:SAML:2.0:status:InvalidSubStatusCodeForSuccess</subStatusCode>
+    </status>
+    <inResponseToId>_7fcff29db01783ec010f4dbb26c0bb35</inResponseToId>
+    <levelOfAssurance>http://eidas.europa.eu/LoA/high</levelOfAssurance>
+</lightResponse>
