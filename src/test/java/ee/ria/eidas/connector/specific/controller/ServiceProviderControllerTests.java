@@ -20,6 +20,7 @@ import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.Status;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -67,7 +68,12 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
     @Autowired
+    @Qualifier("specificNodeConnectorRequestCache")
     Cache<String, String> specificNodeConnectorRequestCache;
+
+    @Autowired
+    @Qualifier("specificMSSpRequestCorrelationMap")
+    Cache<String, String> specificMSSpRequestCorrelationMap;
 
     @Value("${lightToken.connector.request.secret}")
     String lightTokenRequestSecret;
@@ -88,6 +94,12 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     @AfterEach
     void resetMocks() {
         Mockito.reset(serviceProviderMetadataRegistry);
+    }
+
+    @AfterEach
+    void cleanUp() {
+        specificMSSpRequestCorrelationMap.clear();
+        specificNodeConnectorRequestCache.clear();
     }
 
     @ParameterizedTest
@@ -177,6 +189,46 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .body("message", equalTo("SAML request is invalid - invalid signature"));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
+        String relayState = RandomStringUtils.random(80, true, true);
+        Response response = given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", "LV")
+                .param("RelayState", relayState)
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .assertThat()
+                .statusCode(302)
+                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8443/EidasNode/SpecificConnectorRequest?token=c3BlY2lmaWNDb"))
+                .extract().response();
+
+        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
+        String token = urlBuilder.getQueryParams().get(0).getSecond();
+        assertNotNull(token);
+        String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
+        String lightRequest = specificNodeConnectorRequestCache.get(binaryLightTokenId);
+        assertNotNull(lightRequest);
+
+        given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", "LV")
+                .param("RelayState", RandomStringUtils.random(80, true, true))
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(500)
+                .body("error", equalTo("Internal Server Error"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("Something went wrong internally. Please consult server logs for further details."));
+
+        assertNotNull(specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId));
+        assertNotNull(specificMSSpRequestCorrelationMap.getAndRemove("_7fcff29db01783ec010f4dbb26c0bb35"));
     }
 
     @ParameterizedTest
@@ -443,7 +495,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_InvalidFormat_Country(String requestMethod) throws IOException {
+    void badRequestWhen_InvalidParameterFormat_country(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         given()
                 .param("SAMLRequest", authnRequestBase64)
@@ -501,7 +553,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .statusCode(400)
                 .body("error", equalTo("Bad Request"))
                 .body("incidentNumber", notNullValue())
-                .body("message", equalTo("Duplicate request parameter: " + duplicateParameterName));
+                .body("message", equalTo(format("Duplicate request parameter '%s'", duplicateParameterName)));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
