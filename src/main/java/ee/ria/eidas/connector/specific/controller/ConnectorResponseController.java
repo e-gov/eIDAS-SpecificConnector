@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.exception.AuthenticationException;
 import ee.ria.eidas.connector.specific.exception.BadRequestException;
+import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
+import ee.ria.eidas.connector.specific.exception.ResponseStatus;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.opensaml.saml.saml2.core.AuthnRequest;
+import org.opensaml.security.credential.UsageType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
@@ -28,6 +31,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Pattern;
 import java.util.Base64;
 
+import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_ENCRYPTION_CERT_MISSING_OR_INVALID;
+import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
 import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendRaw;
 import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
@@ -75,14 +80,21 @@ public class ConnectorResponseController {
             logAuthenticationResult(samlResponse, status, lightResponse.getRelayState(), "info");
             throw new AuthenticationException(samlResponse, authnRequest.getAssertionConsumerServiceURL(), status.getStatusMessage());
         } else {
-            String samlResponse = responseFactory.createSamlResponse(lightResponse, spMetadata);
-            String assertionConsumerServiceUrl = spMetadata.getAssertionConsumerServiceUrl();
-            ModelAndView modelAndView = new ModelAndView("redirect:" + assertionConsumerServiceUrl);
-            String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
-            modelAndView.addObject("SAMLResponse", samlResponseBase64);
-            modelAndView.addObject("RelayState", lightResponse.getRelayState());
-            logAuthenticationResult(samlResponse, status, lightResponse.getRelayState(), "end");
-            return modelAndView;
+            try {
+                String samlResponse = responseFactory.createSamlResponse(lightResponse, spMetadata);
+                String assertionConsumerServiceUrl = spMetadata.getAssertionConsumerServiceUrl();
+                ModelAndView modelAndView = new ModelAndView("redirect:" + assertionConsumerServiceUrl);
+                String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
+                modelAndView.addObject("SAMLResponse", samlResponseBase64);
+                modelAndView.addObject("RelayState", lightResponse.getRelayState());
+                logAuthenticationResult(samlResponse, status, lightResponse.getRelayState(), "end");
+                return modelAndView;
+            } catch (CertificateResolverException certificateException) {
+                UsageType usageType = certificateException.getUsageType();
+                ResponseStatus responseStatus = UsageType.SIGNING.equals(usageType) ? SP_SIGNING_CERT_MISSING_OR_INVALID : SP_ENCRYPTION_CERT_MISSING_OR_INVALID;
+                String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, responseStatus);
+                throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(), responseStatus.getStatusMessage(), certificateException);
+            }
         }
     }
 

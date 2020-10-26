@@ -6,6 +6,7 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SigningMethod;
 import ee.ria.eidas.connector.specific.exception.AuthenticationException;
 import ee.ria.eidas.connector.specific.exception.BadRequestException;
+import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
@@ -22,7 +23,6 @@ import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.io.UnmarshallingException;
@@ -53,8 +53,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static ee.ria.eidas.connector.specific.exception.AuthenticationStatus.SP_LOA_MISSING_OR_INVALID;
-import static ee.ria.eidas.connector.specific.exception.AuthenticationStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
+import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_LOA_MISSING_OR_INVALID;
+import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
 import static java.util.Objects.requireNonNull;
 import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendRaw;
@@ -114,12 +114,12 @@ public class ServiceProviderController {
         return new ModelAndView("redirect:" + redirectUrl);
     }
 
-    private void validateAuthnRequest(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) throws ResolverException {
+    private void validateAuthnRequest(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) {
         validateSignature(authnRequest, spMetadata);
         if (!spMetadata.getAssertionConsumerServiceUrl().equals(authnRequest.getAssertionConsumerServiceURL())) {
             throw new BadRequestException("SAML request is invalid - invalid assertion consumer url");
         }
-        validateLevelOfAssurance(authnRequest, spMetadata);
+        validateLevelOfAssurance(authnRequest);
         validateRequestedAttributes(authnRequest);
     }
 
@@ -132,13 +132,9 @@ public class ServiceProviderController {
             spMetadata.validate(signature);
         } catch (SignatureException e) {
             throw new BadRequestException("SAML request is invalid - invalid signature", e);
-        } catch (ResolverException e) {
-            try {
-                String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_SIGNING_CERT_MISSING_OR_INVALID);
-                throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(), SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), e);
-            } catch (ResolverException resolverException) {
-                throw new BadRequestException("SAML request is invalid - invalid signature", e);
-            }
+        } catch (CertificateResolverException e) {
+            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_SIGNING_CERT_MISSING_OR_INVALID);
+            throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(), SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), e);
         }
         String signatureAlgorithm = signature.getSignatureAlgorithm();
         Optional<SigningMethod> supportedSignatureAlgorithm = specificConnectorProperties.getResponderMetadata()
@@ -151,7 +147,7 @@ public class ServiceProviderController {
         }
     }
 
-    private void validateLevelOfAssurance(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) {
+    private void validateLevelOfAssurance(AuthnRequest authnRequest) {
         LevelOfAssurance minimalLoA = requireNonNull(LevelOfAssurance.fromString(eidasConnectorServiceLoA));
         Optional<LevelOfAssurance> invalidLoA = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
                 .map(ref -> LevelOfAssurance.fromString(ref.getAuthnContextClassRef()))

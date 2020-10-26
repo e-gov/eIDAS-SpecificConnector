@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ServiceProvider;
+import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
 import ee.ria.eidas.connector.specific.exception.SpecificConnectorException;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import lombok.extern.slf4j.Slf4j;
@@ -76,11 +77,11 @@ public class ServiceProviderMetadata {
         this.serviceProviderSSOTrustEngine = createServiceProviderSSOTrustEngine();
     }
 
-    public void validate(Signature signature) throws SignatureException, ResolverException {
+    public void validate(Signature signature) throws SignatureException {
         SignatureValidator.validate(signature, resolveCredential(SIGNING));
     }
 
-    public EncryptedAssertion encrypt(Assertion assertion) throws EncryptionException, ResolverException {
+    public EncryptedAssertion encrypt(Assertion assertion) throws EncryptionException {
         return createEncrypter().encrypt(assertion);
     }
 
@@ -104,8 +105,12 @@ public class ServiceProviderMetadata {
         return serviceProvider.getType();
     }
 
-    public String getAssertionConsumerServiceUrl() throws ResolverException {
-        return getEntityDescriptor().getSPSSODescriptor(SAML20P_NS).getDefaultAssertionConsumerService().getLocation();
+    public String getAssertionConsumerServiceUrl() {
+        try {
+            return getEntityDescriptor().getSPSSODescriptor(SAML20P_NS).getDefaultAssertionConsumerService().getLocation();
+        } catch (ResolverException ex) {
+            throw new TechnicalException("Unable to resolve Service provider assertion consumer service URL. Invalid metadata state.", ex);
+        }
     }
 
     public boolean isWantAssertionsSigned() throws ResolverException {
@@ -148,7 +153,7 @@ public class ServiceProviderMetadata {
         return metadataResolver;
     }
 
-    private Encrypter createEncrypter() throws ResolverException {
+    private Encrypter createEncrypter() {
         KeyEncryptionParameters kekParams = new KeyEncryptionParameters();
         kekParams.setEncryptionCredential(resolveCredential(ENCRYPTION));
         kekParams.setAlgorithm(supportedKeyTransportAlgorithm);
@@ -165,17 +170,21 @@ public class ServiceProviderMetadata {
         return encrypter;
     }
 
-    private Credential resolveCredential(UsageType credentialUsageType) throws ResolverException {
-        CriteriaSet criteriaSet = new CriteriaSet();
-        criteriaSet.add(new UsageCriterion(credentialUsageType));
-        criteriaSet.add(new EntityRoleCriterion(SPSSODescriptor.DEFAULT_ELEMENT_NAME));
-        criteriaSet.add(new ProtocolCriterion(SAML20P_NS));
-        criteriaSet.add(new EntityIdCriterion(serviceProvider.getEntityId()));
-        Credential credential = serviceProviderSSOTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
-        if (credential == null) {
-            throw new ResolverException(format("Metadata %s certificate missing or invalid", credentialUsageType.name()));
+    private Credential resolveCredential(UsageType credentialUsageType) {
+        try {
+            CriteriaSet criteriaSet = new CriteriaSet();
+            criteriaSet.add(new UsageCriterion(credentialUsageType));
+            criteriaSet.add(new EntityRoleCriterion(SPSSODescriptor.DEFAULT_ELEMENT_NAME));
+            criteriaSet.add(new ProtocolCriterion(SAML20P_NS));
+            criteriaSet.add(new EntityIdCriterion(serviceProvider.getEntityId()));
+            Credential credential = serviceProviderSSOTrustEngine.getCredentialResolver().resolveSingle(criteriaSet);
+            if (credential == null) {
+                throw new CertificateResolverException(credentialUsageType, format("Metadata %s certificate missing or invalid", credentialUsageType.name()));
+            }
+            return credential;
+        } catch (ResolverException ex) {
+            throw new CertificateResolverException(credentialUsageType, ex);
         }
-        return credential;
     }
 
     private ExplicitKeySignatureTrustEngine createServiceProviderSSOTrustEngine() throws ComponentInitializationException {

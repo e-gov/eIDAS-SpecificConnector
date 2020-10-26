@@ -78,6 +78,7 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.name-id-format` | No | Possible values: `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`,`urn:oasis:names:tc:SAML:2.0:nameid-format:transient`,`urn:oasis:names:tc:SAML:2.0:nameid-format:persistent` |
 | `eidas.connector.responder-metadata.sp-type` | No | Public or private sector service provider. Possible values: `public`, `private` |
 | `eidas.connector.responder-metadata.validity-in-days` | No | Metadata validity in days. Default value: 1 |
+| `eidas.connector.responder-metadata.assertion-validity-in-seconds` | No | Authentication response assertion validity time in seconds. Default value: 300 |
 | `eidas.connector.responder-metadata.supported-member-states` | Yes | Supported member states for authentication (defined by ISO 3166-1 alpha-2) |
 | `eidas.connector.responder-metadata.supported-bindigs` | No | Possible values: `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST`, `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect`. Default value:`urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST,urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect` |
 | `eidas.connector.responder-metadata.digest-methods` | No | Supported digest methods. Default value: `http://www.w3.org/2001/04/xmlenc#sha256,http://www.w3.org/2001/04/xmlenc#sha512` |

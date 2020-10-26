@@ -70,7 +70,6 @@ class LightRequestFactoryTest {
         assertEquals("public", lightRequest.getSpType());
         assertEquals("CA", lightRequest.getCitizenCountryCode());
         assertEquals("_5a5a7cd4616f46813fda1cd350cab476", lightRequest.getRelayState());
-
     }
 
     private ImmutableAttributeMap getRequestedAttributes(AuthnRequest authn) {

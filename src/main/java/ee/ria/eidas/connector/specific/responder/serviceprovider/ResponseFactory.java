@@ -2,7 +2,7 @@ package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
-import ee.ria.eidas.connector.specific.exception.AuthenticationStatus;
+import ee.ria.eidas.connector.specific.exception.ResponseStatus;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.security.RandomIdentifierGenerationStrategy;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.io.MarshallingException;
 import org.opensaml.core.xml.schema.XSAny;
@@ -72,7 +73,7 @@ public class ResponseFactory {
         }
     }
 
-    public String createSamlErrorResponse(AuthnRequest authnRequest, AuthenticationStatus error) {
+    public String createSamlErrorResponse(AuthnRequest authnRequest, ResponseStatus error) {
         try {
             Status status = createStatus(error.getStatusCode().getValue(), error.getSubStatusCode().getValue(), error.getStatusMessage());
             Response response = createErrorResponse(authnRequest, status);
@@ -83,7 +84,7 @@ public class ResponseFactory {
         }
     }
 
-    private Response createErrorResponse(AuthnRequest authnRequest, Status status) throws ResolverException {
+    private Response createErrorResponse(AuthnRequest authnRequest, Status status) {
         ServiceProviderMetadata spMetadata = serviceProviderMetadataRegistry.get(authnRequest.getIssuer().getValue());
         if (spMetadata == null) {
             throw new TechnicalException("Unable to create SAML Error response. Service provider metadata not found: %s", authnRequest.getIssuer().getValue());
@@ -92,7 +93,7 @@ public class ResponseFactory {
         response.setID(secureRandomIdGenerator.generateIdentifier());
         response.setDestination(spMetadata.getAssertionConsumerServiceUrl());
         response.setInResponseTo(authnRequest.getID());
-        response.setIssueInstant(new DateTime());
+        response.setIssueInstant(new DateTime(DateTimeZone.UTC));
         response.setVersion(VERSION_20);
         response.setIssuer(createIssuer());
         response.setStatus(status);
@@ -105,7 +106,7 @@ public class ResponseFactory {
         response.setID(lightResponse.getId());
         response.setDestination(spMetadata.getAssertionConsumerServiceUrl());
         response.setInResponseTo(lightResponse.getInResponseToId());
-        response.setIssueInstant(new DateTime());
+        response.setIssueInstant(new DateTime(DateTimeZone.UTC));
         response.setVersion(VERSION_20);
         response.setIssuer(createIssuer());
         response.setStatus(createStatus(lightResponse.getStatus()));
@@ -124,7 +125,7 @@ public class ResponseFactory {
         assertion.getAttributeStatements().add(createAttributeStatement(lightResponse));
         assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, lightResponse.getLevelOfAssurance()));
         assertion.setConditions(createConditions(issueInstant, spMetadata));
-        if (spMetadata.isWantAssertionsSigned()) {
+        if (spMetadata.isWantAssertionsSigned()) { // TODO: Reanalyse. Should there be additional overriding property for Specific connector. See condition: SAML_ASSERTION_SIGNING
             responderMetadataSigner.sign(assertion);
         }
         return spMetadata.encrypt(assertion);
@@ -195,16 +196,17 @@ public class ResponseFactory {
     private Subject createSubject(ILightResponse lightResponse, String assertionConsumerServiceUrl, DateTime issueInstant) {
         Subject subject = new SubjectBuilder().buildObject();
         NameID nameID = new NameIDBuilder().buildObject();
-        nameID.setValue(lightResponse.getSubject());
-        nameID.setFormat(lightResponse.getSubjectNameIdFormat());
+        nameID.setValue(lightResponse.getSubject()); // TODO: Reanalyse
+        nameID.setFormat(lightResponse.getSubjectNameIdFormat()); // TODO: Reanalyse
         subject.setNameID(nameID);
 
         SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder().buildObject();
         subjectConfirmation.setMethod(SubjectConfirmation.METHOD_BEARER);
         SubjectConfirmationData subjectConfirmationData = new SubjectConfirmationDataBuilder().buildObject();
-        subjectConfirmationData.setAddress(specificConnectorIP);
+        subjectConfirmationData.setAddress(specificConnectorIP); // TODO: Reanalyse
         subjectConfirmationData.setInResponseTo(lightResponse.getInResponseToId());
-        subjectConfirmationData.setNotOnOrAfter(issueInstant.plusMinutes(5)); // TODO: Make it configurable
+        subjectConfirmationData.setNotBefore(issueInstant);
+        subjectConfirmationData.setNotOnOrAfter(issueInstant.plusSeconds(connectorProperties.getResponderMetadata().getAssertionValidityInSeconds()));
         subjectConfirmationData.setRecipient(assertionConsumerServiceUrl);
         subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
         subject.getSubjectConfirmations().add(subjectConfirmation);
@@ -214,7 +216,7 @@ public class ResponseFactory {
     private Conditions createConditions(DateTime issueInstant, ServiceProviderMetadata spMetadata) {
         Conditions conditions = new ConditionsBuilder().buildObject();
         conditions.setNotBefore(issueInstant);
-        conditions.setNotOnOrAfter(issueInstant.plusMinutes(5)); // TODO: Make it configurable
+        conditions.setNotOnOrAfter(issueInstant.plusSeconds(connectorProperties.getResponderMetadata().getAssertionValidityInSeconds()));
 
         Audience audience = new AudienceBuilder().buildObject();
         audience.setAudienceURI(spMetadata.getEntityId());
@@ -228,14 +230,10 @@ public class ResponseFactory {
     private AuthnStatement createAuthnStatement(DateTime issueInstant, String levelOfAssurance) {
         AuthnStatement authnStatement = new AuthnStatementBuilder().buildObject();
         authnStatement.setAuthnInstant(issueInstant);
-
         AuthnContext authnContext = new AuthnContextBuilder().buildObject();
         AuthnContextClassRef authnContextClassRef = new AuthnContextClassRefBuilder().buildObject();
         authnContextClassRef.setAuthnContextClassRef(levelOfAssurance);
         authnContext.setAuthnContextClassRef(authnContextClassRef);
-
-        AuthnContextDecl authnContextDecl = new AuthnContextDeclBuilder().buildObject();
-        authnContext.setAuthnContextDecl(authnContextDecl);
         authnStatement.setAuthnContext(authnContext);
         return authnStatement;
     }
@@ -244,7 +242,7 @@ public class ResponseFactory {
         Attribute attribute = new AttributeBuilder().buildObject();
         attribute.setFriendlyName(friendlyName);
         attribute.setName(name);
-        attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:uri"); // TODO: Find constant
+        attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:uri");
         return attribute;
     }
 

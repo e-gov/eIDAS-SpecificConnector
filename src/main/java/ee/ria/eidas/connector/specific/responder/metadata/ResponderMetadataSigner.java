@@ -11,6 +11,7 @@ import org.opensaml.core.xml.io.MarshallerFactory;
 import org.opensaml.core.xml.io.MarshallingException;
 import org.opensaml.saml.common.SAMLObjectContentReference;
 import org.opensaml.saml.common.SignableSAMLObject;
+import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
 import org.opensaml.security.SecurityException;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.impl.KeyStoreCredentialResolver;
@@ -54,6 +55,8 @@ public class ResponderMetadataSigner {
     }
 
     public void validate(Signature signature) throws SignatureException {
+        SAMLSignatureProfileValidator profileValidator = new SAMLSignatureProfileValidator();
+        profileValidator.validate(signature);
         SignatureValidator.validate(signature, signingCredential);
     }
 

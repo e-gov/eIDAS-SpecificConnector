@@ -4,10 +4,6 @@ import static java.lang.String.format;
 
 public class SpecificConnectorException extends RuntimeException {
 
-    public SpecificConnectorException(String message) {
-        super(message);
-    }
-
     public SpecificConnectorException(String messageFormat, Object... args) {
         super(format(messageFormat, args));
     }

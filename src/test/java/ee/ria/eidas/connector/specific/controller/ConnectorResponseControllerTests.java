@@ -4,26 +4,24 @@ import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
-import ee.ria.eidas.connector.specific.util.AssertionValidator;
 import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
-import io.restassured.response.Response;
 import lombok.SneakyThrows;
-import net.shibboleth.utilities.java.support.net.URLBuilder;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.http.HttpHeaders;
 import org.jetbrains.annotations.NotNull;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensaml.core.xml.io.UnmarshallingException;
-import org.opensaml.saml.saml2.core.*;
+import org.opensaml.saml.saml2.core.Assertion;
+import org.opensaml.saml.saml2.core.AuthnRequest;
+import org.opensaml.saml.saml2.core.EncryptedAssertion;
+import org.opensaml.saml.saml2.core.Issuer;
 import org.opensaml.saml.saml2.encryption.Decrypter;
 import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
 import org.opensaml.xmlsec.encryption.support.InlineEncryptedKeyResolver;
@@ -37,7 +35,6 @@ import org.springframework.test.context.TestPropertySource;
 
 import javax.cache.Cache;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.stream.Stream;
 
 import static ch.qos.logback.classic.Level.ERROR;
@@ -50,8 +47,8 @@ import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
@@ -105,58 +102,6 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     void cleanUp() {
         specificMSSpRequestCorrelationMap.clear();
         nodeSpecificConnectorResponseCache.clear();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
-    void successfulAuthenticationSamlResponse(String requestMethod) throws UnmarshallingException, XMLParserException, IOException, SignatureException {
-        DateTime requestTime = new DateTime();
-
-        AuthnRequest authnRequest = putAuthnRequestToCorrelationCache();
-        LightResponse lightResponse = createLightResponse(authnRequest);
-        BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
-
-        Response response = given()
-                .param("token", BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken))
-                .when()
-                .request(requestMethod, "/ConnectorResponse")
-                .then()
-                .assertThat()
-                .statusCode(requestMethod.equals("POST") ? 307 : 302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8888/returnUrl?SAMLResponse="))
-                .extract().response();
-
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
-        org.opensaml.saml.saml2.core.Response samlResponse = TestUtils.getResponse(samlResponseBase64);
-
-        responderMetadataSigner.validate(samlResponse.getSignature());
-
-        assertEquals("2.0", samlResponse.getVersion().toString());
-        assertEquals(lightResponse.getId(), samlResponse.getID());
-        assertEquals(lightResponse.getInResponseToId(), samlResponse.getInResponseTo());
-        assertFalse(samlResponse.getIssueInstant().isBefore(requestTime));
-        assertEquals("https://localhost:8443/SpecificConnector/ConnectorResponderMetadata", samlResponse.getIssuer().getValue());
-        Status samlResponseStatus = samlResponse.getStatus();
-        assertEquals(lightResponse.getStatus().getStatusMessage(), samlResponseStatus.getStatusMessage().getMessage());
-        assertEquals(lightResponse.getStatus().getStatusCode(), samlResponseStatus.getStatusCode().getValue());
-        assertEquals(lightResponse.getStatus().getSubStatusCode(), samlResponseStatus.getStatusCode().getStatusCode().getValue());
-        assertEquals("https://localhost:8888/returnUrl", samlResponse.getDestination());
-        assertEquals(0, samlResponse.getAssertions().size());
-        assertEquals(1, samlResponse.getEncryptedAssertions().size());
-
-        EncryptedAssertion encryptedAssertion = samlResponse.getEncryptedAssertions().get(0);
-        Assertion assertion = decryptAssertion(encryptedAssertion);
-        verifyAssertionSignature(assertion);
-
-        AssertionValidator.builder()
-                .assertion(assertion)
-
-                .idpMetadataUrl("https://localhost:8443/SpecificConnector/ConnectorResponderMetadata")
-                .callbackUrl("https://localhost:8888/returnUrl")
-                .spEntityID("https://localhost:8888/metadata")
-                .requestedAttributes(Collections.emptyList())
-                .build().validate();
     }
 
     @ParameterizedTest

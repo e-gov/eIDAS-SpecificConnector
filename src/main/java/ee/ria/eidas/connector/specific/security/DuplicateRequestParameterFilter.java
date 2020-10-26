@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.security;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -17,7 +18,7 @@ import static java.lang.String.format;
 public class DuplicateRequestParameterFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         Optional<Map.Entry<String, String[]>> duplicateParameter = request.getParameterMap().entrySet().stream().filter(es -> es.getValue().length > 1).findFirst();
         if (duplicateParameter.isPresent()) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, format("Duplicate request parameter '%s'", duplicateParameter.get().getKey()));

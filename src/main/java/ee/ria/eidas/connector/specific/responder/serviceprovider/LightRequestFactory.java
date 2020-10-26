@@ -5,7 +5,6 @@ import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import lombok.extern.slf4j.Slf4j;
-import net.shibboleth.utilities.java.support.security.RandomIdentifierGenerationStrategy;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.saml.saml2.core.AuthnContextClassRef;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -24,7 +23,6 @@ import static org.apache.commons.lang.StringUtils.isNotEmpty;
 @Slf4j
 @Component
 public class LightRequestFactory {
-    private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy();
 
     @Autowired
     private AttributeRegistry supportedAttributesRegistry;

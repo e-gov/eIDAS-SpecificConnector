@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.controller;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
+import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import ee.ria.eidas.connector.specific.util.TestUtils;
@@ -18,6 +19,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.Status;
+import org.opensaml.security.credential.UsageType;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -339,7 +341,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         ServiceProviderMetadata mockSp = Mockito.mock(ServiceProviderMetadata.class);
         Mockito.doReturn(mockSp).when(serviceProviderMetadataRegistry).get("https://localhost:8888/metadata");
         Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
-        Mockito.doThrow(new ResolverException("Metadata SIGNING certificate missing or invalid")).when(mockSp).validate(any());
+        Mockito.doThrow(new CertificateResolverException(UsageType.SIGNING, "Metadata SIGNING certificate missing or invalid")).when(mockSp).validate(any());
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-level-of-assurance-too-low.xml");
         Response response = given()
                 .param("SAMLRequest", authnRequestBase64)

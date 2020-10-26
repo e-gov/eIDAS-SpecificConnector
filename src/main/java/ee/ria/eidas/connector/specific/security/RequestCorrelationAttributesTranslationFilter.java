@@ -1,8 +1,8 @@
 package ee.ria.eidas.connector.specific.security;
 
-import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.MDC;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
@@ -23,10 +23,9 @@ public class RequestCorrelationAttributesTranslationFilter extends OncePerReques
     public static final String MDC_ATTRIBUTE_NAME_VERSION = "serviceVersion";
     public static final String REQUEST_ATTRIBUTE_NAME_REQUEST_ID = "requestId";
     private final BuildProperties buildProperties;
-    private final SpecificConnectorProperties specificProxyServiceProperties;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain)
             throws ServletException, IOException {
         if (request.getCookies() != null) {
             stream(request.getCookies()).filter(

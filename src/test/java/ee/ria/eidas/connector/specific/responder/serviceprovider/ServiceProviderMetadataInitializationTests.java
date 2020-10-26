@@ -4,6 +4,7 @@ import ee.ria.eidas.connector.specific.config.OpenSAMLConfiguration;
 import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.ServiceProviderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
+import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
@@ -16,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.AuthnRequest;
+import org.opensaml.security.credential.UsageType;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.test.annotation.DirtiesContext;
@@ -78,7 +80,8 @@ public class ServiceProviderMetadataInitializationTests extends ServiceProviderT
 
         byte[] decodedAuthnRequest = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp1-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
-        ResolverException resolverException = assertThrows(ResolverException.class, () -> sp1Metadata.validate(authnRequest.getSignature()));
+        CertificateResolverException resolverException = assertThrows(CertificateResolverException.class, () -> sp1Metadata.validate(authnRequest.getSignature()));
+        assertEquals(UsageType.SIGNING, resolverException.getUsageType());
         assertEquals("Metadata SIGNING certificate missing or invalid", resolverException.getMessage());
     }
 

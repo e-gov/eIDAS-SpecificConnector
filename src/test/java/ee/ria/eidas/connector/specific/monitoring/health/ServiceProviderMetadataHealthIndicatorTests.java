@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
+import com.github.tomakehurst.wiremock.client.CountMatchingStrategy;
 import ee.ria.eidas.connector.specific.monitoring.ApplicationHealthTest;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import io.restassured.response.Response;
@@ -143,7 +144,8 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
         ResolverException resolverException = assertThrows(ResolverException.class, () -> {
             serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
         });
-        mockSPMetadataServer.verify(1, getRequestedFor(urlEqualTo("/metadata")));
+        CountMatchingStrategy countStrategy = new CountMatchingStrategy(CountMatchingStrategy.GREATER_THAN_OR_EQUAL, 1);
+        mockSPMetadataServer.verify(countStrategy, getRequestedFor(urlEqualTo("/metadata")));
         assertThat(resolverException.getMessage(), containsString(expectedExceptionMessage));
         if (expectedCauseMessage != null) {
             assertThat(ExceptionUtils.getStackTrace(resolverException), containsString(expectedCauseMessage));

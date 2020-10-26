@@ -10,8 +10,8 @@ import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.core.xml.util.XMLObjectSupport;
-import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.Status;
+import org.opensaml.saml.saml2.core.impl.ResponseImpl;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.impl.KeyStoreCredentialResolver;
 import org.w3c.dom.Element;
@@ -42,9 +42,9 @@ public class TestUtils {
         return getResponse(samlResponseBase64).getStatus();
     }
 
-    public Response getResponse(String samlResponseBase64) throws XMLParserException, UnmarshallingException {
+    public ResponseImpl getResponse(String samlResponseBase64) throws XMLParserException, UnmarshallingException {
         byte[] decodedSamlResponse = Base64.getDecoder().decode(samlResponseBase64);
-        return (Response) XMLObjectSupport.unmarshallFromInputStream(XMLObjectProviderRegistrySupport.getParserPool(), new ByteArrayInputStream(decodedSamlResponse));
+        return (ResponseImpl) XMLObjectSupport.unmarshallFromInputStream(XMLObjectProviderRegistrySupport.getParserPool(), new ByteArrayInputStream(decodedSamlResponse));
     }
 
     @NotNull

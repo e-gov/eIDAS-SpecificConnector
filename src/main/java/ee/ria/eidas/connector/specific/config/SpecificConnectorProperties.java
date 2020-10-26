@@ -172,17 +172,22 @@ public class SpecificConnectorProperties {
         private Set<@Pattern(regexp = "^(urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST|urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect)$",
                 message = "Invalid md:EntityDescriptor/md:IDPSSODescriptor/md:SingleSignOnService/@Binding") String> supportedBindings = DEFAULT_SUPPORTED_BINDINGS;
 
-        private Set<@Pattern(regexp = "^[A-Z]{2}$") String> supportedMemberStates = emptySet(); // TODO: SP request country validation
+        private Set<@Pattern(regexp = "^[A-Z]{2}$") String> supportedMemberStates = emptySet();
 
         private List<@Valid Contact> contacts;
 
         @Size(min = 1)
-        private Set<@NotEmpty String> digestMethods = DEFAULT_DIGEST_METHODS; // TODO: Not sure how its used. SP metadata validation?
+        private Set<@NotEmpty String> digestMethods = DEFAULT_DIGEST_METHODS;
 
         @Size(min = 1)
-        private List<@Valid SigningMethod> signingMethods = DEFAULT_SIGNING_METHODS; // TODO: Not sure how its used. SP metadata validation?
+        private List<@Valid SigningMethod> signingMethods = DEFAULT_SIGNING_METHODS;
 
         private List<@Valid SupportedAttribute> supportedAttributes = DEFAULT_SUPPORTED_ATTRIBUTES;
+
+        @NotNull
+        @Min(value = 1)
+        @Max(value = 3600)
+        private Integer assertionValidityInSeconds = 300;
     }
 
     @Data
