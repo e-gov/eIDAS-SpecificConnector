@@ -69,7 +69,7 @@ public class SpecificConnectorPropertiesDefaultValuesTests {
 
     @Test
     void defaultValidityInDays() {
-        assertEquals(1, specificConnectorProperties.getResponderMetadata().getValidityInDays());
+        assertEquals(1, specificConnectorProperties.getResponderMetadata().getValidityInterval().toDays());
     }
 
     @Test

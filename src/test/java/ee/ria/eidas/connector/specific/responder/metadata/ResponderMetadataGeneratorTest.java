@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
                 "eidas.connector.responder-metadata.sso-service-url=https://localhost:9999/SpecificConnector/ServiceProvider",
                 "eidas.connector.responder-metadata.name-id-format=urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                 "eidas.connector.responder-metadata.sp-type=private",
-                "eidas.connector.responder-metadata.validity-in-days=2",
+                "eidas.connector.responder-metadata.validity-interval=2d",
                 "eidas.connector.responder-metadata.supported-member-states=LV,LT",
                 "eidas.connector.responder-metadata.signature-algorithm=http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
                 "eidas.connector.responder-metadata.contacts[0].surname=SupportSurName",

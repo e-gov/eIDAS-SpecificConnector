@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 import static ee.ria.eidas.connector.specific.util.TestUtils.SECURE_RANDOM_REGEX;
 import static eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec.Definitions.*;
 import static io.restassured.RestAssured.given;
+import static java.lang.Math.toIntExact;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
@@ -296,7 +297,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         assertRecipient(subjectConfirmationData);
         assertNotNull(subjectConfirmationData.getNotBefore());
         assertNotNull(subjectConfirmationData.getNotOnOrAfter());
-        Integer assertionValidityInSeconds = connectorProperties.getResponderMetadata().getAssertionValidityInSeconds();
+        int assertionValidityInSeconds = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
         assertTrue(authenticationTime.isBefore(subjectConfirmationData.getNotBefore()));
         assertTrue(responseIssueInstant.isEqual(subjectConfirmationData.getNotBefore()));
         assertTrue(responseIssueInstant.plusSeconds(assertionValidityInSeconds).isEqual(subjectConfirmationData.getNotOnOrAfter()));
@@ -324,7 +325,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         assertNotNull(conditions);
         assertNotNull(conditions.getConditions());
         assertEquals(1, conditions.getConditions().size());
-        Integer assertionValidityInSeconds = connectorProperties.getResponderMetadata().getAssertionValidityInSeconds();
+        int assertionValidityInSeconds = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
         assertTrue(authenticationTime.isBefore(conditions.getNotBefore()));
         assertTrue(responseIssueInstant.isEqual(conditions.getNotBefore()));
         assertTrue(responseIssueInstant.plusSeconds(assertionValidityInSeconds).isEqual(conditions.getNotOnOrAfter()));

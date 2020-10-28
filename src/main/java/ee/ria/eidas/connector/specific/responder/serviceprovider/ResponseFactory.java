@@ -31,6 +31,7 @@ import javax.xml.namespace.QName;
 import java.util.List;
 import java.util.Map;
 
+import static java.lang.Math.toIntExact;
 import static org.opensaml.saml.common.SAMLVersion.VERSION_20;
 
 @Slf4j
@@ -206,7 +207,8 @@ public class ResponseFactory {
         subjectConfirmationData.setAddress(specificConnectorIP); // TODO: Reanalyse
         subjectConfirmationData.setInResponseTo(lightResponse.getInResponseToId());
         subjectConfirmationData.setNotBefore(issueInstant);
-        subjectConfirmationData.setNotOnOrAfter(issueInstant.plusSeconds(connectorProperties.getResponderMetadata().getAssertionValidityInSeconds()));
+        int validityInterval = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
+        subjectConfirmationData.setNotOnOrAfter(issueInstant.plusSeconds(validityInterval));
         subjectConfirmationData.setRecipient(assertionConsumerServiceUrl);
         subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
         subject.getSubjectConfirmations().add(subjectConfirmation);
@@ -216,7 +218,8 @@ public class ResponseFactory {
     private Conditions createConditions(DateTime issueInstant, ServiceProviderMetadata spMetadata) {
         Conditions conditions = new ConditionsBuilder().buildObject();
         conditions.setNotBefore(issueInstant);
-        conditions.setNotOnOrAfter(issueInstant.plusSeconds(connectorProperties.getResponderMetadata().getAssertionValidityInSeconds()));
+        int validityInterval = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
+        conditions.setNotOnOrAfter(issueInstant.plusSeconds(validityInterval));
 
         Audience audience = new AudienceBuilder().buildObject();
         audience.setAudienceURI(spMetadata.getEntityId());

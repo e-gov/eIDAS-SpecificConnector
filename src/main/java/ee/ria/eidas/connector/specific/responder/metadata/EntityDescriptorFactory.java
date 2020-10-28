@@ -19,6 +19,7 @@ import java.util.List;
 
 import static ee.ria.eidas.connector.specific.responder.metadata.OrganizationContactFactory.createContacts;
 import static ee.ria.eidas.connector.specific.responder.metadata.OrganizationContactFactory.createOrganization;
+import static java.lang.Math.toIntExact;
 import static java.util.stream.Collectors.toList;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -35,7 +36,8 @@ public class EntityDescriptorFactory {
             descriptor.setOrganization(createOrganization(responderMetadata.getOrganization()));
         }
         descriptor.getContactPersons().addAll(createContacts(responderMetadata.getContacts()));
-        descriptor.setValidUntil(DateTime.now().plusDays(responderMetadata.getValidityInDays()));
+        int validityInterval = toIntExact(responderMetadata.getValidityInterval().getSeconds());
+        descriptor.setValidUntil(DateTime.now().plusSeconds(validityInterval));
         return descriptor;
     }
 

@@ -11,11 +11,14 @@ import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.xmlsec.encryption.support.EncryptionConstants;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.convert.DurationUnit;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -162,9 +165,12 @@ public class SpecificConnectorProperties {
         private String encryptionAlgorithm = EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256_GCM;
 
         @NotNull
-        @Min(value = 1)
-        @Max(value = 365)
-        private Integer validityInDays = 1;
+        @DurationUnit(ChronoUnit.DAYS)
+        private Duration validityInterval = Duration.ofDays(1);
+
+        @NotNull
+        @DurationUnit(ChronoUnit.MINUTES)
+        private Duration assertionValidityInterval = Duration.ofMinutes(5);
 
         @Valid
         private Organization organization;
@@ -183,11 +189,6 @@ public class SpecificConnectorProperties {
         private List<@Valid SigningMethod> signingMethods = DEFAULT_SIGNING_METHODS;
 
         private List<@Valid SupportedAttribute> supportedAttributes = DEFAULT_SUPPORTED_ATTRIBUTES;
-
-        @NotNull
-        @Min(value = 1)
-        @Max(value = 3600)
-        private Integer assertionValidityInSeconds = 300;
     }
 
     @Data
