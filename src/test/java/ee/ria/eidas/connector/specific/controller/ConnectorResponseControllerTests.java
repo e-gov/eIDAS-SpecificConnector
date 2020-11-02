@@ -4,7 +4,6 @@ import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
-import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
@@ -18,15 +17,8 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensaml.core.xml.io.UnmarshallingException;
-import org.opensaml.saml.saml2.core.Assertion;
 import org.opensaml.saml.saml2.core.AuthnRequest;
-import org.opensaml.saml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml.saml2.core.Issuer;
-import org.opensaml.saml.saml2.encryption.Decrypter;
-import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
-import org.opensaml.xmlsec.encryption.support.InlineEncryptedKeyResolver;
-import org.opensaml.xmlsec.keyinfo.impl.StaticKeyInfoCredentialResolver;
-import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,8 +39,6 @@ import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
@@ -291,31 +281,5 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
                 .build();
         return lightResponse;
-    }
-
-    @NotNull
-    @SneakyThrows
-    private AuthnRequest putAuthnRequestToCorrelationCache() {
-        byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
-        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        specificConnectorCommunication.putRequestCorrelation(authnRequest);
-        return authnRequest;
-    }
-
-    @NotNull
-    @SneakyThrows
-    private Assertion decryptAssertion(EncryptedAssertion encryptedAssertion) {
-        StaticKeyInfoCredentialResolver keyInfoCredentialResolver = new StaticKeyInfoCredentialResolver(TestUtils.getServiceProviderEncryptionCredential());
-        Decrypter decrypter = new Decrypter(null, keyInfoCredentialResolver, new InlineEncryptedKeyResolver());
-        decrypter.setRootInNewDocument(true);
-        return decrypter.decrypt(encryptedAssertion);
-    }
-
-    private void verifyAssertionSignature(Assertion assertion) throws SignatureException {
-        assertTrue(assertion.isSigned());
-        SAMLSignatureProfileValidator profileValidator = new SAMLSignatureProfileValidator();
-        assertNotNull(assertion.getSignature());
-        profileValidator.validate(assertion.getSignature());
-        responderMetadataSigner.validate(assertion.getSignature());
     }
 }

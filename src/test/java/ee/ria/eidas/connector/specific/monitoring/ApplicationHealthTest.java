@@ -100,7 +100,7 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
 
         long upTime = Duration.parse(healthResponse.jsonPath().get("upTime")).getSeconds();
         long expectedUpTime = Duration.between(startTime, currentTime).withNanos(0).getSeconds();
-        assertEquals(expectedUpTime, upTime, 1, "upTime");
+        assertEquals(expectedUpTime, upTime, 5, "upTime");
     }
 
     @RequiredArgsConstructor

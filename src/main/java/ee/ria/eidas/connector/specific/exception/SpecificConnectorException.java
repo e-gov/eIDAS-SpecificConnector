@@ -8,10 +8,6 @@ public class SpecificConnectorException extends RuntimeException {
         super(format(messageFormat, args));
     }
 
-    public SpecificConnectorException(Throwable cause, String messageFormat, Object... args) {
-        super(format(messageFormat, args), cause);
-    }
-
     public SpecificConnectorException(String message, Throwable cause) {
         super(message, cause);
     }

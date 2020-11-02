@@ -80,16 +80,15 @@ public class ServiceProviderController {
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
                             @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
-                            @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{ASCII}{0,80}$") String RelayState) {
+                            @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) {
         return execute(SAMLRequest, country, RelayState);
     }
 
     @PostMapping(value = "/ServiceProvider")
     public ModelAndView post(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
                              @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
-                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{ASCII}{0,80}$") String RelayState, HttpServletRequest request) {
+                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState, HttpServletRequest request) {
         request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.FOUND);
-        //request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.TEMPORARY_REDIRECT);
         return execute(SAMLRequest, country, RelayState);
     }
 
@@ -192,11 +191,14 @@ public class ServiceProviderController {
         return BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken);
     }
 
+    @SneakyThrows
     public AuthnRequest unmarshallAuthnRequest(byte[] decodedAuthnRequest) {
         try {
             return OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
-        } catch (XMLParserException | UnmarshallingException e) {
+        } catch (UnmarshallingException e) {
             throw new BadRequestException("SAML request is invalid", e);
+        } catch (XMLParserException e) {
+            throw new BadRequestException("SAML request is invalid - does not conform to schema", e);
         }
     }
 

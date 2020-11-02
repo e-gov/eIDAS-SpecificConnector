@@ -6,10 +6,6 @@ public class TechnicalException extends SpecificConnectorException {
         super(messageFormat, args);
     }
 
-    public TechnicalException(Throwable cause, String messageFormat, Object... args) {
-        super(cause, messageFormat, args);
-    }
-
     public TechnicalException(String message, Throwable cause) {
         super(message, cause);
     }

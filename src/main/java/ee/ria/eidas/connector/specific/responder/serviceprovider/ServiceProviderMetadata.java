@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
+import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.http.impl.client.HttpClients;
 import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -134,7 +135,8 @@ public class ServiceProviderMetadata {
     private HTTPMetadataResolver createReloadingMetadataResolver(long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor) throws ResolverException, ComponentInitializationException {
         HTTPMetadataResolver metadataResolver = new HTTPMetadataResolver(HttpClients.createDefault(), serviceProvider.getEntityId());
         metadataResolver.setId(serviceProvider.getId());
-        metadataResolver.setParserPool(requireNonNull(XMLObjectProviderRegistrySupport.getParserPool(), "Parser pool not initialized!"));
+        ParserPool schemaValidatingParserPool = requireNonNull(XMLObjectProviderRegistrySupport.getParserPool(), "Parser pool not initialized!");
+        metadataResolver.setParserPool(schemaValidatingParserPool);
         metadataResolver.setRequireValidMetadata(true);
         metadataResolver.setFailFastInitialization(false);
         metadataResolver.setMinRefreshDelay(minRefreshDelay);
@@ -145,7 +147,6 @@ public class ServiceProviderMetadata {
         metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId(), serviceProvider.getType()));
         metadataFilters.add(new SignatureValidationFilter(metadataIssuerTrustEngine));
         metadataFilters.add(new RequiredValidUntilFilter());
-        metadataFilters.add(new SchemaValidationFilter(new SAMLSchemaBuilder(SAMLSchemaBuilder.SAML1Version.SAML_11)));
         MetadataFilterChain metadataFilterChain = new MetadataFilterChain();
         metadataFilterChain.setFilters(metadataFilters);
         metadataResolver.setMetadataFilter(metadataFilterChain);

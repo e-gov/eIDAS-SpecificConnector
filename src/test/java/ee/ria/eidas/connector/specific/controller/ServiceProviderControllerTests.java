@@ -106,7 +106,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void successfulWhen_ValidParameters(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
+    void successfulWhen_ValidParameters(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException, UnmarshallingException, XMLParserException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String relayState = RandomStringUtils.random(80, true, true);
         Response response = given()
@@ -176,6 +176,25 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidSchema(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-schema-invalid-attribute.xml");
+        given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", "LV")
+                .param("RelayState", RandomStringUtils.random(80, true, true))
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("SAML request is invalid - does not conform to schema"));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_InvalidSignature(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-expired-request-signature.xml");
         given()
@@ -195,7 +214,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
+    void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String relayState = RandomStringUtils.random(80, true, true);
         Response response = given()
@@ -470,7 +489,57 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .body("error", equalTo("Bad Request"))
                 .body("errors", nullValue())
                 .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid"));
+                .body("message", equalTo("SAML request is invalid - does not conform to schema"));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @TestFactory
+    Stream<DynamicNode> badRequestWhen_InvalidAuthnRequestSchema() {
+        return of("GET", "POST")
+                .map(requestMethod -> dynamicContainer("requestMethod = " + requestMethod,
+                        of("sp-invalid-schema-invalid-attribute.xml",
+                                "sp-invalid-schema-missing-signature.xml",
+                                "sp-invalid-schema-missing-required-element.xml",
+                                "sp-invalid-schema-multiple-elements.xml",
+                                "sp-invalid-schema-sp-type.xml",
+                                "sp-invalid-schema-invalid-requested-attribute.xml")
+                                .map(authnRequest -> dynamicTest("AuthnRequest = " + authnRequest, () -> assertInvalidSAMLRequestSchema(requestMethod, authnRequest)))
+                                .collect(toList())));
+    }
+
+    void assertInvalidSAMLRequestSchema(String requestMethod, String authnRequest) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/" + authnRequest);
+        given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", "LV")
+                .param("RelayState", RandomStringUtils.random(80, true, true))
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("SAML request is invalid - does not conform to schema"));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_MissingExtensions(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-extensions.xml");
+        given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", "LV")
+                .param("RelayState", RandomStringUtils.random(80, true, true))
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("SAML request is invalid - no requested attributes"));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
@@ -490,7 +559,27 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .body("error", equalTo("Bad Request"))
                 .body("errors", nullValue())
                 .body("incidentNumber", notNullValue())
-                .body("message", equalTo(format("%s.RelayState: must match \"^\\p{ASCII}{0,80}$\"", requestMethod.toLowerCase())));
+                .body("message", equalTo(format("%s.RelayState: must match \"^\\p{Print}{0,80}$\"", requestMethod.toLowerCase())));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidParameterFormat_RelayState(String requestMethod) {
+        given()
+                .param("SAMLRequest", "c2FtbF9yZXF1ZXN0")
+                .param("country", "LV")
+                .param("RelayState", "ABC\tDEF")
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .assertThat()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("errors", nullValue())
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo(format("%s.RelayState: must match \"^\\p{Print}{0,80}$\"", requestMethod.toLowerCase())));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }

@@ -30,6 +30,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
         })
 public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHealthTest {
     public static final String ERROR_FILTERING_METADATA = "Error filtering metadata from https://localhost:8888/metadata";
+    public static final String RESOLVER_EXCEPTION = "net.shibboleth.utilities.java.support.resolver.ResolverException: Unable to unmarshall metadata";
 
     @Autowired
     ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
@@ -94,7 +95,7 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     @Test
     void healthStatusDownWhen_MissingAssertionConsumerService() {
         updateServiceProviderMetadata("sp-missing-assertion-consumer.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
+        assertServiceProviderMetadata(RESOLVER_EXCEPTION,
                 "The content of element 'md:SPSSODescriptor' is not complete. " +
                         "One of '{\"urn:oasis:names:tc:SAML:2.0:metadata\":NameIDFormat, " +
                         "\"urn:oasis:names:tc:SAML:2.0:metadata\":AssertionConsumerService}' is expected.");
@@ -103,13 +104,13 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     @Test
     void healthStatusDownWhen_MissingAssertionConsumerBinding() {
         updateServiceProviderMetadata("sp-missing-assertion-consumer-binding.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid Service Provider metadata assertion consumer service binding");
+        assertServiceProviderMetadata(RESOLVER_EXCEPTION, "SAXParseException: cvc-complex-type.4: Attribute 'Binding' must appear on element 'md:AssertionConsumerService'.");
     }
 
     @Test
     void healthStatusDownWhen_InvalidSchema() {
         updateServiceProviderMetadata("sp-invalid-schema.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA,
+        assertServiceProviderMetadata(RESOLVER_EXCEPTION,
                 "Attribute 'Location' must appear on element 'md:AssertionConsumerService'");
     }
 
@@ -127,13 +128,13 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     @Test
     void healthStatusDownWhen_ExpiredSigningCert() {
         updateServiceProviderMetadata("sp-expired-request-signing-cert.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid SPSSODescriptor certificate");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "CertificateExpiredException: NotAfter: Sat Aug 08 15:34:04 EEST 2020");
     }
 
     @Test
     void healthStatusDownWhen_ExpiredEncryptionCert() {
         updateServiceProviderMetadata("sp-expired-response-encryption-cert.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid SPSSODescriptor certificate");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "CertificateExpiredException: NotAfter: Sat Aug 08 15:47:13 EEST 2020");
     }
 
     private void assertServiceProviderMetadata(String errorMessage) {
@@ -148,7 +149,7 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
         mockSPMetadataServer.verify(countStrategy, getRequestedFor(urlEqualTo("/metadata")));
         assertThat(resolverException.getMessage(), containsString(expectedExceptionMessage));
         if (expectedCauseMessage != null) {
-            assertThat(ExceptionUtils.getStackTrace(resolverException), containsString(expectedCauseMessage));
+            assertThat(ExceptionUtils.getRootCauseMessage(resolverException), containsString(expectedCauseMessage));
         }
         Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.SP_METADATA);

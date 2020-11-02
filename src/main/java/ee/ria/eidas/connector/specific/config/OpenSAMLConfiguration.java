@@ -2,20 +2,28 @@ package ee.ria.eidas.connector.specific.config;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
+import net.shibboleth.utilities.java.support.xml.ClasspathResolver;
+import net.shibboleth.utilities.java.support.xml.SchemaBuilder;
 import org.apache.xml.security.signature.XMLSignature;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.opensaml.core.config.ConfigurationService;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistry;
+import org.opensaml.saml.common.xml.SAMLSchemaBuilder;
 import org.opensaml.security.crypto.JCAConstants;
 import org.opensaml.xmlsec.algorithm.AlgorithmSupport;
 import org.opensaml.xmlsec.algorithm.SignatureAlgorithm;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ResourceLoader;
+import org.xml.sax.SAXException;
 
 import javax.annotation.PostConstruct;
+import javax.xml.validation.Schema;
+import java.io.IOException;
 import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,18 +32,20 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 
 @Configuration
+@RequiredArgsConstructor
 public class OpenSAMLConfiguration {
+    private final ResourceLoader resourceLoader;
 
     @PostConstruct
-    private void init() throws ComponentInitializationException, InitializationException {
-        BasicParserPool parserPool = setupBasicParserPool();
+    private void init() throws ComponentInitializationException, InitializationException, SAXException, IOException {
+        BasicParserPool parserPool = setupSecureSchemaValidatingParserPool();
         Security.addProvider(new BouncyCastleProvider());
         InitializationService.initialize();
         AlgorithmSupport.getGlobalAlgorithmRegistry().register(new SignatureRSASHA256MGF1());
         setupXmlObjectProviderRegistry(parserPool);
     }
 
-    private BasicParserPool setupBasicParserPool() throws ComponentInitializationException {
+    private BasicParserPool setupSecureSchemaValidatingParserPool() throws ComponentInitializationException, SAXException, IOException {
         BasicParserPool parserPool = new BasicParserPool();
         parserPool.setMaxPoolSize(100);
         parserPool.setCoalescing(true);
@@ -43,13 +53,16 @@ public class OpenSAMLConfiguration {
         parserPool.setNamespaceAware(true);
         parserPool.setExpandEntityReferences(false);
         parserPool.setXincludeAware(false);
-        parserPool.setIgnoreElementContentWhitespace(true);
-        Map<String, Object> builderAttributes = new HashMap<>();
-        parserPool.setBuilderAttributes(builderAttributes);
+        parserPool.setIgnoreElementContentWhitespace(false);
+
+        Schema samlSchema = getSAMLSchema();
+        parserPool.setSchema(samlSchema);
 
         Map<String, Boolean> features = new HashMap<>();
         features.put("http://apache.org/xml/features/disallow-doctype-decl", TRUE);
         features.put("http://apache.org/xml/features/validation/schema/normalized-value", FALSE);
+        features.put("http://apache.org/xml/features/nonvalidating/load-external-dtd", FALSE);
+        features.put("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", FALSE);
         features.put("http://javax.xml.XMLConstants/feature/secure-processing", TRUE);
         features.put("http://xml.org/sax/features/external-general-entities", FALSE);
         features.put("http://xml.org/sax/features/external-parameter-entities", FALSE);
@@ -57,6 +70,15 @@ public class OpenSAMLConfiguration {
         parserPool.setBuilderFeatures(features);
         parserPool.initialize();
         return parserPool;
+    }
+
+    private Schema getSAMLSchema() throws IOException, SAXException {
+        SchemaBuilder schemaBuilder = new SchemaBuilder();
+        schemaBuilder.addSchema(resourceLoader.getResource("classpath:saml/saml_eidas_extension.xsd").getInputStream());
+        schemaBuilder.setResourceResolver(new ClasspathResolver());
+        SAMLSchemaBuilder samlSchemaBuilder = new SAMLSchemaBuilder(SAMLSchemaBuilder.SAML1Version.SAML_11);
+        samlSchemaBuilder.setSchemaBuilder(schemaBuilder);
+        return samlSchemaBuilder.getSAMLSchema();
     }
 
     private void setupXmlObjectProviderRegistry(BasicParserPool parserPool) {
