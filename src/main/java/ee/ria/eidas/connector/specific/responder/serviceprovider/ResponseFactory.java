@@ -57,7 +57,7 @@ public class ResponseFactory {
             Response response = createResponse(authnRequest, lightResponse, spMetadata);
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
-        } catch (Exception ex) {
+        } catch (EncryptionException | AttributeValueMarshallingException | SecurityException | MarshallingException | SignatureException | ResolverException ex) {
             throw new TechnicalException("Unable to create SAML Response", ex);
         }
     }

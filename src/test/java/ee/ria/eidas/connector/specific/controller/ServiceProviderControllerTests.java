@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
+import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
 import static ee.ria.eidas.connector.specific.util.TestUtils.SHA512_REGEX;
 import static ee.ria.eidas.connector.specific.util.TestUtils.UUID_REGEX;
 import static io.restassured.RestAssured.given;
@@ -94,12 +95,8 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     }
 
     @AfterEach
-    void resetMocks() {
-        Mockito.reset(serviceProviderMetadataRegistry);
-    }
-
-    @AfterEach
     void cleanUp() {
+        Mockito.reset(serviceProviderMetadataRegistry);
         specificMSSpRequestCorrelationMap.clear();
         specificNodeConnectorRequestCache.clear();
     }
@@ -377,7 +374,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         String samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
         Status status = TestUtils.getStatus(samlResponseBase64);
 
-        assertEquals("The signing key in the service provider metadata is not valid or accessible", status.getStatusMessage().getMessage());
+        assertEquals(SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
 

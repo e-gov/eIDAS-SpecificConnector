@@ -1,11 +1,15 @@
 package ee.ria.eidas.connector.specific.controller;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
+import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
+import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
@@ -13,28 +17,38 @@ import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
+import io.restassured.response.Response;
 import lombok.SneakyThrows;
+import net.shibboleth.utilities.java.support.net.URLBuilder;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.http.HttpHeaders;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Issuer;
+import org.opensaml.saml.saml2.core.Status;
+import org.opensaml.security.credential.UsageType;
+import org.opensaml.xmlsec.encryption.support.EncryptionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.cache.Cache;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.stream.Stream;
 
 import static ch.qos.logback.classic.Level.ERROR;
 import static ch.qos.logback.classic.Level.INFO;
+import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_ENCRYPTION_CERT_MISSING_OR_INVALID;
 import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
@@ -43,8 +57,12 @@ import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.util.ResourceUtils.getFile;
 
@@ -77,6 +95,10 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     Cache<String, String> specificMSSpRequestCorrelationMap;
 
     @Autowired
+    @Qualifier("specificNodeConnectorRequestCache")
+    Cache<String, String> specificNodeConnectorRequestCache;
+
+    @Autowired
     SpecificConnectorCommunication specificConnectorCommunication;
 
     @Autowired
@@ -87,6 +109,9 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
 
     @Autowired
     LightRequestFactory lightRequestFactory;
+
+    @SpyBean
+    ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
     @BeforeAll
     static void startMetadataServers() {
@@ -100,8 +125,44 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
 
     @AfterEach
     void cleanUp() {
+        Mockito.reset(serviceProviderMetadataRegistry);
         specificMSSpRequestCorrelationMap.clear();
         nodeSpecificConnectorResponseCache.clear();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void samlErrorResponseWhen_ServiceProviderEncryptionCertificateNotFoundOrInvalid(String requestMethod) throws IOException, UnmarshallingException, XMLParserException, EncryptionException {
+        byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
+        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+        LightResponse lightResponse = createLightResponse(lightRequest);
+        BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
+
+        ServiceProviderMetadata mockSp = Mockito.mock(ServiceProviderMetadata.class);
+        Mockito.doReturn(mockSp).when(serviceProviderMetadataRegistry).get("https://localhost:8888/metadata");
+        Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
+        Mockito.doThrow(new CertificateResolverException(UsageType.ENCRYPTION, "Metadata ENCRYPTION certificate missing or invalid")).when(mockSp).encrypt(any());
+
+        Response response = given()
+                .when()
+                .param("token", BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken))
+                .request(requestMethod, "/ConnectorResponse")
+                .then()
+                .assertThat()
+                .statusCode(requestMethod.equals("POST") ? 307 : 302)
+                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8888/returnUrl?SAMLResponse="))
+                .extract().response();
+        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
+        String samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+        Status status = TestUtils.getStatus(samlResponseBase64);
+
+        assertEquals(SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
+        assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
+        assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
 
     @ParameterizedTest
@@ -294,5 +355,10 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
                 .build();
         return lightResponse;
+    }
+
+    void assertSpecificNodeConnectorRequestCacheIsEmpty() {
+        Iterator<Cache.Entry<String, String>> iterator = specificNodeConnectorRequestCache.iterator();
+        assertFalse(iterator.hasNext());
     }
 }
