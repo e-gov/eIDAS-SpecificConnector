@@ -36,7 +36,8 @@ import static org.springframework.util.ResourceUtils.getFile;
 @UtilityClass
 public class TestUtils {
     public static final String UUID_REGEX = "[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}";
-    public static final String SECURE_RANDOM_REGEX = "^[_].{32,64}$";
+    public static final String SECURE_RANDOM_REGEX = "^[_].{64}$";
+    public static final String SHA512_REGEX = "^[0-9a-fA-F]{128}$";
 
     public Status getStatus(String samlResponseBase64) throws XMLParserException, UnmarshallingException {
         return getResponse(samlResponseBase64).getStatus();

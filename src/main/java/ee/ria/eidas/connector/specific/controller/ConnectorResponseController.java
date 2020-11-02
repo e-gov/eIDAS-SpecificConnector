@@ -81,7 +81,7 @@ public class ConnectorResponseController {
             throw new AuthenticationException(samlResponse, authnRequest.getAssertionConsumerServiceURL(), status.getStatusMessage());
         } else {
             try {
-                String samlResponse = responseFactory.createSamlResponse(lightResponse, spMetadata);
+                String samlResponse = responseFactory.createSamlResponse(authnRequest, lightResponse, spMetadata);
                 String assertionConsumerServiceUrl = spMetadata.getAssertionConsumerServiceUrl();
                 ModelAndView modelAndView = new ModelAndView("redirect:" + assertionConsumerServiceUrl);
                 String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());

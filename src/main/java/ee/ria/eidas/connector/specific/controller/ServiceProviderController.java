@@ -106,7 +106,7 @@ public class ServiceProviderController {
         }
         validateAuthnRequest(authnRequest, spMetadata);
 
-        String token = createLightRequestToken(spMetadata, authnRequest, country, relayState);
+        String token = createLightRequestToken(authnRequest, country, relayState, spMetadata.getType());
         URL redirectUrl = UriComponentsBuilder.fromUri(URI.create(specificConnectorProperties.getSpecificConnectorRequestUrl()))
                 .queryParam(EidasParameterKeys.TOKEN.getValue(), token)
                 .build().toUri().toURL();
@@ -183,10 +183,9 @@ public class ServiceProviderController {
         }
     }
 
-    private String createLightRequestToken(ServiceProviderMetadata spMetadata, AuthnRequest authnRequest, String country, String relayState) {
-        String spType = spMetadata.getType();
+    private String createLightRequestToken(AuthnRequest authnRequest, String country, String relayState, String spType) {
         ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState, spType);
-        specificConnectorCommunication.putRequestCorrelation(authnRequest);
+        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
         return BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken);
     }

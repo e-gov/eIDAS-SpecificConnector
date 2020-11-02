@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-import static ee.ria.eidas.connector.specific.util.TestUtils.SECURE_RANDOM_REGEX;
+import static ee.ria.eidas.connector.specific.util.TestUtils.SHA512_REGEX;
 import static ee.ria.eidas.connector.specific.util.TestUtils.UUID_REGEX;
 import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
@@ -106,7 +106,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void successfulWhen_ValidParameters(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException, UnmarshallingException, XMLParserException {
+    void successfulWhen_ValidParameters(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String relayState = RandomStringUtils.random(80, true, true);
         Response response = given()
@@ -159,7 +159,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     }
 
     private void assertLightRequest(Element lightRequestXml, String relayState) {
-        assertThat(lightRequestXml, hasXPath("/lightRequest/id", matchesPattern(SECURE_RANDOM_REGEX)));
+        assertThat(lightRequestXml, hasXPath("/lightRequest/id", matchesPattern(SHA512_REGEX)));
         if (relayState == null) {
             assertThat(lightRequestXml, hasXPath("/lightRequest/relayState", matchesPattern(UUID_REGEX)));
         } else {
@@ -249,7 +249,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .body("message", equalTo("Something went wrong internally. Please consult server logs for further details."));
 
         assertNotNull(specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId));
-        assertNotNull(specificMSSpRequestCorrelationMap.getAndRemove("_7fcff29db01783ec010f4dbb26c0bb35"));
+        assertNotNull(specificMSSpRequestCorrelationMap.getAndRemove("eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310"));
     }
 
     @ParameterizedTest

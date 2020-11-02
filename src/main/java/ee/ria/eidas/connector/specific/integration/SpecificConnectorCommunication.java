@@ -2,6 +2,7 @@ package ee.ria.eidas.connector.specific.integration;
 
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
@@ -30,9 +31,11 @@ public class SpecificConnectorCommunication {
     @Qualifier("specificMSSpRequestCorrelationMap")
     private Cache<String, String> specificMSSpRequestCorrelationMap;
 
-    public void putRequestCorrelation(AuthnRequest authnRequest) {
+    @Autowired
+    private LightRequestFactory lightRequestFactory;
+
+    public void putRequestCorrelation(String correlationId, AuthnRequest authnRequest) {
         try {
-            String correlationId = authnRequest.getID();
             String encodedAuthnRequest = Base64.getEncoder().encodeToString(OpenSAMLUtils.getXmlString(authnRequest).getBytes(UTF_8));
             boolean isInserted = specificMSSpRequestCorrelationMap.putIfAbsent(correlationId, encodedAuthnRequest);
             log.info(append("communication_cache.name", specificMSSpRequestCorrelationMap.getName())

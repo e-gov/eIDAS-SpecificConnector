@@ -53,7 +53,8 @@ class LightRequestFactoryTest {
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476", "public");
 
-        assertEquals(authnRequest.getID(), lightRequest.getId());
+        String correlationId = lightRequestFactory.getCorrelationId(authnRequest);
+        assertEquals(correlationId, lightRequest.getId());
         assertEquals(authnRequest.getIssuer().getValue(), lightRequest.getIssuer());
         assertEquals(authnRequest.getProviderName(), lightRequest.getProviderName());
         assertEquals(authnRequest.getNameIDPolicy().getFormat(), lightRequest.getNameIdFormat());

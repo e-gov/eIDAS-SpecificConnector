@@ -5,8 +5,10 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
 import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
+import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
@@ -99,6 +101,9 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
     @Autowired
     SpecificConnectorProperties connectorProperties;
 
+    @Autowired
+    LightRequestFactory lightRequestFactory;
+
     @BeforeAll
     static void startMetadataServers() {
         startServiceProviderMetadataServer();
@@ -119,16 +124,18 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
     Stream<DynamicNode> successfulAuthentication() throws IOException, UnmarshallingException, XMLParserException {
         DateTime authenticationTime = new DateTime(UTC);
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
-        AuthnRequest mockAuthnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
         ResponseStatus successfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("urn:oasis:names:tc:SAML:2.0:status:Success")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Success")
                 .subStatusCode("urn:oasis:names:tc:SAML:2.0:status:AnySubStatusCode")
                 .failure(false)
                 .build();
-        LightResponse mockLightResponse = createLightResponse(mockAuthnRequest, successfulAuthenticationStatus);
-        ResponseStatus expectedStatus = mockLightResponse.getStatus();
-        String levelOfAssurance = mockLightResponse.getLevelOfAssurance();
+
+        LightResponse lightResponse = createLightResponse(lightRequest, successfulAuthenticationStatus);
+        ResponseStatus expectedStatus = lightResponse.getStatus();
+        String levelOfAssurance = lightResponse.getLevelOfAssurance();
 
         Function<ResponseImpl, DynamicContainer> samlResponseTests = samlResponse -> {
             Status responseStatus = samlResponse.getStatus();
@@ -138,8 +145,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                             dynamicTest("Is issued by Responder", () -> assertEquals(RESPONDER_METADATA_URL, samlResponse.getIssuer().getValue())),
                             dynamicTest("Is signed by Responder", () -> assertSignature(samlResponse)),
                             dynamicTest("Contains valid issuing time", () -> assertIssuingTime(samlResponse.getIssueInstant(), authenticationTime)),
-                            dynamicTest("Contains id with valid format", () -> assertThat(samlResponse.getID(), matchesPattern(SECURE_RANDOM_REGEX))),
-                            dynamicTest("Contains valid reference to initial SAML AuthnRequest", () -> assertEquals(mockLightResponse.getInResponseToId(), samlResponse.getInResponseTo())),
+                            dynamicTest("Id equals LightResponse id", () -> assertEquals(lightResponse.getId(), samlResponse.getID())),
+                            dynamicTest("Contains valid reference to initial SAML AuthnRequest", () -> assertEquals(authnRequest.getID(), samlResponse.getInResponseTo())),
                             dynamicTest("Contains valid assertion consumer url", () -> assertEquals(SP_ASSERTIONS_URL, samlResponse.getDestination())),
                             dynamicTest("Contains status", () -> assertNotNull(responseStatus)),
                             dynamicContainer("Status is valid", assertResponseStatus(expectedStatus, responseStatus)),
@@ -151,7 +158,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
 
         return of("GET", "POST")
                 .map(requestMethod -> dynamicContainer("Request method = " + requestMethod,
-                        of(assertRedirectWithSAMLResponse(requestMethod, mockAuthnRequest, mockLightResponse))
+                        of(assertRedirectWithSAMLResponse(requestMethod, authnRequest, lightRequest, lightResponse))
                                 .map(samlResponseTests)));
     }
 
@@ -164,15 +171,16 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
     Stream<DynamicNode> unsuccessfulAuthentication() throws IOException, UnmarshallingException, XMLParserException {
         DateTime authenticationTime = new DateTime(UTC);
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
-        AuthnRequest mockAuthnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
         ResponseStatus unsuccessfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("003002 - Authentication Failed.")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Responder")
                 .subStatusCode("urn:oasis:names:tc:SAML:2.0:status:AuthnFailed")
                 .failure(true)
                 .build();
-        LightResponse mockLightResponse = createLightResponse(mockAuthnRequest, unsuccessfulAuthenticationStatus);
-        ResponseStatus expectedStatus = mockLightResponse.getStatus();
+        LightResponse lightResponse = createLightResponse(lightRequest, unsuccessfulAuthenticationStatus);
+        ResponseStatus expectedStatus = lightResponse.getStatus();
 
         Function<ResponseImpl, DynamicContainer> samlResponseTests = samlResponse -> {
             Status responseStatus = samlResponse.getStatus();
@@ -183,7 +191,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                             dynamicTest("Is signed by Responder", () -> assertSignature(samlResponse)),
                             dynamicTest("Contains valid issuing time", () -> assertIssuingTime(samlResponse.getIssueInstant(), authenticationTime)),
                             dynamicTest("Contains id with valid format", () -> assertThat(samlResponse.getID(), matchesPattern(SECURE_RANDOM_REGEX))),
-                            dynamicTest("Contains valid reference to initial SAML AuthnRequest", () -> assertEquals(mockLightResponse.getInResponseToId(), samlResponse.getInResponseTo())),
+                            dynamicTest("Contains valid reference to initial SAML AuthnRequest", () -> assertEquals(authnRequest.getID(), samlResponse.getInResponseTo())),
                             dynamicTest("Contains valid assertion consumer url", () -> assertEquals(SP_ASSERTIONS_URL, samlResponse.getDestination())),
                             dynamicTest("Contains status", () -> assertNotNull(responseStatus)),
                             dynamicContainer("Status is valid", assertResponseStatus(expectedStatus, responseStatus)),
@@ -195,13 +203,13 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
 
         return of("GET", "POST")
                 .map(requestMethod -> dynamicContainer("Request method = " + requestMethod,
-                        of(assertRedirectWithSAMLResponse(requestMethod, mockAuthnRequest, mockLightResponse))
+                        of(assertRedirectWithSAMLResponse(requestMethod, authnRequest, lightRequest, lightResponse))
                                 .map(samlResponseTests)));
     }
 
     @SneakyThrows
-    ResponseImpl assertRedirectWithSAMLResponse(String requestMethod, AuthnRequest authnRequest, LightResponse lightResponse) {
-        specificConnectorCommunication.putRequestCorrelation(authnRequest);
+    ResponseImpl assertRedirectWithSAMLResponse(String requestMethod, AuthnRequest authnRequest, LightRequest lightRequest, LightResponse lightResponse) {
+        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
 
         Response response = given()
@@ -366,7 +374,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         return binaryLightToken;
     }
 
-    LightResponse createLightResponse(AuthnRequest authnRequest, ResponseStatus responseStatus) {
+    LightResponse createLightResponse(LightRequest lightRequest, ResponseStatus responseStatus) {
         ImmutableAttributeMap.Builder requestedAttributes = ImmutableAttributeMap.builder();
         requestedAttributes.put(PERSON_IDENTIFIER);
         requestedAttributes.put(CURRENT_FAMILY_NAME);
@@ -374,7 +382,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         requestedAttributes.put(PLACE_OF_BIRTH);
         return LightResponse.builder()
                 .id("_7.t.B2GE0lkaDDkpvwZJfrdOLrKQqiINw.0XnzAEucYP7yO7WVBC_hR2kkQ-hwy")
-                .inResponseToId(authnRequest.getID())
+                .inResponseToId(lightRequest.getId())
                 .status(responseStatus)
                 .subject("assertion_subject")
                 .subjectNameIdFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")

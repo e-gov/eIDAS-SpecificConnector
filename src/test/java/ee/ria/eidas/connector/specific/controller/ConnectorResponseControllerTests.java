@@ -1,9 +1,13 @@
 package ee.ria.eidas.connector.specific.controller;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
+import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
+import eu.eidas.auth.commons.light.ILightRequest;
+import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
@@ -76,7 +80,13 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     SpecificConnectorCommunication specificConnectorCommunication;
 
     @Autowired
+    EidasNodeCommunication eidasNodeCommunication;
+
+    @Autowired
     ResponderMetadataSigner responderMetadataSigner;
+
+    @Autowired
+    LightRequestFactory lightRequestFactory;
 
     @BeforeAll
     static void startMetadataServers() {
@@ -117,7 +127,9 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     void badRequestWhen_MissingAuthnRequestForLightResponse(String requestMethod) throws IOException, UnmarshallingException, XMLParserException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        LightResponse lightResponse = createLightResponse(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
+
+        LightResponse lightResponse = createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
         given()
                 .when()
@@ -130,7 +142,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .body("incidentNumber", notNullValue())
                 .body("message", equalTo("Authentication request related to token is invalid or has expired"));
 
-        assertTestLogs(INFO, "Get and remove AuthnRequest from cache with id: '_7fcff29db01783ec010f4dbb26c0bb35', Result: false");
+        assertTestLogs(INFO, "Get and remove AuthnRequest from cache with id: 'eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310', Result: false");
     }
 
     @ParameterizedTest
@@ -141,9 +153,10 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         Issuer issuer = OpenSAMLUtils.buildObject(Issuer.class);
         issuer.setValue("https://localhost:1111/metadata");
         authnRequest.setIssuer(issuer);
-        specificConnectorCommunication.putRequestCorrelation(authnRequest);
 
-        LightResponse lightResponse = createLightResponse(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
+        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+        LightResponse lightResponse = createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
         given()
                 .when()
@@ -263,7 +276,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     }
 
     @NotNull
-    private LightResponse createLightResponse(AuthnRequest authnRequest) {
+    private LightResponse createLightResponse(ILightRequest lightRequest) {
         ResponseStatus responseStatus = ResponseStatus.builder()
                 .statusMessage("statusMessage")
                 .statusCode("statusCode")
@@ -273,7 +286,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
 
         LightResponse lightResponse = LightResponse.builder()
                 .id("_7.t.B2GE0lkaDDkpvwZJfrdOLrKQqiINw.0XnzAEucYP7yO7WVBC_hR2kkQ-hwy")
-                .inResponseToId(authnRequest.getID())
+                .inResponseToId(lightRequest.getId())
                 .status(responseStatus)
                 .subject("assertion_subject")
                 .subjectNameIdFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")

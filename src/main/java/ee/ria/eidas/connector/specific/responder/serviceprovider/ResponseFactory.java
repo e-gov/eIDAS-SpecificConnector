@@ -50,11 +50,11 @@ public class ResponseFactory {
     @Autowired
     private String specificConnectorIP;
 
-    private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy();
+    private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy(32);
 
-    public String createSamlResponse(ILightResponse lightResponse, ServiceProviderMetadata spMetadata) {
+    public String createSamlResponse(AuthnRequest authnRequest, ILightResponse lightResponse, ServiceProviderMetadata spMetadata) {
         try {
-            Response response = createResponse(lightResponse, spMetadata);
+            Response response = createResponse(authnRequest, lightResponse, spMetadata);
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
         } catch (Exception ex) {
@@ -101,28 +101,28 @@ public class ResponseFactory {
         return response;
     }
 
-    private Response createResponse(ILightResponse lightResponse, ServiceProviderMetadata spMetadata) throws EncryptionException,
+    private Response createResponse(AuthnRequest authnRequest, ILightResponse lightResponse, ServiceProviderMetadata spMetadata) throws EncryptionException,
             AttributeValueMarshallingException, SecurityException, MarshallingException, SignatureException, ResolverException {
         Response response = new ResponseBuilder().buildObject();
         response.setID(lightResponse.getId());
         response.setDestination(spMetadata.getAssertionConsumerServiceUrl());
-        response.setInResponseTo(lightResponse.getInResponseToId());
+        response.setInResponseTo(authnRequest.getID());
         response.setIssueInstant(new DateTime(DateTimeZone.UTC));
         response.setVersion(VERSION_20);
         response.setIssuer(createIssuer());
         response.setStatus(createStatus(lightResponse.getStatus()));
-        response.getEncryptedAssertions().add(createAssertion(lightResponse, response.getIssueInstant(), spMetadata));
+        response.getEncryptedAssertions().add(createAssertion(authnRequest, lightResponse, response.getIssueInstant(), spMetadata));
         return response;
     }
 
-    private EncryptedAssertion createAssertion(ILightResponse lightResponse, DateTime issueInstant, ServiceProviderMetadata spMetadata)
+    private EncryptedAssertion createAssertion(AuthnRequest authnRequest, ILightResponse lightResponse, DateTime issueInstant, ServiceProviderMetadata spMetadata)
             throws AttributeValueMarshallingException, MarshallingException, SecurityException, SignatureException, ResolverException,
             EncryptionException {
         AssertionBuilder assertionBuilder = new AssertionBuilder();
         Assertion assertion = assertionBuilder.buildObject();
         assertion.setIssuer(createIssuer());
         assertion.setIssueInstant(issueInstant);
-        assertion.setSubject(createSubject(lightResponse, spMetadata.getAssertionConsumerServiceUrl(), issueInstant));
+        assertion.setSubject(createSubject(authnRequest, lightResponse, spMetadata.getAssertionConsumerServiceUrl(), issueInstant));
         assertion.getAttributeStatements().add(createAttributeStatement(lightResponse));
         assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, lightResponse.getLevelOfAssurance()));
         assertion.setConditions(createConditions(issueInstant, spMetadata));
@@ -194,7 +194,7 @@ public class ResponseFactory {
         return attribute;
     }
 
-    private Subject createSubject(ILightResponse lightResponse, String assertionConsumerServiceUrl, DateTime issueInstant) {
+    private Subject createSubject(AuthnRequest authnRequest, ILightResponse lightResponse, String assertionConsumerServiceUrl, DateTime issueInstant) {
         Subject subject = new SubjectBuilder().buildObject();
         NameID nameID = new NameIDBuilder().buildObject();
         nameID.setValue(lightResponse.getSubject()); // TODO: Reanalyse
@@ -205,7 +205,7 @@ public class ResponseFactory {
         subjectConfirmation.setMethod(SubjectConfirmation.METHOD_BEARER);
         SubjectConfirmationData subjectConfirmationData = new SubjectConfirmationDataBuilder().buildObject();
         subjectConfirmationData.setAddress(specificConnectorIP); // TODO: Reanalyse
-        subjectConfirmationData.setInResponseTo(lightResponse.getInResponseToId());
+        subjectConfirmationData.setInResponseTo(authnRequest.getID());
         subjectConfirmationData.setNotBefore(issueInstant);
         int validityInterval = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
         subjectConfirmationData.setNotOnOrAfter(issueInstant.plusSeconds(validityInterval));
