@@ -109,7 +109,7 @@ public class ConnectorResponseController {
                             .and(append("event.outcome", status.isFailure() ? "failure" : "success")),
                     "SAML response created");
         } catch (JsonProcessingException e) {
-            log.warn("Unable to parse AuthnRequest");
+            log.warn("Unable to parse AuthnRequest", e);
         }
     }
 }

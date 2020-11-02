@@ -212,7 +212,7 @@ public class ServiceProviderController {
                             .and(append("event.type", "start")),
                     "AuthnRequest received");
         } catch (JsonProcessingException e) {
-            log.warn("Unable to parse AuthnRequest");
+            log.warn("Unable to parse AuthnRequest", e);
         }
     }
 }

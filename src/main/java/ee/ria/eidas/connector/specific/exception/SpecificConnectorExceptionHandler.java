@@ -39,7 +39,8 @@ public class SpecificConnectorExceptionHandler {
     private final MappingJackson2XmlHttpMessageConverter xmlMapper;
 
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
-    public ModelAndView handleHttpRequestMethodNotSupportedException(HttpServletResponse response) throws IOException {
+    public ModelAndView handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex, HttpServletResponse response) throws IOException {
+        log.error(format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()));
         response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
         return new ModelAndView();
     }
