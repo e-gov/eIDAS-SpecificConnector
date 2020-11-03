@@ -128,13 +128,13 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     @Test
     void healthStatusDownWhen_ExpiredSigningCert() {
         updateServiceProviderMetadata("sp-expired-request-signing-cert.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "CertificateExpiredException: NotAfter: Sat Aug 08 15:34:04 EEST 2020");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "CertificateExpiredException: NotAfter: Sat Aug 08 12:34:04 UTC 2020");
     }
 
     @Test
     void healthStatusDownWhen_ExpiredEncryptionCert() {
         updateServiceProviderMetadata("sp-expired-response-encryption-cert.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "CertificateExpiredException: NotAfter: Sat Aug 08 15:47:13 EEST 2020");
+        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "CertificateExpiredException: NotAfter: Sat Aug 08 12:47:13 UTC 2020");
     }
 
     private void assertServiceProviderMetadata(String errorMessage) {

@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.config.RedirectConfig.redirectConfig;
@@ -204,6 +205,7 @@ public abstract class SpecificConnectorTest {
     public static class TestContextInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override
         public void initialize(@NotNull ConfigurableApplicationContext configurableApplicationContext) {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
             String currentDirectory = System.getProperty("user.dir");
             System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
             System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
