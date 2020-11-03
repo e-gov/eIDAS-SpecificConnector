@@ -17,6 +17,7 @@ import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
+import io.restassured.path.xml.XmlPath;
 import io.restassured.response.Response;
 import lombok.SneakyThrows;
 import net.shibboleth.utilities.java.support.net.URLBuilder;
@@ -57,9 +58,7 @@ import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
@@ -150,18 +149,22 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .param("token", BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken))
                 .request(requestMethod, "/ConnectorResponse")
                 .then()
-                .assertThat()
-                .statusCode(requestMethod.equals("POST") ? 307 : 302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8888/returnUrl?SAMLResponse="))
+                .statusCode(requestMethod.equals("POST") ? 200 : 302)
                 .extract().response();
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+        String samlResponseBase64;
+        if (requestMethod.equals("POST")) {
+            samlResponseBase64 = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == 'SAMLResponse'}.@value");
+        } else {
+            String location = response.getHeader(HttpHeaders.LOCATION);
+            assertNotNull(location);
+            URLBuilder urlBuilder = new URLBuilder(location);
+            samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+        }
+        assertNotNull(samlResponseBase64);
         Status status = TestUtils.getStatus(samlResponseBase64);
-
         assertEquals(SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
-
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
 

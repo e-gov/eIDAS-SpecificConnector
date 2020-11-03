@@ -14,7 +14,6 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFac
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
-import eu.eidas.auth.commons.EidasParameterKeys;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.protocol.eidas.LevelOfAssurance;
@@ -31,7 +30,6 @@ import org.opensaml.saml.saml2.core.Extensions;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
@@ -46,6 +44,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import javax.xml.namespace.QName;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Base64;
@@ -55,10 +54,10 @@ import java.util.Optional;
 
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_LOA_MISSING_OR_INVALID;
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
+import static eu.eidas.auth.commons.EidasParameterKeys.TOKEN;
 import static java.util.Objects.requireNonNull;
 import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendRaw;
-import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
 
 @Slf4j
 @Controller
@@ -80,20 +79,28 @@ public class ServiceProviderController {
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
                             @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
-                            @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) {
-        return execute(SAMLRequest, country, RelayState);
+                            @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) throws MalformedURLException {
+        String token = processRequest(SAMLRequest, country, RelayState);
+        URL redirectUrl = UriComponentsBuilder.fromUri(URI.create(specificConnectorProperties.getSpecificConnectorRequestUrl()))
+                .queryParam(TOKEN.getValue(), token)
+                .build().toUri().toURL();
+        return new ModelAndView("redirect:" + redirectUrl);
     }
 
     @PostMapping(value = "/ServiceProvider")
     public ModelAndView post(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
                              @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
                              @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState, HttpServletRequest request) {
-        request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.FOUND);
-        return execute(SAMLRequest, country, RelayState);
+        String token = processRequest(SAMLRequest, country, RelayState);
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.addObject("action", specificConnectorProperties.getSpecificConnectorRequestUrl());
+        modelAndView.addObject(TOKEN.getValue(), token);
+        modelAndView.setViewName("postBinding");
+        return modelAndView;
     }
 
     @SneakyThrows
-    private ModelAndView execute(String samlRequest, String country, String relayState) {
+    private String processRequest(String samlRequest, String country, String relayState) {
         byte[] decodedAuthnRequest = Base64.getDecoder().decode(samlRequest);
         logAuthnRequest(decodedAuthnRequest, country, relayState);
         AuthnRequest authnRequest = unmarshallAuthnRequest(decodedAuthnRequest);
@@ -105,12 +112,7 @@ public class ServiceProviderController {
             throw new BadRequestException("SAML request is invalid - country not supported");
         }
         validateAuthnRequest(authnRequest, spMetadata);
-
-        String token = createLightRequestToken(authnRequest, country, relayState, spMetadata.getType());
-        URL redirectUrl = UriComponentsBuilder.fromUri(URI.create(specificConnectorProperties.getSpecificConnectorRequestUrl()))
-                .queryParam(EidasParameterKeys.TOKEN.getValue(), token)
-                .build().toUri().toURL();
-        return new ModelAndView("redirect:" + redirectUrl);
+        return createLightRequestToken(authnRequest, country, relayState, spMetadata.getType());
     }
 
     private void validateAuthnRequest(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) {

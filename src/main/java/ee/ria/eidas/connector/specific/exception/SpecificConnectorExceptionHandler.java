@@ -22,7 +22,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.UUID;
 
+import static eu.eidas.auth.commons.EidasParameterKeys.RELAY_STATE;
 import static eu.eidas.auth.commons.EidasParameterKeys.SAML_RESPONSE;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -64,7 +66,7 @@ public class SpecificConnectorExceptionHandler {
     }
 
     @ExceptionHandler({AuthenticationException.class})
-    public RedirectView handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) throws IOException {
+    public Object handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) throws IOException {
         String samlResponse = ex.getSamlResponse();
         JsonNode samlResponseJson = xmlMapper.getObjectMapper().readTree(samlResponse);
 
@@ -76,16 +78,23 @@ public class SpecificConnectorExceptionHandler {
                 format(AUTHENTICATION_FAILED_ERROR_MESSAGE, ex.getMessage()));
 
         String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
-        String uri = UriComponentsBuilder.fromHttpUrl(ex.getAssertionConsumerServiceURL())
-                .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(samlResponseBase64, UTF_8))
-                .build(true)
-                .toUri()
-                .toString();
 
         if (HttpMethod.POST.matches(request.getMethod())) {
-            request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.TEMPORARY_REDIRECT);
+            ModelAndView modelAndView = new ModelAndView();
+            modelAndView.addObject(SAML_RESPONSE.getValue(), samlResponseBase64);
+            modelAndView.addObject(RELAY_STATE.getValue(), UUID.randomUUID());
+            modelAndView.addObject("action", ex.getAssertionConsumerServiceURL());
+            modelAndView.setViewName("postBinding");
+            return modelAndView;
+        } else {
+            request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.FOUND);
+            String uri = UriComponentsBuilder.fromHttpUrl(ex.getAssertionConsumerServiceURL())
+                    .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(samlResponseBase64, UTF_8))
+                    .build(true)
+                    .toUri()
+                    .toString();
+            return new RedirectView(uri);
         }
-        return new RedirectView(uri);
     }
 
     @ExceptionHandler({TechnicalException.class})

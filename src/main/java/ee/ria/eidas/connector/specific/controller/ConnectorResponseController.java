@@ -12,11 +12,11 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProvider
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import eu.eidas.auth.commons.light.ILightResponse;
 import eu.eidas.auth.commons.light.IResponseStatus;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.opensaml.saml.saml2.core.AuthnRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
@@ -24,15 +24,22 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Pattern;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.util.Base64;
 
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_ENCRYPTION_CERT_MISSING_OR_INVALID;
+import static eu.eidas.auth.commons.EidasParameterKeys.RELAY_STATE;
+import static eu.eidas.auth.commons.EidasParameterKeys.SAML_RESPONSE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendRaw;
-import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
 
 @Slf4j
 @Validated
@@ -46,18 +53,28 @@ public class ConnectorResponseController {
     private final MappingJackson2XmlHttpMessageConverter xmlMapper;
 
     @GetMapping(value = "/ConnectorResponse")
-    public ModelAndView get(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token) {
-        return execute(token);
+    public ModelAndView get(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token) throws MalformedURLException {
+        Response response = processResponse(token);
+        URL redirectUrl = UriComponentsBuilder.fromUri(URI.create(response.getAssertionConsumerServiceUrl()))
+                .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(response.getSamlResponseBase64(), UTF_8))
+                .queryParam(RELAY_STATE.getValue(), response.getRelayState())
+                .build(true).toUri().toURL();
+        return new ModelAndView("redirect:" + redirectUrl);
     }
 
     @PostMapping(value = "/ConnectorResponse")
     public ModelAndView post(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token, HttpServletRequest request) {
-        request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.TEMPORARY_REDIRECT);
-        return execute(token);
+        Response response = processResponse(token);
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.addObject(SAML_RESPONSE.getValue(), response.getSamlResponseBase64());
+        modelAndView.addObject(RELAY_STATE.getValue(), response.getRelayState());
+        modelAndView.addObject("action", response.getAssertionConsumerServiceUrl());
+        modelAndView.setViewName("postBinding");
+        return modelAndView;
     }
 
     @SneakyThrows
-    private ModelAndView execute(String token) {
+    private Response processResponse(String token) {
         ILightResponse lightResponse = eidasNodeCommunication.getAndRemoveLightResponse(token);
         if (lightResponse == null) {
             throw new BadRequestException("Token is invalid or has expired");
@@ -80,12 +97,9 @@ public class ConnectorResponseController {
             try {
                 String samlResponse = responseFactory.createSamlResponse(authnRequest, lightResponse, spMetadata);
                 String assertionConsumerServiceUrl = spMetadata.getAssertionConsumerServiceUrl();
-                ModelAndView modelAndView = new ModelAndView("redirect:" + assertionConsumerServiceUrl);
                 String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
-                modelAndView.addObject("SAMLResponse", samlResponseBase64);
-                modelAndView.addObject("RelayState", lightResponse.getRelayState());
                 logAuthenticationResult(samlResponse, status, lightResponse.getRelayState(), "end");
-                return modelAndView;
+                return new Response(samlResponseBase64, lightResponse.getRelayState(), assertionConsumerServiceUrl);
             } catch (CertificateResolverException certificateException) {
                 String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_ENCRYPTION_CERT_MISSING_OR_INVALID);
                 throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(),
@@ -107,5 +121,13 @@ public class ConnectorResponseController {
         } catch (JsonProcessingException e) {
             log.warn("Unable to parse AuthnRequest", e);
         }
+    }
+
+    @Getter
+    @RequiredArgsConstructor
+    private static class Response {
+        private final String samlResponseBase64;
+        private final String relayState;
+        private final String assertionConsumerServiceUrl;
     }
 }

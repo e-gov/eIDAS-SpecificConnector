@@ -13,6 +13,7 @@ import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
+import io.restassured.path.xml.XmlPath;
 import io.restassured.response.Response;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +51,6 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.hamcrest.text.MatchesPattern.matchesPattern;
 import static org.joda.time.DateTimeZone.UTC;
 import static org.junit.jupiter.api.Assertions.*;
@@ -218,11 +218,19 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                 .request(requestMethod, "/ConnectorResponse")
                 .then()
                 .assertThat()
-                .statusCode(requestMethod.equals("POST") ? 307 : 302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8888/returnUrl?SAMLResponse="))
+                .statusCode(requestMethod.equals("POST") ? 200 : 302)
                 .extract().response();
 
-        String samlResponseBase64 = new URLBuilder(response.getHeader(HttpHeaders.LOCATION)).getQueryParams().get(0).getSecond();
+        String samlResponseBase64;
+        if (requestMethod.equals("POST")) {
+            samlResponseBase64 = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == 'SAMLResponse'}.@value");
+        } else {
+            String location = response.getHeader(HttpHeaders.LOCATION);
+            assertNotNull(location);
+            URLBuilder urlBuilder = new URLBuilder(location);
+            samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+        }
+        assertNotNull(samlResponseBase64);
         return TestUtils.getResponse(samlResponseBase64);
     }
 

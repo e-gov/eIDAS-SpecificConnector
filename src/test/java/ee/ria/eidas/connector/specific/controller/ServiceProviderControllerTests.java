@@ -7,12 +7,14 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProvider
 import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
+import io.restassured.path.xml.XmlPath;
 import io.restassured.response.Response;
 import net.shibboleth.utilities.java.support.net.URLBuilder;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpHeaders;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -33,6 +35,7 @@ import org.xml.sax.SAXException;
 import javax.cache.Cache;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -47,7 +50,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.hamcrest.text.MatchesPattern.matchesPattern;
 import static org.hamcrest.xml.HasXPath.hasXPath;
 import static org.junit.jupiter.api.Assertions.*;
@@ -106,26 +108,11 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     void successfulWhen_ValidParameters(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String relayState = RandomStringUtils.random(80, true, true);
-        Response response = given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", relayState)
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .assertThat()
-                .statusCode(302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8443/EidasNode/SpecificConnectorRequest?token=c3BlY2lmaWNDb"))
-                .extract().response();
-
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String token = urlBuilder.getQueryParams().get(0).getSecond();
-        assertNotNull(token);
+        String token = assertReturnParameter(requestMethod, authnRequestBase64, "LV", relayState, "token");
         String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
         assertNotNull(lightRequest);
         Element lightRequestXml = TestUtils.getXmlDocument(lightRequest);
-
         assertLightRequest(lightRequestXml, relayState);
     }
 
@@ -133,26 +120,13 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     @ValueSource(strings = {"GET", "POST"})
     void successfulWithGeneratedRelayStateWhen_ValidParametersAndNoRelayState(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
-        Response response = given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .assertThat()
-                .statusCode(302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8443/EidasNode/SpecificConnectorRequest?token=c3BlY2lmaWNDb"))
-                .extract().response();
-
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String token = urlBuilder.getQueryParams().get(0).getSecond();
-        assertNotNull(token);
+        String relayState = RandomStringUtils.random(80, true, true);
+        String token = assertReturnParameter(requestMethod, authnRequestBase64, "LV", relayState, "token");
         String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
         assertNotNull(lightRequest);
         Element lightRequestXml = TestUtils.getXmlDocument(lightRequest);
-
-        assertLightRequest(lightRequestXml, null);
+        assertLightRequest(lightRequestXml, relayState);
     }
 
     private void assertLightRequest(Element lightRequestXml, String relayState) {
@@ -214,21 +188,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String relayState = RandomStringUtils.random(80, true, true);
-        Response response = given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", relayState)
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .assertThat()
-                .statusCode(302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8443/EidasNode/SpecificConnectorRequest?token=c3BlY2lmaWNDb"))
-                .extract().response();
-
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String token = urlBuilder.getQueryParams().get(0).getSecond();
-        assertNotNull(token);
+        String token = assertReturnParameter(requestMethod, authnRequestBase64, "LV", relayState, "token");
         String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         String lightRequest = specificNodeConnectorRequestCache.get(binaryLightTokenId);
         assertNotNull(lightRequest);
@@ -329,21 +289,8 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     @ValueSource(strings = {"GET", "POST"})
     void samlErrorResponseWhen_LevelOfAssurance_TooLow(String requestMethod) throws IOException, UnmarshallingException, XMLParserException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-level-of-assurance-too-low.xml");
-        Response response = given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(requestMethod.equals("POST") ? 307 : 302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8888/returnUrl?SAMLResponse="))
-                .extract().response();
-
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+        String samlResponseBase64 = assertReturnParameter(requestMethod, authnRequestBase64, "LV", "", "SAMLResponse");
         Status status = TestUtils.getStatus(samlResponseBase64);
-
         assertEquals("LoA is missing or invalid", status.getStatusMessage().getMessage());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
@@ -359,25 +306,12 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
         Mockito.doThrow(new CertificateResolverException(UsageType.SIGNING, "Metadata SIGNING certificate missing or invalid")).when(mockSp).validate(any());
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-level-of-assurance-too-low.xml");
-        Response response = given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(requestMethod.equals("POST") ? 307 : 302)
-                .header(HttpHeaders.LOCATION, startsWith("https://localhost:8888/returnUrl?SAMLResponse="))
-                .extract().response();
+        String samlResponseBase64 = assertReturnParameter(requestMethod, authnRequestBase64, "LV", "", "SAMLResponse");
 
-        URLBuilder urlBuilder = new URLBuilder(response.getHeader(HttpHeaders.LOCATION));
-        String samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
         Status status = TestUtils.getStatus(samlResponseBase64);
-
         assertEquals(SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
-
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
 
@@ -626,6 +560,32 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                         of("SAMLRequest", "country", "RelayState")
                                 .map(parameterName -> dynamicTest("Duplicate request parameter = " + parameterName, () -> assertDuplicateRequestParameter(requestMethod, parameterName)))
                                 .collect(toList())));
+    }
+
+
+    @Nullable
+    private String assertReturnParameter(String requestMethod, String authnRequestBase64, String country, String relayState, String parameterToReturn) throws MalformedURLException {
+        Response response = given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", country)
+                .param("RelayState", relayState)
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(requestMethod.equals("POST") ? 200 : 302)
+                .extract().response();
+
+        String parameterValue;
+        if (requestMethod.equals("POST")) {
+            parameterValue = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == '" + parameterToReturn + "'}.@value");
+        } else {
+            String location = response.getHeader(HttpHeaders.LOCATION);
+            assertNotNull(location);
+            URLBuilder urlBuilder = new URLBuilder(location);
+            parameterValue = urlBuilder.getQueryParams().get(0).getSecond();
+        }
+        assertNotNull(parameterValue);
+        return parameterValue;
     }
 
     void assertDuplicateRequestParameter(String requestMethod, String duplicateParameterName) {
