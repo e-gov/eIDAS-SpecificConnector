@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 
+@Slf4j
 @Configuration
 @ConfigurationPropertiesScan
 public class SpecificConnectorConfiguration implements WebMvcConfigurer {
@@ -62,6 +64,8 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     @Bean
     public String specificConnectorIP(SpecificConnectorProperties specificConnectorProperties) throws MalformedURLException, UnknownHostException {
         String issuerUrl = specificConnectorProperties.getResponderMetadata().getEntityId();
-        return InetAddress.getByName(new URL(issuerUrl).getHost()).getHostAddress();
+        String hostAddress = InetAddress.getByName(new URL(issuerUrl).getHost()).getHostAddress();
+        log.info("Responder metadata issuer: {}, IP address: {}", issuerUrl, hostAddress);
+        return hostAddress;
     }
 }
