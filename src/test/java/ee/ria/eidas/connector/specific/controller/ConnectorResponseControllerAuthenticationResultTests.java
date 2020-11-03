@@ -311,11 +311,9 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         SubjectConfirmationData subjectConfirmationData = subjectConfirmations.get(0).getSubjectConfirmationData();
         assertNotNull(subjectConfirmationData);
         assertRecipient(subjectConfirmationData);
-        assertNotNull(subjectConfirmationData.getNotBefore());
+        assertNull(subjectConfirmationData.getNotBefore());
         assertNotNull(subjectConfirmationData.getNotOnOrAfter());
         int assertionValidityInSeconds = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
-        assertTrue(authenticationTime.isBefore(subjectConfirmationData.getNotBefore()));
-        assertTrue(responseIssueInstant.isEqual(subjectConfirmationData.getNotBefore()));
         assertTrue(responseIssueInstant.plusSeconds(assertionValidityInSeconds).isEqual(subjectConfirmationData.getNotOnOrAfter()));
     }
 

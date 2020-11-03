@@ -62,9 +62,8 @@ public class ResponseFactory {
         }
     }
 
-    public String createSamlErrorResponse(AuthnRequest authnRequest, ILightResponse lightResponse) {
+    public String createSamlErrorResponse(AuthnRequest authnRequest, IResponseStatus responseStatus) {
         try {
-            IResponseStatus responseStatus = lightResponse.getStatus();
             Status status = createStatus(responseStatus.getStatusCode(), responseStatus.getSubStatusCode(), responseStatus.getStatusMessage());
             Response response = createErrorResponse(authnRequest, status);
             responderMetadataSigner.sign(response);
@@ -126,7 +125,7 @@ public class ResponseFactory {
         assertion.getAttributeStatements().add(createAttributeStatement(lightResponse));
         assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, lightResponse.getLevelOfAssurance()));
         assertion.setConditions(createConditions(issueInstant, spMetadata));
-        if (spMetadata.isWantAssertionsSigned()) { // TODO: Reanalyse. Should there be additional overriding property for Specific connector. See condition: SAML_ASSERTION_SIGNING
+        if (spMetadata.isWantAssertionsSigned()) {
             responderMetadataSigner.sign(assertion);
         }
         return spMetadata.encrypt(assertion);
@@ -197,16 +196,15 @@ public class ResponseFactory {
     private Subject createSubject(AuthnRequest authnRequest, ILightResponse lightResponse, String assertionConsumerServiceUrl, DateTime issueInstant) {
         Subject subject = new SubjectBuilder().buildObject();
         NameID nameID = new NameIDBuilder().buildObject();
-        nameID.setValue(lightResponse.getSubject()); // TODO: Reanalyse
-        nameID.setFormat(lightResponse.getSubjectNameIdFormat()); // TODO: Reanalyse
+        nameID.setValue(lightResponse.getSubject());
+        nameID.setFormat(lightResponse.getSubjectNameIdFormat());
         subject.setNameID(nameID);
 
         SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder().buildObject();
         subjectConfirmation.setMethod(SubjectConfirmation.METHOD_BEARER);
         SubjectConfirmationData subjectConfirmationData = new SubjectConfirmationDataBuilder().buildObject();
-        subjectConfirmationData.setAddress(specificConnectorIP); // TODO: Reanalyse
+        subjectConfirmationData.setAddress(specificConnectorIP);
         subjectConfirmationData.setInResponseTo(authnRequest.getID());
-        subjectConfirmationData.setNotBefore(issueInstant);
         int validityInterval = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
         subjectConfirmationData.setNotOnOrAfter(issueInstant.plusSeconds(validityInterval));
         subjectConfirmationData.setRecipient(assertionConsumerServiceUrl);

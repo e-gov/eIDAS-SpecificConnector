@@ -90,7 +90,7 @@ public class ConnectorResponseController {
 
         IResponseStatus status = lightResponse.getStatus();
         if (status.isFailure()) {
-            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, lightResponse);
+            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, lightResponse.getStatus());
             logAuthenticationResult(samlResponse, status, lightResponse.getRelayState(), "info");
             throw new AuthenticationException(samlResponse, authnRequest.getAssertionConsumerServiceURL(), status.getStatusMessage());
         } else {

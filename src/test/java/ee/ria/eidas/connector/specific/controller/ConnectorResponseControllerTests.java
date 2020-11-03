@@ -2,11 +2,13 @@ package ee.ria.eidas.connector.specific.controller;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
+import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
 import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunication;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import ee.ria.eidas.connector.specific.util.TestUtils;
@@ -44,6 +46,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import javax.cache.Cache;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -112,6 +115,9 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     @SpyBean
     ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
+    @SpyBean
+    ResponseFactory responseFactory;
+
     @BeforeAll
     static void startMetadataServers() {
         startServiceProviderMetadataServer();
@@ -132,18 +138,43 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
     void samlErrorResponseWhen_ServiceProviderEncryptionCertificateNotFoundOrInvalid(String requestMethod) throws IOException, UnmarshallingException, XMLParserException, EncryptionException {
-        byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
-        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
-        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
-        LightResponse lightResponse = createLightResponse(lightRequest);
-        BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
+        BinaryLightToken binaryLightToken = prepareAuthnRequest();
 
         ServiceProviderMetadata mockSp = Mockito.mock(ServiceProviderMetadata.class);
         Mockito.doReturn(mockSp).when(serviceProviderMetadataRegistry).get("https://localhost:8888/metadata");
         Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
         Mockito.doThrow(new CertificateResolverException(UsageType.ENCRYPTION, "Metadata ENCRYPTION certificate missing or invalid")).when(mockSp).encrypt(any());
 
+        String samlResponseBase64 = assertReturnParameter(requestMethod, binaryLightToken);
+        Status status = TestUtils.getStatus(samlResponseBase64);
+        assertEquals(SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
+        assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
+        assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void internalServerErrorWhen_ExceptionInCreatingSAMLResponseObject(String requestMethod) throws IOException, UnmarshallingException, XMLParserException {
+        BinaryLightToken binaryLightToken = prepareAuthnRequest();
+
+        Mockito.doThrow(new TechnicalException("Unable to create SAML Response")).when(responseFactory).createSamlResponse(any(), any(), any());
+        given()
+                .when()
+                .param("token", BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken))
+                .request(requestMethod, "/ConnectorResponse")
+                .then()
+                .assertThat()
+                .statusCode(500)
+                .body("error", equalTo("Internal Server Error"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("Something went wrong internally. Please consult server logs for further details."));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+        assertTestLogs(ERROR, "Unable to create SAML Response");
+    }
+
+    private String assertReturnParameter(String requestMethod, BinaryLightToken binaryLightToken) throws MalformedURLException {
         Response response = given()
                 .when()
                 .param("token", BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken))
@@ -151,21 +182,18 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .then()
                 .statusCode(requestMethod.equals("POST") ? 200 : 302)
                 .extract().response();
-        String samlResponseBase64;
+
+        String samlResponse;
         if (requestMethod.equals("POST")) {
-            samlResponseBase64 = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == 'SAMLResponse'}.@value");
+            samlResponse = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == 'SAMLResponse'}.@value");
         } else {
             String location = response.getHeader(HttpHeaders.LOCATION);
             assertNotNull(location);
             URLBuilder urlBuilder = new URLBuilder(location);
-            samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+            samlResponse = urlBuilder.getQueryParams().get(0).getSecond();
         }
-        assertNotNull(samlResponseBase64);
-        Status status = TestUtils.getStatus(samlResponseBase64);
-        assertEquals(SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
-        assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
-        assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+        assertNotNull(samlResponse);
+        return samlResponse;
     }
 
     @ParameterizedTest
@@ -358,6 +386,16 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
                 .build();
         return lightResponse;
+    }
+
+    @NotNull
+    private BinaryLightToken prepareAuthnRequest() throws IOException, XMLParserException, UnmarshallingException {
+        byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
+        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+        LightResponse lightResponse = createLightResponse(lightRequest);
+        return putLightResponseToEidasNodeCommunicationCache(lightResponse);
     }
 
     void assertSpecificNodeConnectorRequestCacheIsEmpty() {

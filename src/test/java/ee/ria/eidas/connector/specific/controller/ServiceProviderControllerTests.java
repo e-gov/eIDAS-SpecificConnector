@@ -562,7 +562,6 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                                 .collect(toList())));
     }
 
-
     @Nullable
     private String assertReturnParameter(String requestMethod, String authnRequestBase64, String country, String relayState, String parameterToReturn) throws MalformedURLException {
         Response response = given()
@@ -590,11 +589,11 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     void assertDuplicateRequestParameter(String requestMethod, String duplicateParameterName) {
         given()
+                .when()
                 .param(duplicateParameterName, "XX")
                 .param("country", "LV")
                 .param("SAMLRequest", "c2FtbF9yZXF1ZXN0")
                 .param("RelayState", "26a6aef8-12eb-11eb-adc1-0242ac120002")
-                .when()
                 .request(requestMethod, "/ServiceProvider")
                 .then()
                 .assertThat()
