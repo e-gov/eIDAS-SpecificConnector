@@ -9,6 +9,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
+
 @Slf4j
 @Controller
 public class ResponderMetadataController {
@@ -18,7 +20,9 @@ public class ResponderMetadataController {
 
     @GetMapping(value = "${eidas.connector.responder-metadata.path:/ConnectorResponderMetadata}", produces = {"application/xml", "text/xml"})
     @ResponseBody
-    public String metadata() throws MarshallingException {
-        return OpenSAMLUtils.getXmlString(responderMetadataGenerator.createSignedMetadata());
+    public String metadata(HttpServletRequest request) throws MarshallingException {
+        String metadata = OpenSAMLUtils.getXmlString(responderMetadataGenerator.createSignedMetadata());
+        log.info("Metadata requested");
+        return metadata;
     }
 }

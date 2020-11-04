@@ -21,6 +21,7 @@ import static java.util.Arrays.stream;
 public class RequestCorrelationAttributesTranslationFilter extends OncePerRequestFilter {
     public static final String MDC_ATTRIBUTE_NAME_SESSION_ID = "sessionId";
     public static final String MDC_ATTRIBUTE_NAME_VERSION = "serviceVersion";
+    public static final String MDC_ATTRIBUTE_CLIENT_IP = "clientIP";
     public static final String REQUEST_ATTRIBUTE_NAME_REQUEST_ID = "requestId";
     private final BuildProperties buildProperties;
 
@@ -42,6 +43,12 @@ public class RequestCorrelationAttributesTranslationFilter extends OncePerReques
         if (buildProperties != null) {
             MDC.put(MDC_ATTRIBUTE_NAME_VERSION, buildProperties.getVersion());
         }
+
+        String ipAddress = request.getHeader("X-Forward-For");
+        if (ipAddress == null) {
+            ipAddress = request.getRemoteAddr();
+        }
+        MDC.put(MDC_ATTRIBUTE_CLIENT_IP, ipAddress);
 
         filterChain.doFilter(request, response);
     }

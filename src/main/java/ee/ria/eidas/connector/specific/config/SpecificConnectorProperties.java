@@ -240,16 +240,12 @@ public class SpecificConnectorProperties {
     @Data
     public static class Contact {
 
-        @NotEmpty
         private String surname;
 
-        @NotEmpty
         private String givenName;
 
-        @NotEmpty
         private String company;
 
-        @NotEmpty
         private String phone;
 
         @Email

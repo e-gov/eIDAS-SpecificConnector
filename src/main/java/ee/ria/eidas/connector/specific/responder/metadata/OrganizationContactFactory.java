@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.opensaml.saml.saml2.metadata.ContactPersonTypeEnumeration.*;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -54,21 +55,30 @@ public class OrganizationContactFactory {
         emailAddress.setAddress(contact.getEmail());
         contactPerson.getEmailAddresses().add(emailAddress);
 
-        Company company = OpenSAMLUtils.buildObject(Company.class);
-        company.setName(contact.getCompany());
-        contactPerson.setCompany(company);
+        if (isNotBlank(contact.getCompany())) {
+            Company company = OpenSAMLUtils.buildObject(Company.class);
+            company.setName(contact.getCompany());
+            contactPerson.setCompany(company);
+        }
 
-        GivenName givenName = OpenSAMLUtils.buildObject(GivenName.class);
-        givenName.setName(contact.getGivenName());
-        contactPerson.setGivenName(givenName);
+        if (isNotBlank(contact.getGivenName())) {
+            GivenName givenName = OpenSAMLUtils.buildObject(GivenName.class);
+            givenName.setName(contact.getGivenName());
+            contactPerson.setGivenName(givenName);
+        }
 
-        SurName surName = OpenSAMLUtils.buildObject(SurName.class);
-        surName.setName(contact.getSurname());
-        contactPerson.setSurName(surName);
+        if (isNotBlank(contact.getSurname())) {
+            SurName surName = OpenSAMLUtils.buildObject(SurName.class);
+            surName.setName(contact.getSurname());
+            contactPerson.setSurName(surName);
+        }
 
-        TelephoneNumber phoneNumber = OpenSAMLUtils.buildObject(TelephoneNumber.class);
-        phoneNumber.setNumber(contact.getPhone());
-        contactPerson.getTelephoneNumbers().add(phoneNumber);
+        if (isNotBlank(contact.getPhone())) {
+            TelephoneNumber phoneNumber = OpenSAMLUtils.buildObject(TelephoneNumber.class);
+            phoneNumber.setNumber(contact.getPhone());
+            contactPerson.getTelephoneNumbers().add(phoneNumber);
+        }
+
         return contactPerson;
     }
 }

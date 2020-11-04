@@ -41,6 +41,7 @@
                         "session.id": "%X{sessionId:-}",
                         "trace.id": "%X{spanId:-}",
                         "transaction.id": "%X{traceId:-}",
+                        "client.ip": "%X{clientIP:-}",
                         "message": "%message"
                         }</pattern>
                 </pattern>
