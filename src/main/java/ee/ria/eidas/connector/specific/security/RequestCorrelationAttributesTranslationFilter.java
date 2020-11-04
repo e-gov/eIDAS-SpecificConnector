@@ -1,7 +1,6 @@
 package ee.ria.eidas.connector.specific.security;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.MDC;
 import org.springframework.boot.info.BuildProperties;
@@ -15,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import static java.util.Arrays.stream;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 @Component
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class RequestCorrelationAttributesTranslationFilter extends OncePerReques
 
         // NB! Set traceId also as HttpServletRequest attribute to make it accessible for Tomcat's AccessLogValve
         String requestId = MDC.get("traceId");
-        if (StringUtils.isNotEmpty(requestId)) {
+        if (isNotEmpty(requestId)) {
             request.setAttribute(REQUEST_ATTRIBUTE_NAME_REQUEST_ID, requestId);
         }
 
@@ -44,7 +44,11 @@ public class RequestCorrelationAttributesTranslationFilter extends OncePerReques
             MDC.put(MDC_ATTRIBUTE_NAME_VERSION, buildProperties.getVersion());
         }
 
-        MDC.put(MDC_ATTRIBUTE_CLIENT_IP, request.getRemoteAddr());
+        String ipAddress = request.getRemoteAddr();
+        if (isNotEmpty(ipAddress)) {
+            MDC.put(MDC_ATTRIBUTE_CLIENT_IP, ipAddress);
+        }
+
         filterChain.doFilter(request, response);
     }
 }
