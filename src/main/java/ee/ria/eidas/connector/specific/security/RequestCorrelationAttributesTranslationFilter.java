@@ -44,12 +44,7 @@ public class RequestCorrelationAttributesTranslationFilter extends OncePerReques
             MDC.put(MDC_ATTRIBUTE_NAME_VERSION, buildProperties.getVersion());
         }
 
-        String ipAddress = request.getHeader("X-Forward-For");
-        if (ipAddress == null) {
-            ipAddress = request.getRemoteAddr();
-        }
-        MDC.put(MDC_ATTRIBUTE_CLIENT_IP, ipAddress);
-
+        MDC.put(MDC_ATTRIBUTE_CLIENT_IP, request.getRemoteAddr());
         filterChain.doFilter(request, response);
     }
 }
