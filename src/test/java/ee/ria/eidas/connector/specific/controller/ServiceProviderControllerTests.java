@@ -287,19 +287,6 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void samlErrorResponseWhen_LevelOfAssurance_TooLow(String requestMethod) throws IOException, UnmarshallingException, XMLParserException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-level-of-assurance-too-low.xml");
-        String samlResponseBase64 = assertReturnParameter(requestMethod, authnRequestBase64, "LV", "", "SAMLResponse");
-        Status status = TestUtils.getStatus(samlResponseBase64);
-        assertEquals("LoA is missing or invalid", status.getStatusMessage().getMessage());
-        assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
-        assertEquals("urn:oasis:names:tc:SAML:2.0:status:RequestDenied", status.getStatusCode().getStatusCode().getValue());
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
     void samlErrorResponseWhen_MetadataRequestSigningCertificateNotFoundOrInvalid(String requestMethod) throws IOException, UnmarshallingException, XMLParserException, SignatureException, ResolverException {
         ServiceProviderMetadata mockSp = Mockito.mock(ServiceProviderMetadata.class);
         Mockito.doReturn(mockSp).when(serviceProviderMetadataRegistry).get("https://localhost:8888/metadata");

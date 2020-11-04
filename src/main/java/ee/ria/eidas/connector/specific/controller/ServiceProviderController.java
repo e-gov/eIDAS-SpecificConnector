@@ -16,7 +16,6 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProvider
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.light.ILightRequest;
-import eu.eidas.auth.commons.protocol.eidas.LevelOfAssurance;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Extensions;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
@@ -40,7 +38,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.w3c.dom.Element;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import javax.xml.namespace.QName;
@@ -52,10 +49,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_LOA_MISSING_OR_INVALID;
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
 import static eu.eidas.auth.commons.EidasParameterKeys.TOKEN;
-import static java.util.Objects.requireNonNull;
 import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendRaw;
 
@@ -73,9 +68,6 @@ public class ServiceProviderController {
     private final ResponseFactory responseFactory;
     private final MappingJackson2XmlHttpMessageConverter xmlMapper;
 
-    @Value("${service.LoA}")
-    private String eidasConnectorServiceLoA;
-
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
                             @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
@@ -90,7 +82,7 @@ public class ServiceProviderController {
     @PostMapping(value = "/ServiceProvider")
     public ModelAndView post(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
                              @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
-                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState, HttpServletRequest request) {
+                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) {
         String token = processRequest(SAMLRequest, country, RelayState);
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("action", specificConnectorProperties.getSpecificConnectorRequestUrl());
@@ -120,7 +112,6 @@ public class ServiceProviderController {
         if (!spMetadata.getAssertionConsumerServiceUrl().equals(authnRequest.getAssertionConsumerServiceURL())) {
             throw new BadRequestException("SAML request is invalid - invalid assertion consumer url");
         }
-        validateLevelOfAssurance(authnRequest);
         validateRequestedAttributes(authnRequest);
     }
 
@@ -145,18 +136,6 @@ public class ServiceProviderController {
                 .findFirst();
         if (!supportedSignatureAlgorithm.isPresent()) {
             throw new BadRequestException("SAML request is invalid - invalid signature method");
-        }
-    }
-
-    private void validateLevelOfAssurance(AuthnRequest authnRequest) {
-        LevelOfAssurance minimalLoA = requireNonNull(LevelOfAssurance.fromString(eidasConnectorServiceLoA));
-        Optional<LevelOfAssurance> invalidLoA = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
-                .map(ref -> LevelOfAssurance.fromString(ref.getAuthnContextClassRef()))
-                .filter(Objects::nonNull)
-                .filter(loa -> minimalLoA.compareTo(loa) > 0).findFirst();
-        if (invalidLoA.isPresent()) {
-            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_LOA_MISSING_OR_INVALID);
-            throw new AuthenticationException(samlResponse, authnRequest.getAssertionConsumerServiceURL(), SP_LOA_MISSING_OR_INVALID.getStatusMessage());
         }
     }
 
