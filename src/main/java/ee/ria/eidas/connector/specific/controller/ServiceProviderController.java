@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
+import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -41,6 +42,7 @@ import org.w3c.dom.Element;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import javax.xml.namespace.QName;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -149,11 +151,11 @@ public class ServiceProviderController {
             if (bindings.isEmpty()) {
                 throw new BadRequestException("SAML request is invalid - no requested attributes");
             }
-            XMLObject requestedAttributes = bindings.get(0);
-            if (requestedAttributes.getOrderedChildren() == null) {
+            List<XMLObject> requestedAttributes = bindings.get(0).getOrderedChildren();
+            if (requestedAttributes == null || requestedAttributes.isEmpty()) {
                 throw new BadRequestException("SAML request is invalid - no requested attributes");
             }
-            Optional<Element> unsupportedRequestedAttribute = requestedAttributes.getOrderedChildren().stream()
+            Optional<Element> unsupportedRequestedAttribute = requestedAttributes.stream()
                     .map(XMLObject::getDOM)
                     .filter(Objects::nonNull)
                     .filter(requestedAttribute -> supportedAttributesRegistry.getByName(requestedAttribute.getAttribute("Name")) == null)
@@ -184,7 +186,7 @@ public class ServiceProviderController {
 
     protected void logAuthnRequest(byte[] decodedAuthnRequest, String country, String relayState) {
         try {
-            JsonNode samlRequestJson = xmlMapper.getObjectMapper().readTree(new String(decodedAuthnRequest));
+            JsonNode samlRequestJson = xmlMapper.getObjectMapper().readTree(decodedAuthnRequest);
             log.info(appendRaw("authn_request", samlRequestJson.toString())
                             .and(append("authn_request.country", country))
                             .and(append("authn_request.relay_state", relayState))
@@ -192,7 +194,7 @@ public class ServiceProviderController {
                             .and(append("event.category", "authentication"))
                             .and(append("event.type", "start")),
                     "AuthnRequest received");
-        } catch (JsonProcessingException e) {
+        } catch (IOException e) {
             log.warn("Unable to parse AuthnRequest", e);
         }
     }

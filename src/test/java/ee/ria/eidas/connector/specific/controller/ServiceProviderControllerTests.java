@@ -323,6 +323,26 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_NoRequestedAttributesElement(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-requested-attributes-element.xml");
+        given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", "LV")
+                .param("RelayState", RandomStringUtils.random(80, true, true))
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("SAML request is invalid - no requested attributes"));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_NoRequestedAttributes(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-requested-attributes.xml");
         given()
