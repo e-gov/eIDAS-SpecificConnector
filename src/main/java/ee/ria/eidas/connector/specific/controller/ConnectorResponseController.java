@@ -10,12 +10,14 @@ import ee.ria.eidas.connector.specific.integration.SpecificConnectorCommunicatio
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
+import eu.eidas.auth.commons.exceptions.SecurityEIDASException;
 import eu.eidas.auth.commons.light.ILightResponse;
 import eu.eidas.auth.commons.light.IResponseStatus;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
@@ -75,18 +77,9 @@ public class ConnectorResponseController {
 
     @SneakyThrows
     private Response processResponse(String token) {
-        ILightResponse lightResponse = eidasNodeCommunication.getAndRemoveLightResponse(token);
-        if (lightResponse == null) {
-            throw new BadRequestException("Token is invalid or has expired");
-        }
-        AuthnRequest authnRequest = specificConnectorCommunication.getAndRemoveRequestCorrelation(lightResponse);
-        if (authnRequest == null) {
-            throw new BadRequestException("Authentication request related to token is invalid or has expired");
-        }
-        ServiceProviderMetadata spMetadata = metadataRegistry.get(authnRequest.getIssuer().getValue());
-        if (spMetadata == null) {
-            throw new BadRequestException("SAML request is invalid - issuer not allowed");
-        }
+        ILightResponse lightResponse = getLightResponse(token);
+        AuthnRequest authnRequest = getAuthnRequest(lightResponse);
+        ServiceProviderMetadata spMetadata = getServiceProviderMetadata(authnRequest);
 
         IResponseStatus status = lightResponse.getStatus();
         if (status.isFailure()) {
@@ -106,6 +99,37 @@ public class ConnectorResponseController {
                         SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), certificateException);
             }
         }
+    }
+
+    @NotNull
+    private ILightResponse getLightResponse(String token) {
+        try {
+            ILightResponse lightResponse = eidasNodeCommunication.getAndRemoveLightResponse(token);
+            if (lightResponse == null) {
+                throw new BadRequestException("Token is invalid or has expired");
+            }
+            return lightResponse;
+        } catch (SecurityEIDASException ex) {
+            throw new BadRequestException("Token is invalid", ex);
+        }
+    }
+
+    @NotNull
+    private AuthnRequest getAuthnRequest(ILightResponse lightResponse) {
+        AuthnRequest authnRequest = specificConnectorCommunication.getAndRemoveRequestCorrelation(lightResponse);
+        if (authnRequest == null) {
+            throw new BadRequestException("Authentication request related to token is invalid or has expired");
+        }
+        return authnRequest;
+    }
+
+    @NotNull
+    private ServiceProviderMetadata getServiceProviderMetadata(AuthnRequest authnRequest) {
+        ServiceProviderMetadata spMetadata = metadataRegistry.get(authnRequest.getIssuer().getValue());
+        if (spMetadata == null) {
+            throw new BadRequestException("SAML request is invalid - issuer not allowed");
+        }
+        return spMetadata;
     }
 
     private void logAuthenticationResult(String samlResponse, IResponseStatus status, String relayState, String eventType) {

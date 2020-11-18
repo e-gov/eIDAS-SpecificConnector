@@ -294,7 +294,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_InvalidParameterFormat_token(String requestMethod) {
+    void badRequestWhen_InvalidParameterBase64Format_token(String requestMethod) {
         given()
                 .when()
                 .param("token", RandomStringUtils.random(999, true, true) + "!")
@@ -305,6 +305,21 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .body("error", equalTo("Bad Request"))
                 .body("incidentNumber", notNullValue())
                 .body("message", equalTo(format("%s.token: must match \"^[A-Za-z0-9+/=]{1,1000}$\"", requestMethod.toLowerCase())));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidParameterFormat_token(String requestMethod) {
+        given()
+                .when()
+                .param("token", RandomStringUtils.random(100, true, true))
+                .request(requestMethod, "/ConnectorResponse")
+                .then()
+                .assertThat()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo("Token is invalid"));
     }
 
     @ParameterizedTest
