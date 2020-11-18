@@ -1,6 +1,5 @@
 package ee.ria.eidas.connector.specific.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SigningMethod;
@@ -22,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
-import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.AuthnRequest;
@@ -71,7 +69,7 @@ public class ServiceProviderController {
     private final MappingJackson2XmlHttpMessageConverter xmlMapper;
 
     @GetMapping(value = "/ServiceProvider")
-    public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
+    public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) @Pattern(regexp = "^[A-Za-z0-9+/=]+$") String SAMLRequest,
                             @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) throws MalformedURLException {
         String token = processRequest(SAMLRequest, country, RelayState);
@@ -82,7 +80,7 @@ public class ServiceProviderController {
     }
 
     @PostMapping(value = "/ServiceProvider")
-    public ModelAndView post(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) String SAMLRequest,
+    public ModelAndView post(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) @Pattern(regexp = "^[A-Za-z0-9+/=]+$") String SAMLRequest,
                              @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
                              @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) {
         String token = processRequest(SAMLRequest, country, RelayState);

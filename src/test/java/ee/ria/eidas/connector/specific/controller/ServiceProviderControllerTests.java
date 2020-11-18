@@ -418,6 +418,25 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     void badRequestWhen_InvalidSAMLRequestFormat(String requestMethod) {
         given()
                 .param("country", "LV")
+                .param("SAMLRequest", "NonBASE64CharsÄÖÜÕ")
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .assertThat()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("errors", nullValue())
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo(format("%s.SAMLRequest: must match \"^[A-Za-z0-9+/=]+$\"", requestMethod.toLowerCase())));
+
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidDecodedSAMLRequestFormat(String requestMethod) {
+        given()
+                .param("country", "LV")
                 .param("SAMLRequest", "c2FtbF9yZXF1ZXN0")
                 .when()
                 .request(requestMethod, "/ServiceProvider")
