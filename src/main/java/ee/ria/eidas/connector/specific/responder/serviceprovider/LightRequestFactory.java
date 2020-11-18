@@ -40,10 +40,13 @@ public class LightRequestFactory {
                 .id(correlationId)
                 .citizenCountryCode(country)
                 .issuer(authnRequest.getIssuer().getValue())
-                .nameIdFormat(authnRequest.getNameIDPolicy().getFormat())
                 .providerName(authnRequest.getProviderName())
                 .requestedAttributes(createRequestedAttributes(authnRequest))
                 .spType(spType);
+
+        if (authnRequest.getNameIDPolicy() != null) {
+            builder.nameIdFormat(authnRequest.getNameIDPolicy().getFormat());
+        }
 
         Optional<AuthnContextClassRef> classRef = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream().findFirst();
         classRef.ifPresent(authnContextClassRef -> builder.levelOfAssurance(authnContextClassRef.getAuthnContextClassRef()));

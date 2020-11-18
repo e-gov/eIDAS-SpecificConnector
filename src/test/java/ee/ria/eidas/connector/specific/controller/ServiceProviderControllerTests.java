@@ -147,44 +147,6 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_InvalidSchema(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-schema-invalid-attribute.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - does not conform to schema"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_InvalidSignature(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-expired-request-signature.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - invalid signature"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
     void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String relayState = RandomStringUtils.random(80, true, true);
@@ -211,88 +173,12 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_UnsupportedSignatureMethod(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-unsupported-signature-method.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - invalid signature method"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_ModifiedRequest(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-modified-request.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - invalid signature"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_ValidSignature_InvalidIssuer(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-issuer-id.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - issuer not allowed"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_ValidSignature_InvalidAssertionConsumerUrl(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-assertion-consumer-url.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - invalid assertion consumer url"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
     void samlErrorResponseWhen_MetadataRequestSigningCertificateNotFoundOrInvalid(String requestMethod) throws IOException, UnmarshallingException, XMLParserException, SignatureException, ResolverException {
         ServiceProviderMetadata mockSp = Mockito.mock(ServiceProviderMetadata.class);
         Mockito.doReturn(mockSp).when(serviceProviderMetadataRegistry).get("https://localhost:8888/metadata");
         Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
         Mockito.doThrow(new CertificateResolverException(UsageType.SIGNING, "Metadata SIGNING certificate missing or invalid")).when(mockSp).validate(any());
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-level-of-assurance-too-low.xml");
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
         String samlResponseBase64 = assertReturnParameter(requestMethod, authnRequestBase64, "LV", "", "SAMLResponse");
 
         Status status = TestUtils.getStatus(samlResponseBase64);
@@ -304,79 +190,72 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidSchema(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-schema-invalid-attribute.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - does not conform to schema", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidSignature(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-expired-request-signature.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid signature", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_UnsupportedSignatureMethod(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-unsupported-signature-method.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid signature method", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_ModifiedRequest(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-modified-request.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid signature", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_ValidSignature_InvalidIssuer(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-issuer-id.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - issuer not allowed", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_ValidSignature_InvalidAssertionConsumerUrl(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-assertion-consumer-url.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid assertion consumer url", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_UnsupportedCountry(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "FI")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - country not supported"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - country not supported", "FI");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_NoRequestedAttributesElement(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-requested-attributes-element.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - no requested attributes"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - no requested attributes", "LV");
     }
-
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_NoRequestedAttributes(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-requested-attributes.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - no requested attributes"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - no requested attributes", "LV");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_UnsupportedRequestedAttributes(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-unsupported-requested-attributes.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - unsupported requested attributes"));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - unsupported requested attributes", "LV");
     }
 
     @ParameterizedTest
@@ -467,38 +346,92 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     void assertInvalidSAMLRequestSchema(String requestMethod, String authnRequest) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/" + authnRequest);
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - does not conform to schema"));
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - does not conform to schema", "LV");
+    }
 
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_InvalidSAMLVersion(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-saml-version.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - expecting SAML Version to be 2.0", "LV");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_InvalidAuthnRequest_MissingExtensions(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-extensions.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "LV")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo("SAML request is invalid - no requested attributes"));
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - no requested attributes", "LV");
+    }
 
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_MissingIssuer(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-issuer.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - missing issuer", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_MissingID(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-id.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - does not conform to schema", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_ForceAuthn(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-force-authn.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - expecting ForceAuthn to be true", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_MissingIssueInstant(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-issue-instant.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - does not conform to schema", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_MissingRequestedAuthnContext(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-authn-context.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - missing RequestedAuthnContext", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_MissingAuthnContextClassRef(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-missing-authn-context-class-ref.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - does not conform to schema", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_InvalidLevelOfAssurance(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-loa.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid Level of Assurance", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_IsPassive(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-is-passive.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - expecting IsPassive to be false", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_NameIdFormat(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-name-id-format.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid NameIDPolicy", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidParameterFormat_country(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, format("%s.country: must match \"^[A-Z]{2}$\"", requestMethod.toLowerCase()), "FIN");
     }
 
     @ParameterizedTest
@@ -537,25 +470,6 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .body("errors", nullValue())
                 .body("incidentNumber", notNullValue())
                 .body("message", equalTo(format("%s.RelayState: must match \"^\\p{Print}{0,80}$\"", requestMethod.toLowerCase())));
-
-        assertSpecificNodeConnectorRequestCacheIsEmpty();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_InvalidParameterFormat_country(String requestMethod) throws IOException {
-        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
-        given()
-                .param("SAMLRequest", authnRequestBase64)
-                .param("country", "FIN")
-                .param("RelayState", RandomStringUtils.random(80, true, true))
-                .when()
-                .request(requestMethod, "/ServiceProvider")
-                .then()
-                .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo(format("%s.country: must match \"^[A-Z]{2}$\"", requestMethod.toLowerCase())));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
@@ -634,5 +548,20 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     void assertSpecificNodeConnectorRequestCacheIsEmpty() {
         Iterator<Cache.Entry<String, String>> iterator = specificNodeConnectorRequestCache.iterator();
         assertFalse(iterator.hasNext());
+    }
+
+    private void assertBadRequest(String requestMethod, String authnRequestBase64, String errorMessage, String lv) {
+        given()
+                .param("SAMLRequest", authnRequestBase64)
+                .param("country", lv)
+                .param("RelayState", RandomStringUtils.random(80, true, true))
+                .when()
+                .request(requestMethod, "/ServiceProvider")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Bad Request"))
+                .body("incidentNumber", notNullValue())
+                .body("message", equalTo(errorMessage));
+        assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
 }

@@ -15,6 +15,7 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProvider
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.light.ILightRequest;
+import eu.eidas.auth.commons.protocol.eidas.LevelOfAssurance;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +24,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.io.UnmarshallingException;
+import org.opensaml.saml.common.SAMLVersion;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Extensions;
+import org.opensaml.saml.saml2.core.NameIDType;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
@@ -44,13 +47,12 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
 import static eu.eidas.auth.commons.EidasParameterKeys.TOKEN;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendRaw;
 
@@ -59,6 +61,8 @@ import static net.logstash.logback.marker.Markers.appendRaw;
 @Validated
 @RequiredArgsConstructor
 public class ServiceProviderController {
+    private static final List<String> VALID_NAME_ID_FORMATS = Arrays.asList(NameIDType.UNSPECIFIED, NameIDType.PERSISTENT, NameIDType.TRANSIENT);
+    private static final QName REQUESTED_ATTRIBUTES_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
     private final SpecificConnectorProperties specificConnectorProperties;
     private final EidasNodeCommunication eidasNodeCommunication;
     private final SpecificConnectorCommunication specificConnectorCommunication;
@@ -96,6 +100,9 @@ public class ServiceProviderController {
         byte[] decodedAuthnRequest = Base64.getDecoder().decode(samlRequest);
         logAuthnRequest(decodedAuthnRequest, country, relayState);
         AuthnRequest authnRequest = unmarshallAuthnRequest(decodedAuthnRequest);
+        if (authnRequest.getIssuer() == null) {
+            throw new BadRequestException("SAML request is invalid - missing issuer");
+        }
         ServiceProviderMetadata spMetadata = metadataRegistry.get(authnRequest.getIssuer().getValue());
         if (spMetadata == null) {
             throw new BadRequestException("SAML request is invalid - issuer not allowed");
@@ -108,6 +115,28 @@ public class ServiceProviderController {
     }
 
     private void validateAuthnRequest(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) {
+        if (authnRequest.getVersion() != SAMLVersion.VERSION_20) {
+            throw new BadRequestException("SAML request is invalid - expecting SAML Version to be 2.0");
+        }
+        if (authnRequest.getRequestedAuthnContext() == null) {
+            throw new BadRequestException("SAML request is invalid - missing RequestedAuthnContext");
+        }
+        long nrOfInvalidLoA = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
+                .map(ref -> LevelOfAssurance.fromString(ref.getAuthnContextClassRef()))
+                .filter(Objects::isNull)
+                .count();
+        if (nrOfInvalidLoA != 0) {
+            throw new BadRequestException("SAML request is invalid - invalid Level of Assurance");
+        }
+        if (authnRequest.getNameIDPolicy() != null && !VALID_NAME_ID_FORMATS.contains(authnRequest.getNameIDPolicy().getFormat())) {
+            throw new BadRequestException("SAML request is invalid - invalid NameIDPolicy");
+        }
+        if (!TRUE.equals(authnRequest.isForceAuthn())) {
+            throw new BadRequestException("SAML request is invalid - expecting ForceAuthn to be true");
+        }
+        if (!FALSE.equals(authnRequest.isPassive())) {
+            throw new BadRequestException("SAML request is invalid - expecting IsPassive to be false");
+        }
         validateSignature(authnRequest, spMetadata);
         if (!spMetadata.getAssertionConsumerServiceUrl().equals(authnRequest.getAssertionConsumerServiceURL())) {
             throw new BadRequestException("SAML request is invalid - invalid assertion consumer url");
@@ -144,8 +173,7 @@ public class ServiceProviderController {
         if (extensions == null) {
             throw new BadRequestException("SAML request is invalid - no requested attributes");
         } else {
-            QName requestedAttributesQName = new QName("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
-            List<XMLObject> bindings = extensions.getUnknownXMLObjects(requestedAttributesQName);
+            List<XMLObject> bindings = extensions.getUnknownXMLObjects(REQUESTED_ATTRIBUTES_QNAME);
             if (bindings.isEmpty()) {
                 throw new BadRequestException("SAML request is invalid - no requested attributes");
             }
