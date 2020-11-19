@@ -8,12 +8,16 @@ import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 @EnableWebSecurity
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+    public static final String POST_BINDING_SUBMIT_SCRIPT = "'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='";
+    public static final String CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self' " + POST_BINDING_SUBMIT_SCRIPT;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
                 .headers()
+                .contentSecurityPolicy(CONTENT_SECURITY_POLICY)
+                .and()
                 .frameOptions().deny()
                 .httpStrictTransportSecurity()
                 .includeSubDomains(true)

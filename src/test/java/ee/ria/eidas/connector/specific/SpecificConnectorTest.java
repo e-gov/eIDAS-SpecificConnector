@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static ee.ria.eidas.connector.specific.config.SecurityConfiguration.CONTENT_SECURITY_POLICY;
 import static io.restassured.config.RedirectConfig.redirectConfig;
 import static io.restassured.config.RestAssuredConfig.config;
 import static java.util.Arrays.stream;
@@ -60,6 +61,7 @@ public abstract class SpecificConnectorTest {
         put("X-XSS-Protection", "1; mode=block");
         put("X-Content-Type-Options", "nosniff");
         put("X-Frame-Options", "DENY");
+        put("Content-Security-Policy", CONTENT_SECURITY_POLICY);
         put("Pragma", "no-cache");
         put("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
     }};
