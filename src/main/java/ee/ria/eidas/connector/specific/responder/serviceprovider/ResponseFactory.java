@@ -119,6 +119,7 @@ public class ResponseFactory {
             EncryptionException {
         AssertionBuilder assertionBuilder = new AssertionBuilder();
         Assertion assertion = assertionBuilder.buildObject();
+        assertion.setID(secureRandomIdGenerator.generateIdentifier());
         assertion.setIssuer(createIssuer());
         assertion.setIssueInstant(issueInstant);
         assertion.setSubject(createSubject(authnRequest, lightResponse, spMetadata.getAssertionConsumerServiceUrl(), issueInstant));
