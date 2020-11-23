@@ -234,7 +234,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .body("incidentNumber", notNullValue())
                 .body("message", equalTo("Authentication request related to token is invalid or has expired"));
 
-        assertTestLogs(INFO, "Get and remove AuthnRequest from cache with id: 'eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310', Result: false");
+        assertTestLogs(INFO, "Get and remove AuthnRequest from cache with correlation id: 'eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310', Result: false");
     }
 
     @ParameterizedTest
