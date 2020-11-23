@@ -13,6 +13,7 @@ import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
 import eu.eidas.specificcommunication.protocol.util.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
+import net.logstash.logback.marker.LogstashMarker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -118,10 +119,15 @@ public class EidasNodeCommunication {
         String lightTokenId = getBinaryLightTokenId(binaryLightTokenBase64);
         String lightResponseXml = nodeSpecificConnectorResponseCache.getAndRemove(lightTokenId);
         ILightResponse lightResponse = codec.unmarshallResponse(lightResponseXml, supportedAttributesRegistry.getAttributes());
-        log.info(append("communication_cache.name", nodeSpecificConnectorResponseCache.getName())
-                        .and(append("event.kind", "event"))
-                        .and(append("event.category", "authentication"))
-                        .and(append("event.type", "info")),
+        LogstashMarker markers = append("communication_cache.name", nodeSpecificConnectorResponseCache.getName())
+                .and(append("event.kind", "event"))
+                .and(append("event.category", "authentication"))
+                .and(append("event.type", "info"));
+        if (lightResponse != null) {
+            markers.and(append("light_response", lightResponse));
+            markers.and(append("light_request.id", lightResponse.getInResponseToId()));
+        }
+        log.info(markers,
                 "Get and remove LightResponse from cache for tokenId: {},  Result found: {}",
                 value("light_response.light_token_id", lightTokenId), value("communication_cache.result", lightResponseXml != null));
         return lightResponse;

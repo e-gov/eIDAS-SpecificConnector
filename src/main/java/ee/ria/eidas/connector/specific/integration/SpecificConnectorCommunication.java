@@ -2,7 +2,6 @@ package ee.ria.eidas.connector.specific.integration;
 
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
-import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
@@ -31,9 +30,6 @@ public class SpecificConnectorCommunication {
     @Qualifier("specificMSSpRequestCorrelationMap")
     private Cache<String, String> specificMSSpRequestCorrelationMap;
 
-    @Autowired
-    private LightRequestFactory lightRequestFactory;
-
     public void putRequestCorrelation(String correlationId, AuthnRequest authnRequest) {
         try {
             String encodedAuthnRequest = Base64.getEncoder().encodeToString(OpenSAMLUtils.getXmlString(authnRequest).getBytes(UTF_8));
@@ -42,8 +38,8 @@ public class SpecificConnectorCommunication {
                             .and(append("event.kind", "event"))
                             .and(append("event.category", "authentication"))
                             .and(append("event.type", "info")),
-                    "Put AuthnRequest to cache with id: '{}', Result: {} ",
-                    value("authn_request.ID", correlationId), value("communication_cache.result", isInserted));
+                    "Put AuthnRequest with id '{}' to cache with correlation id '{}', Result: {} ",
+                    value("authn_request.ID", authnRequest.getID()), value("light_request.id", correlationId), value("communication_cache.result", isInserted));
             if (!isInserted) {
                 throw new TechnicalException("AuthnRequest was not saved. A AuthnRequest with id: '%s' already exists", correlationId);
             }
@@ -61,8 +57,8 @@ public class SpecificConnectorCommunication {
                             .and(append("event.kind", "event"))
                             .and(append("event.category", "authentication"))
                             .and(append("event.type", "info")),
-                    "Get and remove AuthnRequest from cache with id: '{}', Result: {}",
-                    value("authn_request.ID", correlationId), value("communication_cache.result", authnRequest != null));
+                    "Get and remove AuthnRequest from cache with correlation id: '{}', Result: {}",
+                    value("light_request.id", correlationId), value("communication_cache.result", authnRequest != null));
             return OpenSAMLUtils.unmarshallAuthnRequest(authnRequest);
         } catch (UnmarshallingException | XMLParserException ex) {
             throw new TechnicalException("Unable to unmarshall AuthnRequest", ex);

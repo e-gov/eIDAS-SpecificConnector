@@ -3,7 +3,6 @@ package ee.ria.eidas.connector.specific.exception;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.opensaml.core.xml.io.MarshallingException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
@@ -55,7 +54,7 @@ public class SpecificConnectorExceptionHandler {
     }
 
     @ExceptionHandler({BadRequestException.class})
-    public ModelAndView handleBadRequestException(BadRequestException ex, HttpServletResponse response) throws IOException, MarshallingException {
+    public ModelAndView handleBadRequestException(BadRequestException ex, HttpServletResponse response) throws IOException {
         log.error(append("event.kind", "event")
                         .and(append("event.category", "authentication"))
                         .and(append("event.type", "end"))
