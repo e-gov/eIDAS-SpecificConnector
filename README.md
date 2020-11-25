@@ -123,7 +123,7 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.supported-attributes[1]friendlyName=CurrentAddress` |
 | `eidas.connector.responder-metadata.supported-attributes[2]name=http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName` |
 | `eidas.connector.responder-metadata.supported-attributes[2]friendlyName=FamilyName` |
-| `eidas.connector.responder-metadata.supported-attributes[3]name=http://eidas.europa.eu/attributes/naturalperson/CurrentGivenNam ` |
+| `eidas.connector.responder-metadata.supported-attributes[3]name=http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName` |
 | `eidas.connector.responder-metadata.supported-attributes[3]friendlyName=FirstName` |
 | `eidas.connector.responder-metadata.supported-attributes[4]name=http://eidas.europa.eu/attributes/naturalperson/DateOfBirth` |
 | `eidas.connector.responder-metadata.supported-attributes[4]friendlyName=DateOfBirth` |
@@ -137,7 +137,7 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.supported-attributes[8]friendlyName=D-2012-17-EUIdentifier` |
 | `eidas.connector.responder-metadata.supported-attributes[9]name=http://eidas.europa.eu/attributes/legalperson/EORI` |
 | `eidas.connector.responder-metadata.supported-attributes[9]friendlyName=EORI` |
-| `eidas.connector.responder-metadata.supported-attributes[10]name=http://eidas.europa.eu/attributes/legalperson/LEI ` |
+| `eidas.connector.responder-metadata.supported-attributes[10]name=http://eidas.europa.eu/attributes/legalperson/LEI` |
 | `eidas.connector.responder-metadata.supported-attributes[10]friendlyName=LEI` |
 | `eidas.connector.responder-metadata.supported-attributes[11]name=http://eidas.europa.eu/attributes/legalperson/LegalName` |
 | `eidas.connector.responder-metadata.supported-attributes[11]friendlyName=LegalName` |
@@ -147,7 +147,7 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.supported-attributes[13]friendlyName=LegalPersonIdentifier` |
 | `eidas.connector.responder-metadata.supported-attributes[14]name=http://eidas.europa.eu/attributes/legalperson/SEED` |
 | `eidas.connector.responder-metadata.supported-attributes[14]friendlyName=SEED` |
-| `eidas.connector.responder-metadata.supported-attributes[15]name=http://eidas.europa.eu/attributes/legalperson/SIC ` |
+| `eidas.connector.responder-metadata.supported-attributes[15]name=http://eidas.europa.eu/attributes/legalperson/SIC` |
 | `eidas.connector.responder-metadata.supported-attributes[15]friendlyName=SIC` |
 | `eidas.connector.responder-metadata.supported-attributes[16]name=http://eidas.europa.eu/attributes/legalperson/TaxReference` |
 | `eidas.connector.responder-metadata.supported-attributes[16]friendlyName=TaxReference` |

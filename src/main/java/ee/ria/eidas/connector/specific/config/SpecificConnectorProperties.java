@@ -216,8 +216,8 @@ public class SpecificConnectorProperties {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @SpELAssert(value = "@supportedAttributesRegistry.getByName(#this.name) != null", message = "eIDAS Attribute not supported", appliesTo = "name")
-    @SpELAssert(value = "@supportedAttributesRegistry.getByFriendlyName(#this.friendlyName).size() == 1", message = "eIDAS Attribute not supported", appliesTo = "friendlyName")
+    @SpELAssert(value = "@eidasAttributesRegistry.getByName(#this.name) != null", message = "eIDAS Attribute not supported", appliesTo = "name")
+    @SpELAssert(value = "@eidasAttributesRegistry.getByFriendlyName(#this.friendlyName).size() == 1", message = "eIDAS Attribute not supported", appliesTo = "friendlyName")
     public static class SupportedAttribute {
 
         @NotEmpty
