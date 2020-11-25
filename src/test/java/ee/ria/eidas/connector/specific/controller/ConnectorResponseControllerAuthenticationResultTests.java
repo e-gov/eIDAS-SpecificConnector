@@ -68,7 +68,8 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
-                "eidas.connector.service-providers[0].type=public"
+                "eidas.connector.service-providers[0].type=public",
+                "eidas.connector.add-saml-error-assertion=true"
         })
 public class ConnectorResponseControllerAuthenticationResultTests extends SpecificConnectorTest {
 
