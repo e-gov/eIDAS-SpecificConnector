@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import javax.xml.namespace.QName;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.lang.Math.toIntExact;
 import static org.opensaml.saml.common.SAMLVersion.VERSION_20;
@@ -97,6 +98,13 @@ public class ResponseFactory {
         response.setVersion(VERSION_20);
         response.setIssuer(createIssuer());
         response.setStatus(status);
+        if (connectorProperties.isAddSamlErrorAssertion()) {
+            try {
+                response.getEncryptedAssertions().add(createErrorAssertion(authnRequest, response.getIssueInstant(), spMetadata));
+            } catch (Exception ex) {
+                log.error("Unable to add encrypted assertion", ex);
+            }
+        }
         return response;
     }
 
@@ -125,6 +133,24 @@ public class ResponseFactory {
         assertion.setSubject(createSubject(authnRequest, lightResponse, spMetadata.getAssertionConsumerServiceUrl(), issueInstant));
         assertion.getAttributeStatements().add(createAttributeStatement(lightResponse));
         assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, lightResponse.getLevelOfAssurance()));
+        assertion.setConditions(createConditions(issueInstant, spMetadata));
+        if (spMetadata.isWantAssertionsSigned()) {
+            responderMetadataSigner.sign(assertion);
+        }
+        return spMetadata.encrypt(assertion);
+    }
+
+    private EncryptedAssertion createErrorAssertion(AuthnRequest authnRequest, DateTime issueInstant, ServiceProviderMetadata spMetadata)
+            throws MarshallingException, SecurityException, SignatureException, ResolverException, EncryptionException {
+        AssertionBuilder assertionBuilder = new AssertionBuilder();
+        Assertion assertion = assertionBuilder.buildObject();
+        assertion.setID(secureRandomIdGenerator.generateIdentifier());
+        assertion.setIssuer(createIssuer());
+        assertion.setIssueInstant(issueInstant);
+        assertion.setSubject(createSubject(authnRequest, spMetadata.getAssertionConsumerServiceUrl(), issueInstant));
+        Optional<AuthnContextClassRef> classRef = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream().findFirst();
+        String levelOfAssurance = classRef.map(AuthnContextClassRef::getAuthnContextClassRef).orElse(null);
+        assertion.getAuthnStatements().add(createAuthnStatement(issueInstant, levelOfAssurance));
         assertion.setConditions(createConditions(issueInstant, spMetadata));
         if (spMetadata.isWantAssertionsSigned()) {
             responderMetadataSigner.sign(assertion);
@@ -194,11 +220,20 @@ public class ResponseFactory {
         return attribute;
     }
 
+    private Subject createSubject(AuthnRequest authnRequest, String assertionConsumerServiceUrl, DateTime issueInstant) {
+        return createSubject(authnRequest, null, assertionConsumerServiceUrl, issueInstant);
+    }
+
     private Subject createSubject(AuthnRequest authnRequest, ILightResponse lightResponse, String assertionConsumerServiceUrl, DateTime issueInstant) {
         Subject subject = new SubjectBuilder().buildObject();
         NameID nameID = new NameIDBuilder().buildObject();
-        nameID.setValue(lightResponse.getSubject());
-        nameID.setFormat(lightResponse.getSubjectNameIdFormat());
+        if (lightResponse != null) {
+            nameID.setValue(lightResponse.getSubject());
+            nameID.setFormat(lightResponse.getSubjectNameIdFormat());
+        } else {
+            nameID.setValue("NotAvailable");
+            nameID.setFormat(NameIDType.UNSPECIFIED);
+        }
         subject.setNameID(nameID);
 
         SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder().buildObject();
@@ -233,10 +268,12 @@ public class ResponseFactory {
         AuthnStatement authnStatement = new AuthnStatementBuilder().buildObject();
         authnStatement.setAuthnInstant(issueInstant);
         AuthnContext authnContext = new AuthnContextBuilder().buildObject();
-        AuthnContextClassRef authnContextClassRef = new AuthnContextClassRefBuilder().buildObject();
-        authnContextClassRef.setAuthnContextClassRef(levelOfAssurance);
-        authnContext.setAuthnContextClassRef(authnContextClassRef);
-        authnStatement.setAuthnContext(authnContext);
+        if (levelOfAssurance != null) {
+            AuthnContextClassRef authnContextClassRef = new AuthnContextClassRefBuilder().buildObject();
+            authnContextClassRef.setAuthnContextClassRef(levelOfAssurance);
+            authnContext.setAuthnContextClassRef(authnContextClassRef);
+            authnStatement.setAuthnContext(authnContext);
+        }
         return authnStatement;
     }
 

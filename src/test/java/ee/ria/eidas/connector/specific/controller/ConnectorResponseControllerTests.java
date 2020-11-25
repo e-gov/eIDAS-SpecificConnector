@@ -145,7 +145,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
         Mockito.doThrow(new CertificateResolverException(UsageType.ENCRYPTION, "Metadata ENCRYPTION certificate missing or invalid")).when(mockSp).encrypt(any());
 
-        String samlResponseBase64 = assertReturnParameter(requestMethod, binaryLightToken);
+        String samlResponseBase64 = assertSAMLResponseParameter(requestMethod, binaryLightToken);
         Status status = TestUtils.getStatus(samlResponseBase64);
         assertEquals(SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
         assertEquals("urn:oasis:names:tc:SAML:2.0:status:Requester", status.getStatusCode().getValue());
@@ -174,7 +174,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         assertTestLogs(ERROR, "Unable to create SAML Response");
     }
 
-    private String assertReturnParameter(String requestMethod, BinaryLightToken binaryLightToken) throws MalformedURLException {
+    private String assertSAMLResponseParameter(String requestMethod, BinaryLightToken binaryLightToken) throws MalformedURLException {
         Response response = given()
                 .when()
                 .param("token", BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken))

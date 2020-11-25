@@ -68,6 +68,9 @@ public class SpecificConnectorProperties {
     @DecimalMax(value = "1.0", inclusive = false)
     private BigDecimal serviceProviderMetadataRefreshDelayFactor = BigDecimal.valueOf(0.75);
 
+    @Getter
+    private boolean addSamlErrorAssertion;
+
     @Data
     @Builder
     @NoArgsConstructor

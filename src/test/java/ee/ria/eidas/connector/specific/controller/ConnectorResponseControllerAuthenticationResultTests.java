@@ -151,7 +151,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                             dynamicTest("Contains status", () -> assertNotNull(responseStatus)),
                             dynamicContainer("Status is valid", assertResponseStatus(expectedStatus, responseStatus)),
                             dynamicTest("Contains no unencrypted assertions", () -> assertEquals(0, samlResponse.getAssertions().size())),
-                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedAssertions(samlResponse, levelOfAssurance, authenticationTime))
+                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedAssertion(samlResponse, levelOfAssurance, authenticationTime))
                     )
             );
         };
@@ -180,6 +180,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                 .failure(true)
                 .build();
         LightResponse lightResponse = createLightResponse(lightRequest, unsuccessfulAuthenticationStatus);
+        String levelOfAssurance = lightResponse.getLevelOfAssurance();
         ResponseStatus expectedStatus = lightResponse.getStatus();
 
         Function<ResponseImpl, DynamicContainer> samlResponseTests = samlResponse -> {
@@ -196,7 +197,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                             dynamicTest("Contains status", () -> assertNotNull(responseStatus)),
                             dynamicContainer("Status is valid", assertResponseStatus(expectedStatus, responseStatus)),
                             dynamicTest("Contains no unencrypted assertions", () -> assertEquals(0, samlResponse.getAssertions().size())),
-                            dynamicTest("Contains no encrypted assertions", () -> assertEquals(0, samlResponse.getEncryptedAssertions().size()))
+                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedErrorAssertion(samlResponse, levelOfAssurance, authenticationTime))
                     )
             );
         };
@@ -249,7 +250,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         );
     }
 
-    Stream<DynamicTest> assertEncryptedAssertions(ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
+    Stream<DynamicTest> assertEncryptedAssertion(ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
         DateTime responseIssueInstant = response.getIssueInstant();
         List<EncryptedAssertion> encryptedAssertions = response.getEncryptedAssertions();
         assertNotNull(encryptedAssertions);
@@ -260,12 +261,32 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         return of(
                 dynamicTest("Is issued by Responder", () -> assertIssuer(assertion)),
                 dynamicTest("Is signed by Responder", () -> assertSignature(assertion)),
-                dynamicTest("Contains valid issuing time", () -> asseertIssueInstant(assertion, responseIssueInstant, authenticationTime)),
-                dynamicTest("Contains valid assertion subject", () -> assertSubject(assertion, responseIssueInstant, authenticationTime)),
+                dynamicTest("Contains valid issuing time", () -> assertIssueInstant(assertion, responseIssueInstant, authenticationTime)),
+                dynamicTest("Contains valid assertion subject", () -> assertSubject(assertion, responseIssueInstant)),
                 dynamicTest("Contains valid assertion conditions", () -> assertConditions(assertion, responseIssueInstant, authenticationTime)),
                 dynamicTest("Contains valid assertion audience restrictions", () -> assertAudienceRestriction(assertion)),
                 dynamicTest("Contains valid Level of Assurance", () -> assertAuthnStatements(assertion, responseIssueInstant, levelOfAssurance)),
                 dynamicTest("Contains requested attributes", () -> assertRequestedAttributes(assertion))
+        );
+    }
+
+    @SneakyThrows
+    Stream<DynamicTest> assertEncryptedErrorAssertion(ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
+        DateTime responseIssueInstant = response.getIssueInstant();
+        List<EncryptedAssertion> encryptedAssertions = response.getEncryptedAssertions();
+        assertNotNull(encryptedAssertions);
+        assertEquals(1, encryptedAssertions.size());
+        EncryptedAssertion encryptedAssertion = encryptedAssertions.get(0);
+        Assertion assertion = decryptAssertion(encryptedAssertion);
+
+        return of(
+                dynamicTest("Is issued by Responder", () -> assertIssuer(assertion)),
+                dynamicTest("Is signed by Responder", () -> assertSignature(assertion)),
+                dynamicTest("Contains valid issuing time", () -> assertIssueInstant(assertion, responseIssueInstant, authenticationTime)),
+                dynamicTest("Contains valid assertion subject", () -> assertErrorSubject(assertion, responseIssueInstant)),
+                dynamicTest("Contains valid assertion conditions", () -> assertConditions(assertion, responseIssueInstant, authenticationTime)),
+                dynamicTest("Contains valid assertion audience restrictions", () -> assertAudienceRestriction(assertion)),
+                dynamicTest("Contains valid Level of Assurance", () -> assertAuthnStatements(assertion, responseIssueInstant, levelOfAssurance))
         );
     }
 
@@ -276,7 +297,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         responderMetadataSigner.validate(assertion.getSignature());
     }
 
-    void asseertIssueInstant(Assertion assertion, DateTime responseIssueInstant, DateTime authenticationTime) {
+    void assertIssueInstant(Assertion assertion, DateTime responseIssueInstant, DateTime authenticationTime) {
         assertNotNull(assertion.getIssueInstant());
         assertEquals(responseIssueInstant, assertion.getIssueInstant());
         assertTrue(authenticationTime.isBefore(assertion.getIssueInstant()));
@@ -291,11 +312,21 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         assertEquals(issuer.getFormat(), NameIDType.ENTITY);
     }
 
-    void assertSubject(Assertion assertion, DateTime responseIssueInstant, DateTime authenticationTime) {
+    void assertSubject(Assertion assertion, DateTime responseIssueInstant) {
         Subject subject = assertion.getSubject();
         assertNotNull(subject);
         assertSubjectNameId(subject.getNameID());
-        assertSubjectConfirmation(subject.getSubjectConfirmations(), responseIssueInstant, authenticationTime);
+        assertSubjectConfirmation(subject.getSubjectConfirmations(), responseIssueInstant);
+    }
+
+    void assertErrorSubject(Assertion assertion, DateTime responseIssueInstant) {
+        Subject subject = assertion.getSubject();
+        assertNotNull(subject);
+        NameID nameID = subject.getNameID();
+        assertNotNull(nameID);
+        assertEquals(NameIDType.UNSPECIFIED, nameID.getFormat());
+        assertEquals("NotAvailable", nameID.getValue());
+        assertSubjectConfirmation(subject.getSubjectConfirmations(), responseIssueInstant);
     }
 
     void assertSubjectNameId(NameID nameID) {
@@ -304,7 +335,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         assertTrue(validNameIDFormats.contains(nameID.getFormat()));
     }
 
-    void assertSubjectConfirmation(List<SubjectConfirmation> subjectConfirmations, DateTime responseIssueInstant, DateTime authenticationTime) {
+    void assertSubjectConfirmation(List<SubjectConfirmation> subjectConfirmations, DateTime responseIssueInstant) {
         assertNotNull(subjectConfirmations);
         assertEquals(1, subjectConfirmations.size());
         assertEquals(subjectConfirmations.get(0).getMethod(), SubjectConfirmation.METHOD_BEARER);
@@ -392,7 +423,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                 .status(responseStatus)
                 .subject("assertion_subject")
                 .subjectNameIdFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
-                .levelOfAssurance("http://eidas.europa.eu/LoA/high")
+                .levelOfAssurance(lightRequest.getLevelOfAssurance())
                 .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
                 .attributes(requestedAttributes.build())
                 .build();

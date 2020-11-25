@@ -327,6 +327,7 @@ If there is a problem connecting to service provider metadata, then `eidas.conne
 | `eidas.connector.service-provider-metadata-min-refresh-delay` | No | Sets the minimum amount of time, in milliseconds, between refreshes. Default value: 60000 (60 seconds) |
 | `eidas.connector.service-provider-metadata-max-refresh-delay` | No |  Refresh interval used when metadata does not contain any validUntil or cacheDuration information. Default value: 14400000 (4 hours) |
 | `eidas.connector.service-provider-metadata-refresh-delay-factor` | No | Sets the delay factor used to compute the next refresh time. The delay must be between 0.0 and 1.0 exclusive. |
+| `eidas.connector.add-saml-error-assertion` | No | Backwards compatibility option for eIDAS-Client to add encrypted assertion, when authentication fails. Default value: false |
 
 <a name="logging"></a>
 ## 5. Logging
