@@ -1,5 +1,9 @@
 package ee.ria.eidas.connector.specific.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +21,10 @@ import org.opensaml.saml.common.xml.SAMLSchemaBuilder;
 import org.opensaml.security.crypto.JCAConstants;
 import org.opensaml.xmlsec.algorithm.AlgorithmSupport;
 import org.opensaml.xmlsec.algorithm.SignatureAlgorithm;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.xml.sax.SAXException;
 
 import javax.annotation.PostConstruct;
@@ -34,6 +40,7 @@ import static java.lang.Boolean.TRUE;
 @Configuration
 @RequiredArgsConstructor
 public class OpenSAMLConfiguration {
+    public static final String DEFAULT_TEXT_ELEMENT_NAME = "Value";
     private final ResourceLoader resourceLoader;
 
     @PostConstruct
@@ -43,6 +50,16 @@ public class OpenSAMLConfiguration {
         InitializationService.initialize();
         AlgorithmSupport.getGlobalAlgorithmRegistry().register(new SignatureRSASHA256MGF1());
         setupXmlObjectProviderRegistry(parserPool);
+    }
+
+    @Bean
+    public MappingJackson2XmlHttpMessageConverter messageConverter() {
+        JacksonXmlModule jacksonXmlModule = new JacksonXmlModule();
+        jacksonXmlModule.setXMLTextElementName(DEFAULT_TEXT_ELEMENT_NAME);
+        XmlMapper objectMapper = new XmlMapper(jacksonXmlModule);
+        objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        ObjectMapper.findModules().forEach(objectMapper::registerModule);
+        return new MappingJackson2XmlHttpMessageConverter(objectMapper);
     }
 
     private BasicParserPool setupSecureSchemaValidatingParserPool() throws ComponentInitializationException, SAXException, IOException {

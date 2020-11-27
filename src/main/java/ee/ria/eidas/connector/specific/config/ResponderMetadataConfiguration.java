@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
-import javax.validation.Valid;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;

@@ -52,7 +52,7 @@ public class ConnectorResponseController {
     private final SpecificConnectorCommunication specificConnectorCommunication;
     private final ServiceProviderMetadataRegistry metadataRegistry;
     private final ResponseFactory responseFactory;
-    private final MappingJackson2XmlHttpMessageConverter xmlMapper;
+    private final MappingJackson2XmlHttpMessageConverter messageConverter;
 
     @GetMapping(value = "/ConnectorResponse")
     public ModelAndView get(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token) throws MalformedURLException {
@@ -134,7 +134,7 @@ public class ConnectorResponseController {
 
     private void logAuthenticationResult(String samlResponse, ILightResponse lightResponse, String eventType) {
         try {
-            JsonNode samResponseJson = xmlMapper.getObjectMapper().readTree(samlResponse);
+            JsonNode samResponseJson = messageConverter.getObjectMapper().readTree(samlResponse);
             log.info(appendRaw("saml_response", samResponseJson.toString())
                             .and(append("authn_request.relay_state", lightResponse.getRelayState()))
                             .and(append("light_request.id", lightResponse.getInResponseToId()))
@@ -145,7 +145,7 @@ public class ConnectorResponseController {
                             .and(append("event.outcome", lightResponse.getStatus().isFailure() ? "failure" : "success")),
                     "SAML response created");
         } catch (JsonProcessingException e) {
-            log.warn("Unable to parse AuthnRequest", e);
+            log.error("Unable to convert SAMLResponse from xml to json", e);
         }
     }
 
