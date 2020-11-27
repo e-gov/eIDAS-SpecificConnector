@@ -10,6 +10,7 @@
   * [5.1. Log configuration](#log_conf)
   * [5.2. Log file and format](#log_file)
 - [6. Monitoring](#heartbeat)
+- [7. Security](#security)
 
 <a name="build"></a>
 
@@ -731,3 +732,10 @@ Response:
 | `management.info.git.mode` | No | Mode to use to expose git information. Recommended value `full` |
 | `eidas.connector.health.dependencies.connect-timeout` | No | Timeout for `connectorMetadata` health indicators. Defaults to `3s` |
 | `eidas.connector.health.trust-store-expiration-warning` | No | Certificate expiration warning period for `truststore` health indicator. Default value `30d` |
+
+<a name="security"></a>
+## 7. Security
+
+| Parameter        | Mandatory | Description, example |
+| :---------------- | :---------- | :----------------|
+| `eidas.connector.content-security-policy` | No | HTTP Content security policy. Default value `block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='` |

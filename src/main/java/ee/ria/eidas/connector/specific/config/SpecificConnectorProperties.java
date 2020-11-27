@@ -37,6 +37,7 @@ import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_S
 @ConfigurationProperties(prefix = "eidas.connector")
 public class SpecificConnectorProperties {
 
+    public static final String DEFAULT_CONTENT_SECURITY_POLICY = "block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='";
     @NotEmpty
     private String appInstanceId;
 
@@ -70,6 +71,9 @@ public class SpecificConnectorProperties {
 
     @Getter
     private boolean addSamlErrorAssertion;
+
+    @NotEmpty
+    private String contentSecurityPolicy = DEFAULT_CONTENT_SECURITY_POLICY;
 
     @Data
     @Builder
