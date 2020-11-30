@@ -154,8 +154,7 @@ public class ServiceProviderController {
         } catch (SignatureException e) {
             throw new BadRequestException("SAML request is invalid - invalid signature", e);
         } catch (CertificateResolverException e) {
-            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_SIGNING_CERT_MISSING_OR_INVALID);
-            throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(), SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), e);
+            throw new AuthenticationException(authnRequest, SP_SIGNING_CERT_MISSING_OR_INVALID, e);
         }
         String signatureAlgorithm = signature.getSignatureAlgorithm();
         Optional<SigningMethod> supportedSignatureAlgorithm = specificConnectorProperties.getResponderMetadata()
@@ -219,7 +218,7 @@ public class ServiceProviderController {
                             .and(append("event.kind", "event"))
                             .and(append("event.category", "authentication"))
                             .and(append("event.type", "start")),
-                    "AuthnRequest received");
+                    "SAML AuthNRequest received");
         } catch (IOException e) {
             log.error("Unable to convert AuthnRequest from xml to json", e);
         }

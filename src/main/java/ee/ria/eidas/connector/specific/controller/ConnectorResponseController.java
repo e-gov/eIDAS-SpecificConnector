@@ -83,20 +83,16 @@ public class ConnectorResponseController {
 
         IResponseStatus status = lightResponse.getStatus();
         if (status.isFailure()) {
-            String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, lightResponse.getStatus());
-            logAuthenticationResult(samlResponse, lightResponse, "info");
-            throw new AuthenticationException(samlResponse, authnRequest.getAssertionConsumerServiceURL(), status.getStatusMessage());
+            throw new AuthenticationException(authnRequest, lightResponse);
         } else {
             try {
                 String samlResponse = responseFactory.createSamlResponse(authnRequest, lightResponse, spMetadata);
                 String assertionConsumerServiceUrl = spMetadata.getAssertionConsumerServiceUrl();
                 String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
-                logAuthenticationResult(samlResponse, lightResponse, "end");
+                logSuccessfulAuthenticationResult(samlResponse, lightResponse);
                 return new Response(samlResponseBase64, lightResponse.getRelayState(), assertionConsumerServiceUrl);
             } catch (CertificateResolverException certificateException) {
-                String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, SP_ENCRYPTION_CERT_MISSING_OR_INVALID);
-                throw new AuthenticationException(samlResponse, spMetadata.getAssertionConsumerServiceUrl(),
-                        SP_ENCRYPTION_CERT_MISSING_OR_INVALID.getStatusMessage(), certificateException);
+                throw new AuthenticationException(authnRequest, lightResponse, SP_ENCRYPTION_CERT_MISSING_OR_INVALID, certificateException);
             }
         }
     }
@@ -132,18 +128,17 @@ public class ConnectorResponseController {
         return spMetadata;
     }
 
-    private void logAuthenticationResult(String samlResponse, ILightResponse lightResponse, String eventType) {
+    private void logSuccessfulAuthenticationResult(String samlResponse, ILightResponse lightResponse) {
         try {
             JsonNode samResponseJson = messageConverter.getObjectMapper().readTree(samlResponse);
             log.info(appendRaw("saml_response", samResponseJson.toString())
-                            .and(append("authn_request.relay_state", lightResponse.getRelayState()))
-                            .and(append("light_request.id", lightResponse.getInResponseToId()))
-                            .and(append("light_response.id", lightResponse.getId()))
-                            .and(append("event.kind", "event"))
-                            .and(append("event.category", "authentication"))
-                            .and(append("event.type", eventType))
-                            .and(append("event.outcome", lightResponse.getStatus().isFailure() ? "failure" : "success")),
-                    "SAML response created");
+                    .and(append("authn_request.relay_state", lightResponse.getRelayState()))
+                    .and(append("light_request.id", lightResponse.getInResponseToId()))
+                    .and(append("light_response.id", lightResponse.getId()))
+                    .and(append("event.kind", "event"))
+                    .and(append("event.category", "authentication"))
+                    .and(append("event.type", "end"))
+                    .and(append("event.outcome", "success")), "SAML Response created");
         } catch (JsonProcessingException e) {
             log.error("Unable to convert SAMLResponse from xml to json", e);
         }

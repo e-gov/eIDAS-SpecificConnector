@@ -1,8 +1,12 @@
 package ee.ria.eidas.connector.specific.exception;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
+import eu.eidas.auth.commons.light.ILightResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.logstash.logback.marker.LogstashMarker;
+import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
@@ -36,8 +40,9 @@ import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
 @RequiredArgsConstructor
 public class SpecificConnectorExceptionHandler {
     public static final String BAD_REQUEST_ERROR_MESSAGE = "Bad request exception: %s";
-    public static final String AUTHENTICATION_FAILED_ERROR_MESSAGE = "Authentication failed: %s";
-    private final MappingJackson2XmlHttpMessageConverter xmlMapper;
+    public static final String AUTHENTICATION_FAILED_ERROR_MESSAGE = "SAML Response created. Authentication failed: %s";
+    private final MappingJackson2XmlHttpMessageConverter messageConverter;
+    private final ResponseFactory responseFactory;
 
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
     public ModelAndView handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex, HttpServletResponse response) throws IOException {
@@ -66,28 +71,34 @@ public class SpecificConnectorExceptionHandler {
 
     @ExceptionHandler({AuthenticationException.class})
     public Object handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) throws IOException {
-        String samlResponse = ex.getSamlResponse();
-        JsonNode samlResponseJson = xmlMapper.getObjectMapper().readTree(samlResponse);
+        AuthnRequest authnRequest = ex.getAuthnRequest();
+        ILightResponse lightResponse = ex.getLightResponse();
+        String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, ex.getStatusCode(), ex.getSubStatusCode(), ex.getStatusMessage());
+        JsonNode samlResponseJson = messageConverter.getObjectMapper().readTree(samlResponse);
 
-        log.error(appendRaw("saml_response", samlResponseJson.toString())
-                        .and(append("event.kind", "event"))
-                        .and(append("event.category", "authentication"))
-                        .and(append("event.type", "end"))
-                        .and(append("event.outcome", "failure")),
-                format(AUTHENTICATION_FAILED_ERROR_MESSAGE, ex.getMessage()));
+        LogstashMarker markers = appendRaw("saml_response", samlResponseJson.toString())
+                .and(append("event.kind", "event"))
+                .and(append("event.category", "authentication"))
+                .and(append("event.type", "end"))
+                .and(append("event.outcome", "failure"));
+        if (lightResponse != null) {
+            markers.and(append("authn_request.relay_state", lightResponse.getRelayState()))
+                    .and(append("light_request.id", lightResponse.getInResponseToId()))
+                    .and(append("light_response.id", lightResponse.getId()));
+        }
+        log.error(markers, format(AUTHENTICATION_FAILED_ERROR_MESSAGE, ex.getMessage()), ex.getCause());
 
         String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
-
         if (HttpMethod.POST.matches(request.getMethod())) {
             ModelAndView modelAndView = new ModelAndView();
             modelAndView.addObject(SAML_RESPONSE.getValue(), samlResponseBase64);
             modelAndView.addObject(RELAY_STATE.getValue(), UUID.randomUUID());
-            modelAndView.addObject("action", ex.getAssertionConsumerServiceURL());
+            modelAndView.addObject("action", authnRequest.getAssertionConsumerServiceURL());
             modelAndView.setViewName("postBinding");
             return modelAndView;
         } else {
             request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.FOUND);
-            String uri = UriComponentsBuilder.fromHttpUrl(ex.getAssertionConsumerServiceURL())
+            String uri = UriComponentsBuilder.fromHttpUrl(authnRequest.getAssertionConsumerServiceURL())
                     .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(samlResponseBase64, UTF_8))
                     .build(true)
                     .toUri()

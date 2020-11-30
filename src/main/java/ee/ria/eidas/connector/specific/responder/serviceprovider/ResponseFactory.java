@@ -2,7 +2,6 @@ package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
-import ee.ria.eidas.connector.specific.exception.ResponseStatus;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
@@ -63,20 +62,9 @@ public class ResponseFactory {
         }
     }
 
-    public String createSamlErrorResponse(AuthnRequest authnRequest, IResponseStatus responseStatus) {
+    public String createSamlErrorResponse(AuthnRequest authnRequest, String statusCode, String subStatusCode, String statusMessage) {
         try {
-            Status status = createStatus(responseStatus.getStatusCode(), responseStatus.getSubStatusCode(), responseStatus.getStatusMessage());
-            Response response = createErrorResponse(authnRequest, status);
-            responderMetadataSigner.sign(response);
-            return OpenSAMLUtils.getXmlString(response);
-        } catch (Exception ex) {
-            throw new TechnicalException("Unable to create SAML Error Response", ex);
-        }
-    }
-
-    public String createSamlErrorResponse(AuthnRequest authnRequest, ResponseStatus error) {
-        try {
-            Status status = createStatus(error.getStatusCode().getValue(), error.getSubStatusCode().getValue(), error.getStatusMessage());
+            Status status = createStatus(statusCode, subStatusCode, statusMessage);
             Response response = createErrorResponse(authnRequest, status);
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
