@@ -90,7 +90,7 @@ public class ResponseFactory {
             try {
                 response.getEncryptedAssertions().add(createErrorAssertion(authnRequest, response.getIssueInstant(), spMetadata));
             } catch (Exception ex) {
-                log.error("Unable to add encrypted assertion", ex);
+                log.error("Unable to add encrypted error assertion", ex);
             }
         }
         return response;

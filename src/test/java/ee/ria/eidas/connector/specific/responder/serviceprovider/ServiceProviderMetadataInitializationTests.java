@@ -63,11 +63,11 @@ public class ServiceProviderMetadataInitializationTests extends ServiceProviderT
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"sp1-untrusted-metadata-signing-cert.xml", "sp1-expired-metadata-signing-cert.xml", "sp1-expired-request-signing-cert.xml", "sp1-expired-response-encryption-cert.xml"})
+    @ValueSource(strings = {"sp1-expired-valid-until.xml", "sp1-untrusted-metadata-signing-cert.xml", "sp1-expired-metadata-signing-cert.xml", "sp1-expired-request-signing-cert.xml", "sp1-expired-response-encryption-cert.xml"})
     @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
     void responseValidationFails(String invalidMetadataState) throws ResolverException, XMLParserException, UnmarshallingException, IOException, SignatureException {
         updateServiceProvider1Metadata(invalidMetadataState);
-        assertInvalidMetadataState();
+        assertInvalidMetadataState(!invalidMetadataState.equals("sp1-expired-valid-until.xml"));
         assertRequestSignatureValidationFails();
         updateServiceProvider1Metadata("sp1-valid-metadata.xml");
         assertRequestSignatureValidationSucceeds();

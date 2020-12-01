@@ -193,7 +193,7 @@ public class ServiceProviderController {
 
     private String createLightRequestToken(AuthnRequest authnRequest, String country, String relayState, String spType) {
         ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState, spType);
-        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
         return BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken);
     }

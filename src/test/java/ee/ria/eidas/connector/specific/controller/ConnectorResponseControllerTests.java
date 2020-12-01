@@ -247,7 +247,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         authnRequest.setIssuer(issuer);
 
         LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
-        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
         LightResponse lightResponse = createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
         given()
@@ -408,7 +408,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
-        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
         LightResponse lightResponse = createLightResponse(lightRequest);
         return putLightResponseToEidasNodeCommunicationCache(lightResponse);
     }

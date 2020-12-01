@@ -112,7 +112,7 @@ public class ConnectorResponseController {
 
     @NotNull
     private AuthnRequest getAuthnRequest(ILightResponse lightResponse) {
-        AuthnRequest authnRequest = specificConnectorCommunication.getAndRemoveRequestCorrelation(lightResponse);
+        AuthnRequest authnRequest = specificConnectorCommunication.getAndRemoveAuthenticationRequest(lightResponse);
         if (authnRequest == null) {
             throw new BadRequestException("Authentication request related to token is invalid or has expired");
         }

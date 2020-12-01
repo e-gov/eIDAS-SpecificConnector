@@ -30,7 +30,7 @@ public class SpecificConnectorCommunication {
     @Qualifier("specificMSSpRequestCorrelationMap")
     private Cache<String, String> specificMSSpRequestCorrelationMap;
 
-    public void putRequestCorrelation(String correlationId, AuthnRequest authnRequest) {
+    public void putAuthenticationRequest(String correlationId, AuthnRequest authnRequest) {
         try {
             String encodedAuthnRequest = Base64.getEncoder().encodeToString(OpenSAMLUtils.getXmlString(authnRequest).getBytes(UTF_8));
             boolean isInserted = specificMSSpRequestCorrelationMap.putIfAbsent(correlationId, encodedAuthnRequest);
@@ -49,7 +49,7 @@ public class SpecificConnectorCommunication {
     }
 
     @Nullable
-    public AuthnRequest getAndRemoveRequestCorrelation(ILightResponse lightResponse) {
+    public AuthnRequest getAndRemoveAuthenticationRequest(ILightResponse lightResponse) {
         try {
             String correlationId = lightResponse.getInResponseToId();
             String authnRequest = specificMSSpRequestCorrelationMap.getAndRemove(correlationId);

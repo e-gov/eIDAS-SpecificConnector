@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.cert.CertificateEncodingException;
 
+import static ch.qos.logback.classic.Level.INFO;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.XML;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -88,6 +89,7 @@ public class ResponderMetadataControllerTests extends SpecificConnectorTest {
         Schema schema = factory.newSchema(getFile("classpath:__files/saml/saml-schema-metadata-2.0.xsd"));
         Validator validator = schema.newValidator();
         validator.validate(new StreamSource(new ByteArrayInputStream(metadataResponse.asString().getBytes())));
+        assertLogs(INFO, "Metadata requested");
     }
 
     @Test

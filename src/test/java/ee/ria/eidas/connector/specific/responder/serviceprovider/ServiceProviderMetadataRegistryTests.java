@@ -65,6 +65,7 @@ public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
         assertEquals("service-provider-1", spMetadata1FromRegistry.getId());
         assertEquals("https://localhost:9999/metadata", spMetadata1FromRegistry.getEntityId());
         assertEquals("public", spMetadata1FromRegistry.getType());
+        assertThrows(TechnicalException.class, spMetadata1FromRegistry::getEntityDescriptor);
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::getAssertionConsumerServiceUrl);
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::isWantAssertionsSigned);
     }

@@ -19,8 +19,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.net.URLBuilder;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.http.HttpHeaders;
-import org.assertj.core.api.Assertions;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.*;
 import org.opensaml.core.xml.io.UnmarshallingException;
@@ -35,10 +35,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
+import org.w3c.dom.Element;
 
 import javax.cache.Cache;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -47,7 +49,6 @@ import static eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec.Defini
 import static io.restassured.RestAssured.given;
 import static java.lang.Math.toIntExact;
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
 import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -72,10 +73,10 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "eidas.connector.add-saml-error-assertion=true"
         })
 public class ConnectorResponseControllerAuthenticationResultTests extends SpecificConnectorTest {
-
     public static final String RESPONDER_METADATA_URL = "https://localhost:8443/SpecificConnector/ConnectorResponderMetadata";
     public static final String SP_ASSERTIONS_URL = "https://localhost:8888/returnUrl";
     public static final String SP_METADATA_URL = "https://localhost:8888/metadata";
+
     @Value("${lightToken.connector.response.issuer.name}")
     String lightTokenResponseIssuerName;
 
@@ -126,7 +127,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         DateTime authenticationTime = new DateTime(UTC);
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
+        String expectedRelayState = RandomStringUtils.random(128, true, true);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", expectedRelayState, "public");
         ResponseStatus successfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("urn:oasis:names:tc:SAML:2.0:status:Success")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Success")
@@ -143,7 +145,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
             return dynamicContainer("Redirected with valid SAML Response in location header",
                     of(
                             dynamicTest("Response version is SAML 2.0", () -> assertEquals(VERSION_20.toString(), samlResponse.getVersion().toString())),
-                            dynamicTest("Is issued by Responder", () -> assertEquals(RESPONDER_METADATA_URL, samlResponse.getIssuer().getValue())),
+                            dynamicTest("Is issued by Responder", () -> assertIssuer(samlResponse.getIssuer())),
                             dynamicTest("Is signed by Responder", () -> assertSignature(samlResponse)),
                             dynamicTest("Contains valid issuing time", () -> assertIssuingTime(samlResponse.getIssueInstant(), authenticationTime)),
                             dynamicTest("Id equals LightResponse id", () -> assertEquals(lightResponse.getId(), samlResponse.getID())),
@@ -152,14 +154,15 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                             dynamicTest("Contains status", () -> assertNotNull(responseStatus)),
                             dynamicContainer("Status is valid", assertResponseStatus(expectedStatus, responseStatus)),
                             dynamicTest("Contains no unencrypted assertions", () -> assertEquals(0, samlResponse.getAssertions().size())),
-                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedAssertion(samlResponse, levelOfAssurance, authenticationTime))
+                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedAssertion(authnRequest, samlResponse, levelOfAssurance, authenticationTime)),
+                            dynamicTest("Communication caches are empty", this::assertCachesAreEmpty)
                     )
             );
         };
 
         return of("GET", "POST")
                 .map(requestMethod -> dynamicContainer("Request method = " + requestMethod,
-                        of(assertRedirectWithSAMLResponse(requestMethod, authnRequest, lightRequest, lightResponse))
+                        of(assertRedirectWithSAMLResponseAndRelayState(requestMethod, authnRequest, lightRequest, lightResponse, expectedRelayState))
                                 .map(samlResponseTests)));
     }
 
@@ -173,7 +176,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         DateTime authenticationTime = new DateTime(UTC);
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
+        String expectedRelayState = RandomStringUtils.random(128, true, true);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", expectedRelayState, "public");
         ResponseStatus unsuccessfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("003002 - Authentication Failed.")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Responder")
@@ -189,7 +193,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
             return dynamicContainer("Redirected with valid SAML Error Response in location header",
                     of(
                             dynamicTest("Response version is SAML 2.0", () -> assertEquals(VERSION_20.toString(), samlResponse.getVersion().toString())),
-                            dynamicTest("Is issued by Responder", () -> assertEquals(RESPONDER_METADATA_URL, samlResponse.getIssuer().getValue())),
+                            dynamicTest("Is issued by Responder", () -> assertIssuer(samlResponse.getIssuer())),
                             dynamicTest("Is signed by Responder", () -> assertSignature(samlResponse)),
                             dynamicTest("Contains valid issuing time", () -> assertIssuingTime(samlResponse.getIssueInstant(), authenticationTime)),
                             dynamicTest("Contains id with valid format", () -> assertThat(samlResponse.getID(), matchesPattern(SECURE_RANDOM_REGEX))),
@@ -198,20 +202,21 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                             dynamicTest("Contains status", () -> assertNotNull(responseStatus)),
                             dynamicContainer("Status is valid", assertResponseStatus(expectedStatus, responseStatus)),
                             dynamicTest("Contains no unencrypted assertions", () -> assertEquals(0, samlResponse.getAssertions().size())),
-                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedErrorAssertion(samlResponse, levelOfAssurance, authenticationTime))
+                            dynamicContainer("Contains valid encrypted assertion", assertEncryptedErrorAssertion(authnRequest, samlResponse, levelOfAssurance, authenticationTime)),
+                            dynamicTest("Communication caches are empty", this::assertCachesAreEmpty)
                     )
             );
         };
 
         return of("GET", "POST")
                 .map(requestMethod -> dynamicContainer("Request method = " + requestMethod,
-                        of(assertRedirectWithSAMLResponse(requestMethod, authnRequest, lightRequest, lightResponse))
+                        of(assertRedirectWithSAMLResponseAndRelayState(requestMethod, authnRequest, lightRequest, lightResponse, expectedRelayState))
                                 .map(samlResponseTests)));
     }
 
     @SneakyThrows
-    ResponseImpl assertRedirectWithSAMLResponse(String requestMethod, AuthnRequest authnRequest, LightRequest lightRequest, LightResponse lightResponse) {
-        specificConnectorCommunication.putRequestCorrelation(lightRequest.getId(), authnRequest);
+    ResponseImpl assertRedirectWithSAMLResponseAndRelayState(String requestMethod, AuthnRequest authnRequest, LightRequest lightRequest, LightResponse lightResponse, String expectedRelayState) {
+        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
 
         Response response = given()
@@ -226,11 +231,15 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         String samlResponseBase64;
         if (requestMethod.equals("POST")) {
             samlResponseBase64 = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == 'SAMLResponse'}.@value");
+            String relayState = response.xmlPath(XmlPath.CompatibilityMode.HTML).getString("**.findAll {it.@name == 'RelayState'}.@value");
+            assertEquals(expectedRelayState, relayState);
         } else {
             String location = response.getHeader(HttpHeaders.LOCATION);
             assertNotNull(location);
             URLBuilder urlBuilder = new URLBuilder(location);
             samlResponseBase64 = urlBuilder.getQueryParams().get(0).getSecond();
+            String relayState = urlBuilder.getQueryParams().get(1).getSecond();
+            assertEquals(expectedRelayState, relayState);
         }
         assertNotNull(samlResponseBase64);
         return TestUtils.getResponse(samlResponseBase64);
@@ -251,7 +260,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         );
     }
 
-    Stream<DynamicTest> assertEncryptedAssertion(ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
+    @SneakyThrows
+    Stream<DynamicTest> assertEncryptedAssertion(AuthnRequest authnRequest, ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
         DateTime responseIssueInstant = response.getIssueInstant();
         List<EncryptedAssertion> encryptedAssertions = response.getEncryptedAssertions();
         assertNotNull(encryptedAssertions);
@@ -260,10 +270,10 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         Assertion assertion = decryptAssertion(encryptedAssertion);
 
         return of(
-                dynamicTest("Is issued by Responder", () -> assertIssuer(assertion)),
+                dynamicTest("Is issued by Responder", () -> assertIssuer(assertion.getIssuer())),
                 dynamicTest("Is signed by Responder", () -> assertSignature(assertion)),
                 dynamicTest("Contains valid issuing time", () -> assertIssueInstant(assertion, responseIssueInstant, authenticationTime)),
-                dynamicTest("Contains valid assertion subject", () -> assertSubject(assertion, responseIssueInstant)),
+                dynamicTest("Contains valid assertion subject", () -> assertSubject(authnRequest, assertion, responseIssueInstant)),
                 dynamicTest("Contains valid assertion conditions", () -> assertConditions(assertion, responseIssueInstant, authenticationTime)),
                 dynamicTest("Contains valid assertion audience restrictions", () -> assertAudienceRestriction(assertion)),
                 dynamicTest("Contains valid Level of Assurance", () -> assertAuthnStatements(assertion, responseIssueInstant, levelOfAssurance)),
@@ -272,7 +282,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
     }
 
     @SneakyThrows
-    Stream<DynamicTest> assertEncryptedErrorAssertion(ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
+    Stream<DynamicTest> assertEncryptedErrorAssertion(AuthnRequest authnRequest, ResponseImpl response, String levelOfAssurance, DateTime authenticationTime) {
         DateTime responseIssueInstant = response.getIssueInstant();
         List<EncryptedAssertion> encryptedAssertions = response.getEncryptedAssertions();
         assertNotNull(encryptedAssertions);
@@ -281,10 +291,10 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         Assertion assertion = decryptAssertion(encryptedAssertion);
 
         return of(
-                dynamicTest("Is issued by Responder", () -> assertIssuer(assertion)),
+                dynamicTest("Is issued by Responder", () -> assertIssuer(assertion.getIssuer())),
                 dynamicTest("Is signed by Responder", () -> assertSignature(assertion)),
                 dynamicTest("Contains valid issuing time", () -> assertIssueInstant(assertion, responseIssueInstant, authenticationTime)),
-                dynamicTest("Contains valid assertion subject", () -> assertErrorSubject(assertion, responseIssueInstant)),
+                dynamicTest("Contains valid assertion subject", () -> assertErrorSubject(authnRequest, assertion, responseIssueInstant)),
                 dynamicTest("Contains valid assertion conditions", () -> assertConditions(assertion, responseIssueInstant, authenticationTime)),
                 dynamicTest("Contains valid assertion audience restrictions", () -> assertAudienceRestriction(assertion)),
                 dynamicTest("Contains valid Level of Assurance", () -> assertAuthnStatements(assertion, responseIssueInstant, levelOfAssurance))
@@ -304,8 +314,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         assertTrue(authenticationTime.isBefore(assertion.getIssueInstant()));
     }
 
-    void assertIssuer(Assertion assertion) {
-        Issuer issuer = assertion.getIssuer();
+    void assertIssuer(Issuer issuer) {
         assertNotNull(issuer);
         assertNotNull(issuer.getValue());
         assertNotNull(issuer.getFormat());
@@ -313,57 +322,74 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         assertEquals(issuer.getFormat(), NameIDType.ENTITY);
     }
 
-    void assertSubject(Assertion assertion, DateTime responseIssueInstant) {
+    void assertSubject(AuthnRequest authnRequest, Assertion assertion, DateTime responseIssueInstant) {
         Subject subject = assertion.getSubject();
         assertNotNull(subject);
         assertSubjectNameId(subject.getNameID());
-        assertSubjectConfirmation(subject.getSubjectConfirmations(), responseIssueInstant);
+        assertSubjectConfirmation(authnRequest, subject.getSubjectConfirmations(), responseIssueInstant);
     }
 
-    void assertErrorSubject(Assertion assertion, DateTime responseIssueInstant) {
+    void assertErrorSubject(AuthnRequest authnRequest, Assertion assertion, DateTime responseIssueInstant) {
         Subject subject = assertion.getSubject();
         assertNotNull(subject);
         NameID nameID = subject.getNameID();
         assertNotNull(nameID);
         assertEquals(NameIDType.UNSPECIFIED, nameID.getFormat());
         assertEquals("NotAvailable", nameID.getValue());
-        assertSubjectConfirmation(subject.getSubjectConfirmations(), responseIssueInstant);
+        assertSubjectConfirmation(authnRequest, subject.getSubjectConfirmations(), responseIssueInstant);
     }
 
     void assertSubjectNameId(NameID nameID) {
         assertNotNull(nameID);
         List<String> validNameIDFormats = asList(NameIDType.UNSPECIFIED, NameIDType.TRANSIENT, NameIDType.PERSISTENT);
+        assertEquals("assertion_subject", nameID.getValue());
         assertTrue(validNameIDFormats.contains(nameID.getFormat()));
     }
 
-    void assertSubjectConfirmation(List<SubjectConfirmation> subjectConfirmations, DateTime responseIssueInstant) {
+    void assertSubjectConfirmation(AuthnRequest authnRequest, List<SubjectConfirmation> subjectConfirmations, DateTime responseIssueInstant) {
         assertNotNull(subjectConfirmations);
         assertEquals(1, subjectConfirmations.size());
         assertEquals(subjectConfirmations.get(0).getMethod(), SubjectConfirmation.METHOD_BEARER);
         SubjectConfirmationData subjectConfirmationData = subjectConfirmations.get(0).getSubjectConfirmationData();
         assertNotNull(subjectConfirmationData);
-        assertRecipient(subjectConfirmationData);
+        assertEquals(SP_ASSERTIONS_URL, subjectConfirmationData.getRecipient());
+        assertEquals(authnRequest.getID(), subjectConfirmationData.getInResponseTo());
+        assertThat(subjectConfirmationData.getAddress(), matchesPattern("^([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})$"));
         assertNull(subjectConfirmationData.getNotBefore());
         assertNotNull(subjectConfirmationData.getNotOnOrAfter());
         int assertionValidityInSeconds = toIntExact(connectorProperties.getResponderMetadata().getAssertionValidityInterval().getSeconds());
         assertTrue(responseIssueInstant.plusSeconds(assertionValidityInSeconds).isEqual(subjectConfirmationData.getNotOnOrAfter()));
     }
 
-    void assertRecipient(SubjectConfirmationData subjectConfirmationData) {
-        assertEquals(SP_ASSERTIONS_URL, subjectConfirmationData.getRecipient());
-    }
-
     void assertRequestedAttributes(Assertion assertion) {
-        List<String> requestedAttributes = asList("http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier",
-                "http://eidas.europa.eu/attributes/naturalperson/PlaceOfBirth",
-                "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName",
-                "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName");
         List<AttributeStatement> attributeStatements = assertion.getAttributeStatements();
         assertNotNull(attributeStatements);
         assertEquals(1, attributeStatements.size());
         List<Attribute> attributes = attributeStatements.get(0).getAttributes();
-        List<String> attributesInAssertion = attributes.stream().map(Attribute::getName).collect(toList());
-        Assertions.assertThat(attributesInAssertion).containsExactlyInAnyOrderElementsOf(requestedAttributes);
+
+        Optional<Attribute> familyName = attributes.stream().filter(attribute -> attribute.getFriendlyName().equals("FamilyName")).findFirst();
+        assertTrue(familyName.isPresent());
+        Element dom = familyName.get().getAttributeValues().get(0).getDOM();
+        assertNotNull(dom);
+        assertEquals("TestFamilyName", dom.getTextContent());
+
+        Optional<Attribute> givenName = attributes.stream().filter(attribute -> attribute.getFriendlyName().equals("FirstName")).findFirst();
+        assertTrue(givenName.isPresent());
+        dom = givenName.get().getAttributeValues().get(0).getDOM();
+        assertNotNull(dom);
+        assertEquals("TestGivenName", dom.getTextContent());
+
+        Optional<Attribute> personIdentifier = attributes.stream().filter(attribute -> attribute.getFriendlyName().equals("PersonIdentifier")).findFirst();
+        assertTrue(personIdentifier.isPresent());
+        dom = personIdentifier.get().getAttributeValues().get(0).getDOM();
+        assertNotNull(dom);
+        assertEquals("123456789", dom.getTextContent());
+
+        Optional<Attribute> dateOfBirth = attributes.stream().filter(attribute -> attribute.getFriendlyName().equals("DateOfBirth")).findFirst();
+        assertTrue(dateOfBirth.isPresent());
+        dom = dateOfBirth.get().getAttributeValues().get(0).getDOM();
+        assertNotNull(dom);
+        assertEquals("1965-01-01", dom.getTextContent());
     }
 
     void assertConditions(Assertion assertion, DateTime responseIssueInstant, DateTime authenticationTime) {
@@ -413,11 +439,11 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
     }
 
     LightResponse createLightResponse(LightRequest lightRequest, ResponseStatus responseStatus) {
-        ImmutableAttributeMap.Builder requestedAttributes = ImmutableAttributeMap.builder();
-        requestedAttributes.put(PERSON_IDENTIFIER);
-        requestedAttributes.put(CURRENT_FAMILY_NAME);
-        requestedAttributes.put(CURRENT_GIVEN_NAME);
-        requestedAttributes.put(PLACE_OF_BIRTH);
+        ImmutableAttributeMap requestedAttributes = ImmutableAttributeMap.builder()
+                .put(PERSON_IDENTIFIER, "123456789")
+                .put(CURRENT_FAMILY_NAME, "TestFamilyName")
+                .put(CURRENT_GIVEN_NAME, "TestGivenName")
+                .put(DATE_OF_BIRTH, "1965-01-01").build();
         return LightResponse.builder()
                 .id("_7.t.B2GE0lkaDDkpvwZJfrdOLrKQqiINw.0XnzAEucYP7yO7WVBC_hR2kkQ-hwy")
                 .inResponseToId(lightRequest.getId())
@@ -426,7 +452,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                 .subjectNameIdFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
                 .levelOfAssurance(lightRequest.getLevelOfAssurance())
                 .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
-                .attributes(requestedAttributes.build())
+                .attributes(requestedAttributes)
+                .relayState(lightRequest.getRelayState())
                 .build();
     }
 
@@ -436,5 +463,10 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         Decrypter decrypter = new Decrypter(null, keyInfoCredentialResolver, new InlineEncryptedKeyResolver());
         decrypter.setRootInNewDocument(true);
         return decrypter.decrypt(encryptedAssertion);
+    }
+
+    void assertCachesAreEmpty() {
+        assertFalse(specificMSSpRequestCorrelationMap.iterator().hasNext());
+        assertFalse(nodeSpecificConnectorResponseCache.iterator().hasNext());
     }
 }

@@ -92,7 +92,7 @@ public class SpecificConnectorExceptionHandler {
         if (HttpMethod.POST.matches(request.getMethod())) {
             ModelAndView modelAndView = new ModelAndView();
             modelAndView.addObject(SAML_RESPONSE.getValue(), samlResponseBase64);
-            modelAndView.addObject(RELAY_STATE.getValue(), UUID.randomUUID());
+            modelAndView.addObject(RELAY_STATE.getValue(), lightResponse != null ? lightResponse.getRelayState() : UUID.randomUUID());
             modelAndView.addObject("action", authnRequest.getAssertionConsumerServiceURL());
             modelAndView.setViewName("postBinding");
             return modelAndView;
@@ -100,6 +100,7 @@ public class SpecificConnectorExceptionHandler {
             request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.FOUND);
             String uri = UriComponentsBuilder.fromHttpUrl(authnRequest.getAssertionConsumerServiceURL())
                     .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(samlResponseBase64, UTF_8))
+                    .queryParam(RELAY_STATE.getValue(), lightResponse != null ? lightResponse.getRelayState() : UUID.randomUUID())
                     .build(true)
                     .toUri()
                     .toString();

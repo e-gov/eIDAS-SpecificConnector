@@ -59,18 +59,29 @@ class LightRequestFactoryTest {
         assertEquals(authnRequest.getProviderName(), lightRequest.getProviderName());
         assertEquals(authnRequest.getNameIDPolicy().getFormat(), lightRequest.getNameIdFormat());
 
-        Optional<LevelOfAssurance> invalidLoA = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
+        Optional<LevelOfAssurance> levelOfAssurance = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
                 .map(ref -> LevelOfAssurance.fromString(ref.getAuthnContextClassRef()))
                 .filter(Objects::nonNull)
                 .findFirst();
-        assertTrue(invalidLoA.isPresent());
-        assertEquals(invalidLoA.get().getValue(), lightRequest.getLevelOfAssurance());
+        assertTrue(levelOfAssurance.isPresent());
+        assertEquals(levelOfAssurance.get().getValue(), lightRequest.getLevelOfAssurance());
 
         ImmutableAttributeMap requestedAttributes = getRequestedAttributes(authnRequest);
         assertThat(requestedAttributes.getDefinitions()).containsExactlyInAnyOrderElementsOf(lightRequest.getRequestedAttributes().getDefinitions());
         assertEquals("public", lightRequest.getSpType());
         assertEquals("CA", lightRequest.getCitizenCountryCode());
         assertEquals("_5a5a7cd4616f46813fda1cd350cab476", lightRequest.getRelayState());
+    }
+
+    @Test
+    void createValidCorrelationId() throws IOException, UnmarshallingException, XMLParserException {
+        byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
+        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476", "public");
+
+        String correlationId = lightRequestFactory.getCorrelationId(authnRequest);
+        assertEquals("eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310", correlationId);
+        assertEquals(correlationId, lightRequest.getId());
     }
 
     private ImmutableAttributeMap getRequestedAttributes(AuthnRequest authn) {

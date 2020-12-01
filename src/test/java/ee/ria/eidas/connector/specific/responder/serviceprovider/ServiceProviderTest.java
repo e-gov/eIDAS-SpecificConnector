@@ -82,9 +82,13 @@ abstract class ServiceProviderTest {
                 .withBodyFile("sp_metadata/" + metadataFile)));
     }
 
-    protected void assertInvalidMetadataState() throws ResolverException {
+    protected void assertInvalidMetadataState(boolean expectException) throws ResolverException {
         serviceProviderMetadataRegistry.refreshMetadata(SP_ENTITY_ID);
-        assertThrows(ResolverException.class, () -> serviceProviderMetadataRegistry.refreshMetadata(SP_1_ENTITY_ID));
+        if (expectException) {
+            assertThrows(ResolverException.class, () -> serviceProviderMetadataRegistry.refreshMetadata(SP_1_ENTITY_ID));
+        } else {
+            serviceProviderMetadataRegistry.refreshMetadata(SP_1_ENTITY_ID);
+        }
         assertTrue(serviceProviderMetadataRegistry.get(SP_ENTITY_ID).isUpdatedAndValid());
         assertFalse(serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID).isUpdatedAndValid());
     }
