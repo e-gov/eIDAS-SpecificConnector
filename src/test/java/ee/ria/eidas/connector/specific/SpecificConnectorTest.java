@@ -7,6 +7,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
+import ee.ria.eidas.connector.specific.integration.LightJAXBCodec;
 import eu.eidas.auth.commons.attribute.AttributeDefinition;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
 import eu.eidas.auth.commons.light.impl.LightRequest;
@@ -82,7 +83,7 @@ public abstract class SpecificConnectorTest {
             .keystoreType("PKCS12")
             .httpsPort(8888)
     );
-    protected static EidasNodeCommunication.LightJAXBCodec lightJAXBCodec;
+    protected static LightJAXBCodec lightJAXBCodec = LightJAXBCodec.buildDefault();
     protected static Ignite eidasNodeIgnite;
     private static ListAppender<ILoggingEvent> testLogAppender;
 
@@ -90,13 +91,6 @@ public abstract class SpecificConnectorTest {
         System.setProperty("javax.net.ssl.trustStore", "src/test/resources/__files/mock_keys/specific-connector-tls-truststore.p12");
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
-
-        try {
-            lightJAXBCodec = new EidasNodeCommunication.LightJAXBCodec(JAXBContext.newInstance(LightRequest.class, LightResponse.class,
-                    ImmutableAttributeMap.class, AttributeDefinition.class));
-        } catch (JAXBException e) {
-            log.error("Unable to instantiate in static initializer ", e);
-        }
     }
 
     @MockBean

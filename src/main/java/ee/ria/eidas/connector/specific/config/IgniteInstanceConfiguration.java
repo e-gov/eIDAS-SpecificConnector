@@ -3,6 +3,7 @@ package ee.ria.eidas.connector.specific.config;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +27,7 @@ public class IgniteInstanceConfiguration {
         Ignition.setClientMode(true);
         IgniteConfiguration cfg = Ignition.loadSpringBean(new FileUrlResource(igniteConfig).getInputStream(), "igniteSpecificCommunication.cfg");
         cfg.setIgniteInstanceName(cfg.getIgniteInstanceName() + "Client");
+        cfg.setGridLogger(new Slf4jLogger());
         return Ignition.getOrStart(cfg);
     }
 
