@@ -22,16 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
 public class LightJAXBCodec {
-    protected static final Class<?>[] LIGHT_REQUEST_CODEC = {
-            LightRequest.class
-    };
-    protected static final Class<?>[] LIGHT_RESPONSE_CODEC = {
-            LightResponse.class
-    };
-
-    LightMessagesConverter messagesConverter = new LightMessagesConverter();
-    JAXBContext lightRequestJAXBCtx;
-    JAXBContext lightResponseJAXBCtx;
+    protected static final Class<?>[] LIGHT_REQUEST_CODEC = {LightRequest.class};
+    protected static final Class<?>[] LIGHT_RESPONSE_CODEC = {LightResponse.class};
+    private final LightMessagesConverter messagesConverter = new LightMessagesConverter();
+    private final JAXBContext lightRequestJAXBCtx;
+    private final JAXBContext lightResponseJAXBCtx;
 
     LightJAXBCodec(JAXBContext lightRequestJAXBCtx, JAXBContext lightResponseJAXBCtx) {
         this.lightRequestJAXBCtx = lightRequestJAXBCtx;
@@ -48,9 +43,8 @@ public class LightJAXBCodec {
         try {
             return JAXBContext.newInstance(contextClasses);
         } catch (JAXBException e) {
-            log.error("Unable to instantiate the JAXBContext", e);
+            throw new IllegalArgumentException("Unable to instantiate the JAXBContext", e);
         }
-        return null;
     }
 
     public String marshall(ILightRequest lightRequest) {
@@ -85,7 +79,7 @@ public class LightJAXBCodec {
             return null;
         }
         if (registry == null) {
-            throw new TechnicalException("Invalid LightResponse. Missing attribute registry");
+            throw new TechnicalException("Failed to unmarshal LightResponse! Missing attribute registry.");
         }
         try {
             SAXSource secureSaxSource = SecurityUtils.createSecureSaxSource(input);
