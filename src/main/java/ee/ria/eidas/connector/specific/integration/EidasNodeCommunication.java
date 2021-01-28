@@ -1,17 +1,12 @@
 package ee.ria.eidas.connector.specific.integration;
 
-import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
-import eu.eidas.auth.commons.attribute.*;
-import eu.eidas.auth.commons.attribute.ImmutableAttributeMap.ImmutableAttributeEntry;
+import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.ILightResponse;
-import eu.eidas.auth.commons.light.impl.LightRequest;
-import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
-import eu.eidas.specificcommunication.protocol.util.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.logstash.logback.marker.LogstashMarker;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,20 +20,7 @@ import org.springframework.util.Assert;
 
 import javax.annotation.PostConstruct;
 import javax.cache.Cache;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.sax.SAXSource;
-import java.io.StringWriter;
-import java.net.URI;
-import java.util.Collection;
-import java.util.Optional;
 
-import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static javax.xml.bind.Marshaller.JAXB_ENCODING;
-import static javax.xml.bind.Marshaller.JAXB_FORMATTED_OUTPUT;
 import static net.logstash.logback.argument.StructuredArguments.value;
 import static net.logstash.logback.marker.Markers.append;
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
@@ -46,6 +28,7 @@ import static org.apache.commons.lang.StringUtils.isNotEmpty;
 @Slf4j
 @Service
 public class EidasNodeCommunication {
+    private static final LightJAXBCodec codec = LightJAXBCodec.buildDefault();
 
     @Value("${lightToken.connector.request.issuer.name}")
     private String lightTokenRequestIssuerName;
@@ -77,17 +60,6 @@ public class EidasNodeCommunication {
 
     @Autowired
     private AttributeRegistry supportedAttributesRegistry;
-
-    private static LightJAXBCodec codec;
-
-    static {
-        try {
-            codec = new LightJAXBCodec(JAXBContext.newInstance(LightRequest.class, LightResponse.class,
-                    ImmutableAttributeMap.class, AttributeDefinition.class));
-        } catch (JAXBException e) {
-            log.error("Unable to instantiate in static initializer ", e);
-        }
-    }
 
     @PostConstruct
     public void init() {
@@ -146,87 +118,6 @@ public class EidasNodeCommunication {
             return BinaryLightTokenHelper.getBinaryLightTokenId(binaryLightTokenBase64, lightTokenResponseSecret, lightTokenResponseAlgorithm);
         } catch (SpecificCommunicationException ex) {
             throw new TechnicalException("Unable to create BinaryLightTokenId", ex);
-        }
-    }
-
-    @Slf4j
-    public static class LightJAXBCodec {
-        private final JAXBContext jaxbCtx;
-
-        public LightJAXBCodec(JAXBContext jaxbCtx) {
-            this.jaxbCtx = jaxbCtx;
-        }
-
-        public <T> String marshall(T input) {
-            if (input == null) {
-                return null;
-            }
-            StringWriter writer = new StringWriter();
-            try {
-                createMarshaller().marshal(input, writer);
-            } catch (JAXBException e) {
-                throw new TechnicalException("Invalid LightResponse", e);
-            }
-            return writer.toString();
-        }
-
-        @Nullable
-        @SuppressWarnings("unchecked")
-        public <T extends ILightResponse> T unmarshallResponse(String input, Collection<AttributeDefinition<?>> registry) {
-            if (input == null) {
-                return null;
-            }
-            if (registry == null) {
-                throw new TechnicalException("Invalid LightResponse. Missing attribute registry");
-            }
-            try {
-                SAXSource secureSaxSource = SecurityUtils.createSecureSaxSource(input);
-                T unmarshalled = (T) createUnmarshaller().unmarshal(secureSaxSource);
-                LightResponse.Builder resultBuilder = LightResponse.builder(unmarshalled);
-                ImmutableAttributeMap.Builder mapBuilder = ImmutableAttributeMap.builder();
-                for (ImmutableAttributeEntry<?> entry : unmarshalled.getAttributes().entrySet()) {
-                    URI nameUri = entry.getKey().getNameUri();
-                    AttributeDefinition<?> definition = getByName(nameUri, registry);
-                    ImmutableSet values = unmarshalValues(entry, definition);
-                    mapBuilder.put(definition, values);
-                }
-                return (T) resultBuilder.attributes(mapBuilder.build()).build();
-            } catch (Exception e) {
-                throw new TechnicalException("Invalid LightResponse", e);
-            }
-        }
-
-        private ImmutableSet<AttributeValue<?>> unmarshalValues(ImmutableAttributeEntry<?> entry, AttributeDefinition<?> definition)
-                throws AttributeValueMarshallingException {
-            ImmutableSet.Builder<AttributeValue<?>> valuesBuilder = ImmutableSet.builder();
-            AttributeValueMarshaller<?> valueMarshaller = definition.getAttributeValueMarshaller();
-            for (Object value : entry.getValues()) {
-                valuesBuilder.add(valueMarshaller.unmarshal(value.toString(), definition.isTransliterationMandatory()));
-            }
-            return valuesBuilder.build();
-        }
-
-        private AttributeDefinition<?> getByName(URI nameUri, Collection<AttributeDefinition<?>> registry) {
-            Assert.notNull(nameUri, "nameUri cannot be null");
-            Optional<AttributeDefinition<?>> firstMatch = registry.stream()
-                    .filter(attributeDefinition -> nameUri.equals(attributeDefinition.getNameUri()))
-                    .findFirst();
-            if (firstMatch.isPresent()) {
-                return firstMatch.get();
-            } else {
-                throw new TechnicalException(format("Invalid LightResponse. Attribute %s not present in the registry", nameUri));
-            }
-        }
-
-        private Marshaller createMarshaller() throws JAXBException {
-            Marshaller marshaller = jaxbCtx.createMarshaller();
-            marshaller.setProperty(JAXB_ENCODING, UTF_8.name());
-            marshaller.setProperty(JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-            return marshaller;
-        }
-
-        private Unmarshaller createUnmarshaller() throws JAXBException {
-            return jaxbCtx.createUnmarshaller();
         }
     }
 }
