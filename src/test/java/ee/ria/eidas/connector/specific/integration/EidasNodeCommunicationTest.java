@@ -53,9 +53,6 @@ class EidasNodeCommunicationTest extends SpecificConnectorTest {
     @Autowired
     Cache<String, String> specificNodeConnectorRequestCache;
 
-    @Autowired
-    MappingJackson2XmlHttpMessageConverter xmlMapper;
-
     @Test
     void lightRequestRetrieavableByLightTokenWhen_putLightRequest() throws IOException, UnmarshallingException, XMLParserException, SpecificCommunicationException, JAXBException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
@@ -67,8 +64,7 @@ class EidasNodeCommunicationTest extends SpecificConnectorTest {
         String lightRequestFromCache = specificNodeConnectorRequestCache.getAndRemove(tokenId);
         assertNotNull(lightRequestFromCache);
 
-        EidasNodeCommunication.LightJAXBCodec codec = new EidasNodeCommunication.LightJAXBCodec(JAXBContext.newInstance(LightRequest.class, LightResponse.class,
-                ImmutableAttributeMap.class, AttributeDefinition.class));
+        LightJAXBCodec codec = LightJAXBCodec.buildDefault();
         String originalLightRequest = codec.marshall(lightRequest);
         assertEquals(originalLightRequest, lightRequestFromCache);
     }
