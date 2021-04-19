@@ -39,31 +39,31 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
 
     @Test
     void truststoreWarningWhen_CertificateAboutToExpire() {
-        Instant expectedTime = Instant.parse("2021-04-14T08:50:00Z");
+        Instant expectedTime = Instant.parse("2031-04-14T08:50:00Z");
         Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(expectedTime, of("UTC")));
         Response healthResponse = getHealthResponse();
 
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
         assertNotNull(warnings);
         Optional<String> authenticationService = warnings.stream()
-                .filter(w -> w.contains("1589359800"))
+                .filter(w -> w.contains("1618831237"))
                 .findFirst();
-        assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1589359800' is expiring at 2021-05-13T08:50:00Z", authenticationService.get());
+        assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1618831237' is expiring at 2031-04-19T11:20:37Z", authenticationService.get());
         assertDependenciesUp(healthResponse, Dependencies.TRUSTSTORE);
     }
 
     @Test
     void truststoreWarningAndHealthStatusDownWhen_CertificateExpired() {
-        Instant expectedTime = Instant.parse("2021-05-13T08:51:00Z");
+        Instant expectedTime = Instant.parse("2031-05-13T08:51:00Z");
         Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(expectedTime, of("UTC")));
         Response healthResponse = getHealthResponse();
 
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
         assertNotNull(warnings);
         Optional<String> authenticationService = warnings.stream()
-                .filter(w -> w.contains("1589359800"))
+                .filter(w -> w.contains("1618831237"))
                 .findFirst();
-        assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1589359800' is expiring at 2021-05-13T08:50:00Z", authenticationService.get());
+        assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1618831237' is expiring at 2031-04-19T11:20:37Z", authenticationService.get());
         assertDependenciesDown(healthResponse, Dependencies.TRUSTSTORE);
     }
 }
