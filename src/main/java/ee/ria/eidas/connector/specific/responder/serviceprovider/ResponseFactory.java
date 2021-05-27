@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import com.google.common.collect.ImmutableSet;
+import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
@@ -24,6 +25,7 @@ import org.opensaml.security.SecurityException;
 import org.opensaml.xmlsec.encryption.support.EncryptionException;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import javax.xml.namespace.QName;
@@ -50,6 +52,9 @@ public class ResponseFactory {
     @Autowired
     private String specificConnectorIP;
 
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
     private static final RandomIdentifierGenerationStrategy secureRandomIdGenerator = new RandomIdentifierGenerationStrategy(32);
 
     public String createSamlResponse(AuthnRequest authnRequest, ILightResponse lightResponse, ServiceProviderMetadata spMetadata) {
@@ -58,6 +63,7 @@ public class ResponseFactory {
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
         } catch (EncryptionException | AttributeValueMarshallingException | SecurityException | MarshallingException | SignatureException | ResolverException ex) {
+            applicationEventPublisher.publishEvent(new ResponderMetadataConfiguration.FailedSigningEvent());
             throw new TechnicalException("Unable to create SAML Response", ex);
         }
     }
@@ -69,6 +75,7 @@ public class ResponseFactory {
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
         } catch (Exception ex) {
+            applicationEventPublisher.publishEvent(new ResponderMetadataConfiguration.FailedSigningEvent());
             throw new TechnicalException("Unable to create SAML Error Response", ex);
         }
     }

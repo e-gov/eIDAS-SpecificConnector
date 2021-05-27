@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -24,7 +25,10 @@ import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {SpecificConnectorConfiguration.class, ResponderMetadataConfiguration.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
 @EnableConfigurationProperties(value = SpecificConnectorProperties.class)
@@ -131,6 +135,50 @@ public class SpecificConnectorPropertiesValidationTests {
         ConstraintViolation<SpecificConnectorProperties> constraintViolation = validate();
         assertEquals("minKeySize <= maxKeySize", constraintViolation.getMessage());
         assertEquals("responderMetadata.signingMethods[0].minKeySize", constraintViolation.getPropertyPath().toString());
+    }
+
+    @Test
+    void validationFailsWhen_HsmNotEnabled_AndKeyPasswordNotSet() {
+        specificConnectorProperties.getHsm().setEnabled(false);
+        specificConnectorProperties.getResponderMetadata().setKeyPassword(null);
+        ConstraintViolation<SpecificConnectorProperties> constraintViolation = validate();
+        assertEquals("'eidas.connector.responder-metadata.key-password' property must be set if 'eidas.connector.hsm.enabled=false'", constraintViolation.getMessage());
+    }
+
+    @Test
+    void validationFailsWhen_HsmEnabled_AndSlotNotSetAndSlotIndexIsSet() {
+        specificConnectorProperties.getHsm().setEnabled(true);
+        specificConnectorProperties.getHsm().setLibrary("/");
+        specificConnectorProperties.getHsm().setPin("1234");
+        specificConnectorProperties.getHsm().setSlot(null);
+        specificConnectorProperties.getHsm().setSlotListIndex(null);
+        ConstraintViolation<SpecificConnectorProperties> constraintViolation = validate();
+        assertEquals("Invalid HSM configuration", constraintViolation.getMessage());
+    }
+
+    @Test
+    void validationSucceedsWhen_HsmEnabled_AndSlotIsSet() {
+        specificConnectorProperties.getHsm().setEnabled(true);
+        specificConnectorProperties.getHsm().setLibrary("/");
+        specificConnectorProperties.getHsm().setPin("1234");
+        specificConnectorProperties.getHsm().setSlot("0");
+        specificConnectorProperties.getHsm().setSlotListIndex(null);
+        assertNoValidationErrors();
+    }
+
+    @Test
+    void validationSucceedsWhen_HsmEnabled_AndSlotListIndexIsSet() {
+        specificConnectorProperties.getHsm().setEnabled(true);
+        specificConnectorProperties.getHsm().setLibrary("/");
+        specificConnectorProperties.getHsm().setPin("1234");
+        specificConnectorProperties.getHsm().setSlot(null);
+        specificConnectorProperties.getHsm().setSlotListIndex(0);
+        assertNoValidationErrors();
+    }
+
+    private void assertNoValidationErrors() {
+        Set<ConstraintViolation<SpecificConnectorProperties>> constraintViolations = validator.validate(specificConnectorProperties);
+        assertTrue(constraintViolations.isEmpty());
     }
 
     private ConstraintViolation<SpecificConnectorProperties> validate() {

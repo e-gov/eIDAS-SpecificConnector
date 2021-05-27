@@ -62,11 +62,17 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 
 | Parameter        | Mandatory | Description, example |
 | :---------------- | :---------- | :----------------|
+| `eidas.connector.hsm.enabled` | Ei | Whether to enable Hardware Security Module. Default value: `false` |
+| `eidas.connector.hsm.pin` | Jah<sup>1</sup> | Password to access Hardware Security Module. |
+| `eidas.connector.hsm.library` | Jah <sup>1</sup> | Liidestava füüsilise turvamooduli juhtprogrammi asukoht. Näidisväärtus `/usr/lib/softhsm/libsofthsm2.so` kui testida SoftHSM või HSM tootja spetsiifiline teek `/usr/safenet/lunaclient/lib/libCryptoki2_64.so`  |
+| `eidas.connector.hsm.slot` | Jah <sup>1,2</sup> | Füüsilise turvamooduli slotti identifikaator. Näidisväärtus `0` |
+| `eidas.connector.hsm.slot-list-index` | Jah <sup>1,2</sup> | Füüsilise turvamooduli slotti järjekorra indeks. Näidisväärtus `0` |
+| `eidas.connector.hsm.certificates-from-hsm` | Ei <sup>3</sup> | Märgib kas sertifikaadid on lisaks võtmetele leitavad füüsiliselt turvamoodulilt. Vaikimisi `false` |
 | `eidas.connector.responder-metadata.key-store` | Yes | Path to key store. Example: file:/etc/eidasconf/keystore/responder-metadata-keystore.p12 |
 | `eidas.connector.responder-metadata.key-store-password` | Yes | Key store password |
 | `eidas.connector.responder-metadata.key-store-type` | No | Key store type. Default value: PKCS12 |
-| `eidas.connector.responder-metadata.key-alias` | Yes | Key alias in key store |
-| `eidas.connector.responder-metadata.key-password` | Yes | Key password in key store |
+| `eidas.connector.responder-metadata.key-alias` | Yes <sup>5</sup> | Key alias in key store |
+| `eidas.connector.responder-metadata.key-password` | Yes <sup>4</sup> | Key password in key store |
 | `eidas.connector.responder-metadata.trust-store` | Yes | Path to key store. Example: file:/etc/eidasconf/keystore/responder-metadata-truststore.p12 |
 | `eidas.connector.responder-metadata.trust-store-password` | Yes | Trust store password |
 | `eidas.connector.responder-metadata.trust-store-type` | No | Trust store type. Default value: PKCS12 |
@@ -99,6 +105,16 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.contacts[X].type` | Yes | Contact type. Possible values: `technical`,`support`,`administrative`,`billing`,`other`
 
 * Where X is index starting from zero and incremented for each new signing method, contact, supported attribute.
+
+<sup>1</sup> Mandatory only when `eidas.connector.hsm.enabled=true`
+
+<sup>2</sup> When `eidas.connector.hsm.slot` is set, then `eidas.connector.hsm.slot-list-index` value is ignored and is not mandatory.
+
+<sup>3</sup> When `eidas.connector.hsm.certificates-from-hsm=false`, siis peavad sertifikaadid olema leitavad sama aliase järgi tarkvaralisest võtmehoidjast `eidas.connector.responder-metadata.key-store`
+
+<sup>4</sup> When `eidas.connector.hsm.enabled=true`, then this property is ignored.
+
+<sup>5</sup> Applies to both software and hardware key stores.
 
 | Default values        |
 | :---------------- |

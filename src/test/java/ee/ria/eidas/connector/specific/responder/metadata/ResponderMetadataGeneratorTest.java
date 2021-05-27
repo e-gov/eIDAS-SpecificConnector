@@ -81,6 +81,9 @@ class ResponderMetadataGeneratorTest {
     @Autowired
     AttributeRegistry supportedAttributesRegistry;
 
+    @Autowired
+    BasicX509Credential signingCredential;
+
     @TestFactory
     Stream<DynamicNode> validResponderMetadata() {
         DateTime metadataRequestTime = DateTime.now();
@@ -160,7 +163,7 @@ class ResponderMetadataGeneratorTest {
         assertNotNull(signature.getKeyInfo());
         X509Certificate signingCertificate = signature.getKeyInfo().getX509Datas().get(0).getX509Certificates().get(0);
         assertNotNull(signingCertificate);
-        assertEquals(responderMetadataSigner.getSigningCredential(), signature.getSigningCredential());
+        assertEquals(signingCredential, signature.getSigningCredential());
     }
 
     private void assertMetadataSigningAlgorithm(Signature signature) {
@@ -195,7 +198,7 @@ class ResponderMetadataGeneratorTest {
         assertNotNull(signingCertificate);
         String responseSigningCertificate = signingCertificate.getValue();
         assertNotNull(responseSigningCertificate);
-        byte[] expectedSigningCertificate = ((BasicX509Credential) responderMetadataSigner.getSigningCredential()).getEntityCertificate().getEncoded();
+        byte[] expectedSigningCertificate = signingCredential.getEntityCertificate().getEncoded();
         assertArrayEquals(expectedSigningCertificate, Base64.decode(responseSigningCertificate));
     }
 

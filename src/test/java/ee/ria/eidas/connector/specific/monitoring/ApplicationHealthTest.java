@@ -106,6 +106,7 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
     @RequiredArgsConstructor
     public enum Dependencies {
         IGNITE_CLUSTER("igniteCluster"),
+        RESPONDER_METADATA("responderMetadata"),
         CONNECTOR_METADATA("connectorMetadata"),
         SP_METADATA("sp-service-provider-metadata"),
         TRUSTSTORE("truststore");
