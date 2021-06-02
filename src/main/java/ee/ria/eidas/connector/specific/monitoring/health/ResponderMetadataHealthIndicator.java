@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.String.format;
 import static java.time.Instant.now;
-import static java.time.ZoneOffset.UTC;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static net.logstash.logback.argument.StructuredArguments.value;
@@ -35,7 +34,7 @@ import static net.logstash.logback.marker.Markers.append;
 @Component
 public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     public static final String SIGNING_CERTIFICATE_EXPIRATION_WARNING = "Responder metadata signing certificate '%s' with serial number '%s' is expiring at %s";
-    private static final String SIGNING_CERTIFICATE_IVALID_WARNING = "Responder metadata signing certificate '{}' with serial number '{}' is not valid. Validity period {} - {}";
+    private static final String SIGNING_CERTIFICATE_INVALID_WARNING = "Responder metadata signing certificate '{}' with serial number '{}' is not valid. Validity period {} - {}";
     private static final String SIGNING_OPERATION_FAILED_WARNING = "Signing with credential '{}' failed";
     private static final String SIGNING_OPERATION_RECOVERED = "Signing with credential '{}' recovered";
     private final AtomicBoolean credentialInFailedState = new AtomicBoolean();
@@ -64,7 +63,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     protected void doHealthCheck(Health.Builder builder) {
         if (isSigningCertificateExpired()) {
             X509Certificate x509 = signingCredential.getEntityCertificate();
-            log.warn(SIGNING_CERTIFICATE_IVALID_WARNING, signingCredential.getEntityId(),
+            log.warn(SIGNING_CERTIFICATE_INVALID_WARNING, signingCredential.getEntityId(),
                     value("x509.serial_number", x509.getSerialNumber()),
                     value("x509.not_before", x509.getNotBefore().toInstant()),
                     value("x509.not_after", x509.getNotAfter().toInstant()));
