@@ -13,6 +13,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import static org.apache.logging.log4j.util.Strings.isBlank;
 import static org.springframework.util.StringUtils.isEmpty;
 
 @Target({ElementType.TYPE})
@@ -38,7 +39,8 @@ class HsmConfigurationValidator implements ConstraintValidator<ValidHsmConfigura
             context.buildConstraintViolationWithTemplate("'eidas.connector.responder-metadata.key-password' property must be set if 'eidas.connector.hsm.enabled=false'")
                     .addConstraintViolation();
             return false;
-        } else return hsmDisabled || (!isEmpty(hsmProperties.getLibrary()) && ((hsmProperties.getSlotListIndex() != null || hsmProperties.getSlot() != null)
-                || isEmpty(hsmProperties.getPin())));
+        } else return hsmDisabled
+                || (!isBlank(hsmProperties.getLibrary()) && !isBlank(hsmProperties.getPin())
+                && (hsmProperties.getSlotListIndex() != null || !isBlank(hsmProperties.getSlot())));
     }
 }
