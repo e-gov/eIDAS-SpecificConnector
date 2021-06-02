@@ -88,7 +88,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
                 credentialInFailedState.set(false);
                 return false;
             } catch (Exception ex) {
-                log.warn(marker, SIGNING_OPERATION_FAILED_WARNING, signingCredential.getEntityId());
+                log.error(marker, SIGNING_OPERATION_FAILED_WARNING, signingCredential.getEntityId(), ex);
                 return true;
             }
         } else {
