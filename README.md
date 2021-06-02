@@ -62,30 +62,30 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 
 | Parameter        | Mandatory | Description, example |
 | :---------------- | :---------- | :----------------|
-| `eidas.connector.hsm.enabled` | Ei | Whether to enable Hardware Security Module. Default value: `false` |
-| `eidas.connector.hsm.pin` | Jah<sup>1</sup> | Password to access Hardware Security Module. |
-| `eidas.connector.hsm.library` | Jah <sup>1</sup> | Liidestava füüsilise turvamooduli juhtprogrammi asukoht. Näidisväärtus `/usr/lib/softhsm/libsofthsm2.so` kui testida SoftHSM või HSM tootja spetsiifiline teek `/usr/safenet/lunaclient/lib/libCryptoki2_64.so`  |
-| `eidas.connector.hsm.slot` | Jah <sup>1,2</sup> | Füüsilise turvamooduli slotti identifikaator. Näidisväärtus `0` |
-| `eidas.connector.hsm.slot-list-index` | Jah <sup>1,2</sup> | Füüsilise turvamooduli slotti järjekorra indeks. Näidisväärtus `0` |
-| `eidas.connector.hsm.certificates-from-hsm` | Ei <sup>3</sup> | Märgib kas sertifikaadid on lisaks võtmetele leitavad füüsiliselt turvamoodulilt. Vaikimisi `false` |
-| `eidas.connector.responder-metadata.key-store` | Yes | Path to key store. Example: file:/etc/eidasconf/keystore/responder-metadata-keystore.p12 |
+| `eidas.connector.hsm.enabled` | No | Whether to enable Hardware Security Module (HSM). Default value: `false` |
+| `eidas.connector.hsm.pin` | Yes<sup>1</sup> | Password to access partition. |
+| `eidas.connector.hsm.library` | Yes <sup>1</sup> | Vendor specific PKCS#11 library path. Example: `/usr/lib/softhsm/libsofthsm2.so` for testing SoftHSM or vendor specific library `/usr/safenet/lunaclient/lib/libCryptoki2_64.so`  |
+| `eidas.connector.hsm.slot` | Yes <sup>1,2</sup> | Slot id. Example: `636432988` |
+| `eidas.connector.hsm.slot-list-index` | Yes <sup>1,2</sup> | Slot index. Example: `0` |
+| `eidas.connector.hsm.certificates-from-hsm` | No <sup>3</sup> | Denotes if certificates should be loaded from HSM. Default value: `false` |
+| `eidas.connector.responder-metadata.key-store` | Yes | Path to key store. Example: `file:/etc/eidasconf/keystore/responder-metadata-keystore.p12` |
 | `eidas.connector.responder-metadata.key-store-password` | Yes | Key store password |
-| `eidas.connector.responder-metadata.key-store-type` | No | Key store type. Default value: PKCS12 |
+| `eidas.connector.responder-metadata.key-store-type` | No | Key store type. Default value: `PKCS12` |
 | `eidas.connector.responder-metadata.key-alias` | Yes <sup>5</sup> | Key alias in key store |
 | `eidas.connector.responder-metadata.key-password` | Yes <sup>4</sup> | Key password in key store |
-| `eidas.connector.responder-metadata.trust-store` | Yes | Path to key store. Example: file:/etc/eidasconf/keystore/responder-metadata-truststore.p12 |
+| `eidas.connector.responder-metadata.trust-store` | Yes | Path to key store. Example: `file:/etc/eidasconf/keystore/responder-metadata-truststore.p12` |
 | `eidas.connector.responder-metadata.trust-store-password` | Yes | Trust store password |
-| `eidas.connector.responder-metadata.trust-store-type` | No | Trust store type. Default value: PKCS12 |
-| `eidas.connector.responder-metadata.signature-algorithm` | No | Signature algorithm used to sign published metadata, SAML response objects and assertions (defined by RFC 4051). Default value: http://www.w3.org/2001/04/xmldsig-more#rsa-sha512 |
-| `eidas.connector.responder-metadata.key-transport-algorithm` | No | Key transport algorithm used in SAML response assertions encryption. Default value: http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p |
-| `eidas.connector.responder-metadata.encryption-algorithm` | No | Algorithm used in SAML response assertions encryption. Default value: http://www.w3.org/2009/xmlenc11#aes256-gcm |
+| `eidas.connector.responder-metadata.trust-store-type` | No | Trust store type. Default value: `PKCS12` |
+| `eidas.connector.responder-metadata.signature-algorithm` | No | Signature algorithm used to sign published metadata, SAML response objects and assertions (defined by RFC 4051). Default value: `http://www.w3.org/2001/04/xmldsig-more#rsa-sha512` |
+| `eidas.connector.responder-metadata.key-transport-algorithm` | No | Key transport algorithm used in SAML response assertions encryption. Default value: `http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p` |
+| `eidas.connector.responder-metadata.encryption-algorithm` | No | Algorithm used in SAML response assertions encryption. Default value: `http://www.w3.org/2009/xmlenc11#aes256-gcm` |
 | `eidas.connector.responder-metadata.path` | No | Metadata endpoint path. https://eidas-specificconnector:8443/SpecificConnector/{eidas.connector.responder-metadata.path}. Default value: `ConnectorResponderMetadata` |
-| `eidas.connector.responder-metadata.entity-id` | Yes | Exact HTTPS URL where metadata is published. Examlpe: https://eidas-specificconnector:8443/SpecificConnector/ConnectorResponderMetadata |
-| `eidas.connector.responder-metadata.sso-service-url` | Yes | Exact HTTPS URL where authentication endpoint for service providers is located. Example: https://eidas-specificconnector:8443/SpecificConnector/ServiceProvider |
+| `eidas.connector.responder-metadata.entity-id` | Yes | Exact HTTPS URL where metadata is published. Examlpe: `https://eidas-specificconnector:8443/SpecificConnector/ConnectorResponderMetadata` |
+| `eidas.connector.responder-metadata.sso-service-url` | Yes | Exact HTTPS URL where authentication endpoint for service providers is located. Example: `https://eidas-specificconnector:8443/SpecificConnector/ServiceProvider` |
 | `eidas.connector.responder-metadata.name-id-format` | No | Possible values: `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`,`urn:oasis:names:tc:SAML:2.0:nameid-format:transient`,`urn:oasis:names:tc:SAML:2.0:nameid-format:persistent` |
 | `eidas.connector.responder-metadata.sp-type` | No | Public or private sector service provider. Possible values: `public`, `private` |
-| `eidas.connector.responder-metadata.validity-interval` | No | Metadata validity duration. [Defined as standard ISO-8601 format used by java.time.Duration](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-conversion-duration) Default value: 1d |
-| `eidas.connector.responder-metadata.assertion-validity-interval` | No | Authentication response assertion validity duration. [Defined as standard ISO-8601 format used by java.time.Duration](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-conversion-duration) Default value: 5m |
+| `eidas.connector.responder-metadata.validity-interval` | No | Metadata validity duration. [Defined as standard ISO-8601 format used by java.time.Duration](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-conversion-duration) Default value: `1d` |
+| `eidas.connector.responder-metadata.assertion-validity-interval` | No | Authentication response assertion validity duration. [Defined as standard ISO-8601 format used by java.time.Duration](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-conversion-duration) Default value: `5m` |
 | `eidas.connector.responder-metadata.supported-member-states` | Yes | Supported member states for authentication (defined by ISO 3166-1 alpha-2) |
 | `eidas.connector.responder-metadata.supported-bindings` | No | Possible values: `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST`, `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect`. Default value:`urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST,urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect` |
 | `eidas.connector.responder-metadata.digest-methods` | No | Supported digest methods. Default value: `http://www.w3.org/2001/04/xmlenc#sha256,http://www.w3.org/2001/04/xmlenc#sha512` |
@@ -110,7 +110,7 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 
 <sup>2</sup> When `eidas.connector.hsm.slot` is set, then `eidas.connector.hsm.slot-list-index` value is ignored and is not mandatory.
 
-<sup>3</sup> When `eidas.connector.hsm.certificates-from-hsm=false`, siis peavad sertifikaadid olema leitavad sama aliase järgi tarkvaralisest võtmehoidjast `eidas.connector.responder-metadata.key-store`
+<sup>3</sup> When `eidas.connector.hsm.certificates-from-hsm=false`, then certificates must be found from software key store `eidas.connector.responder-metadata.key-store` by the same aliases
 
 <sup>4</sup> When `eidas.connector.hsm.enabled=true`, then this property is ignored.
 
@@ -118,6 +118,8 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 
 | Default values        |
 | :---------------- |
+| `eidas.connector.hsm.enabled=false`
+| `eidas.connector.hsm.certificates-from-hsm=false`
 | `eidas.connector.responder-metadata.path=ConnectorResponderMetadata` |
 | `eidas.connector.responder-metadata.sp-type=public` |
 | `eidas.connector.responder-metadata.validity-in-days=1` |
@@ -341,10 +343,10 @@ If there is a problem connecting to service provider metadata, then `eidas.conne
 
 | Parameter        | Mandatory | Description, example |
 | :---------------- | :---------- | :----------------|
-| `eidas.connector.service-provider-metadata-min-refresh-delay` | No | Sets the minimum amount of time, in milliseconds, between refreshes. Default value: 60000 (60 seconds) |
-| `eidas.connector.service-provider-metadata-max-refresh-delay` | No |  Refresh interval used when metadata does not contain any validUntil or cacheDuration information. Default value: 14400000 (4 hours) |
-| `eidas.connector.service-provider-metadata-refresh-delay-factor` | No | Sets the delay factor used to compute the next refresh time. The delay must be between 0.0 and 1.0 exclusive. |
-| `eidas.connector.add-saml-error-assertion` | No | Backwards compatibility option for eIDAS-Client to add encrypted assertion, when authentication fails. Default value: false |
+| `eidas.connector.service-provider-metadata-min-refresh-delay` | No | Sets the minimum amount of time, in milliseconds, between refreshes. Default value: `60000` (60 seconds) |
+| `eidas.connector.service-provider-metadata-max-refresh-delay` | No |  Refresh interval used when metadata does not contain any validUntil or cacheDuration information. Default value: `14400000` (4 hours) |
+| `eidas.connector.service-provider-metadata-refresh-delay-factor` | No | Sets the delay factor used to compute the next refresh time. The delay must be between `0.0` and `1.0` exclusive. |
+| `eidas.connector.add-saml-error-assertion` | No | Backwards compatibility option for eIDAS-Client to add encrypted assertion, when authentication fails. Default value: `false` |
 
 <a name="logging"></a>
 ## 5. Logging
