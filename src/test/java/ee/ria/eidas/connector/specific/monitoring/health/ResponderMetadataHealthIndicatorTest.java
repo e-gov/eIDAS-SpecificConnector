@@ -35,8 +35,7 @@ import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 
-import static ch.qos.logback.classic.Level.INFO;
-import static ch.qos.logback.classic.Level.WARN;
+import static ch.qos.logback.classic.Level.*;
 import static ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator.SIGNING_CERTIFICATE_EXPIRATION_WARNING;
 import static java.lang.String.format;
 import static java.time.ZoneId.of;
@@ -115,7 +114,7 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
         assertEquals("Signing exception", technicalException.getCause().getMessage());
         Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.RESPONDER_METADATA);
-        assertLogs(WARN, "Signing with credential 'responder-metadata-sign' failed");
+        assertLogs(ERROR, "Signing with credential 'responder-metadata-sign' failed");
         Mockito.reset(signingCredential);
         responderMetadataGenerator.createSignedMetadata();
         healthResponse = getHealthResponse();
@@ -146,7 +145,7 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
         assertEquals("Signing exception", technicalException.getCause().getMessage());
         Response healthResponse = getHealthResponse();
         assertDependenciesDown(healthResponse, Dependencies.RESPONDER_METADATA);
-        assertLogs(WARN, "Signing with credential 'responder-metadata-sign' failed");
+        assertLogs(ERROR, "Signing with credential 'responder-metadata-sign' failed");
         Mockito.reset(signingCredential);
         responseFactory.createSamlResponse(authnRequest, lightResponse, spMetadata);
         healthResponse = getHealthResponse();

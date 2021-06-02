@@ -16,7 +16,6 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.Period;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -24,8 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.String.format;
-import static java.time.OffsetDateTime.now;
-import static java.time.ZoneOffset.UTC;
+import static java.time.Instant.now;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -68,9 +66,9 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
                 .collect(toList());
     }
 
-    private Map<String, CertificateInfo> getCertificatesExpiredAt(OffsetDateTime expired) {
+    private Map<String, CertificateInfo> getCertificatesExpiredAt(Instant expired) {
         return trustStoreCertificates.entrySet().stream()
-                .filter(es -> expired.isAfter(es.getValue().getValidTo().atOffset(UTC)))
+                .filter(es -> expired.isAfter(es.getValue().getValidTo()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

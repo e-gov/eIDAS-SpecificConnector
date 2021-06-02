@@ -18,13 +18,13 @@ import org.springframework.stereotype.Component;
 
 import java.security.cert.X509Certificate;
 import java.time.Clock;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.time.Period;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.String.format;
-import static java.time.OffsetDateTime.now;
+import static java.time.Instant.now;
 import static java.time.ZoneOffset.UTC;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -97,16 +97,16 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     }
 
     private boolean isSigningCertificateExpired() {
-        OffsetDateTime currentDateTime = now(getSystemClock());
+        Instant currentDateTime = now(getSystemClock());
         X509Certificate x509 = signingCredential.getEntityCertificate();
-        return currentDateTime.isAfter(x509.getNotAfter().toInstant().atOffset(UTC)) ||
-                currentDateTime.isBefore(x509.getNotBefore().toInstant().atOffset(UTC));
+        return currentDateTime.isAfter(x509.getNotAfter().toInstant()) ||
+                currentDateTime.isBefore(x509.getNotBefore().toInstant());
     }
 
     public Optional<String> getSigningCertificateExpirationWarning() {
-        OffsetDateTime currentDateTime = now(getSystemClock());
+        Instant currentDateTime = now(getSystemClock());
         X509Certificate x509 = signingCredential.getEntityCertificate();
-        OffsetDateTime certificateExpiry = x509.getNotAfter().toInstant().atOffset(UTC);
+        Instant certificateExpiry = x509.getNotAfter().toInstant();
         if (currentDateTime.plus(keyStoreExpirationWarningPeriod).isAfter(certificateExpiry)) {
             return of(format(SIGNING_CERTIFICATE_EXPIRATION_WARNING,
                     x509.getSubjectDN(),
