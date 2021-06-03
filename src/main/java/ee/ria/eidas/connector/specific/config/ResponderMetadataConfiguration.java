@@ -16,7 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import sun.security.pkcs11.SunPKCS11;
@@ -79,7 +78,6 @@ public class ResponderMetadataConfiguration {
     }
 
     @Bean
-    @Primary
     @ConditionalOnProperty(name = "eidas.connector.hsm.enabled", havingValue = "false", matchIfMissing = true)
     public BasicX509Credential signingCredential(ResponderMetadata responderMetadata, KeyStore responderMetadataKeyStore) throws Exception {
         String alias = responderMetadata.getKeyAlias();
