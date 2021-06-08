@@ -9,11 +9,9 @@ import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeLegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.RepresentativeNaturalPersonSpec;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.opensaml.security.x509.BasicX509Credential;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
@@ -27,8 +25,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
 @Configuration
@@ -70,7 +66,7 @@ public class ResponderMetadataConfiguration {
         log.info("Hardware security module enabled. Slot/slot index: {}/{}, Library: {}",
                 hsmProperties.getSlot(), hsmProperties.getSlotListIndex(),
                 hsmProperties.getLibrary());
-        SunPKCS11 provider = new SunPKCS11(new ByteArrayInputStream(hsmProperties.toString().getBytes(UTF_8)));
+        SunPKCS11 provider = new SunPKCS11(new ByteArrayInputStream(hsmProperties.toString().getBytes()));
         Security.addProvider(provider);
         KeyStore keyStore = KeyStore.getInstance("PKCS11", provider);
         keyStore.load(null, hsmProperties.getPin().toCharArray());
@@ -100,13 +96,5 @@ public class ResponderMetadataConfiguration {
         BasicX509Credential basicX509Credential = new BasicX509Credential(x509Cert, privateKey);
         basicX509Credential.setEntityId(alias);
         return basicX509Credential;
-    }
-
-    @Getter
-    public static class FailedSigningEvent extends ApplicationEvent {
-
-        public FailedSigningEvent() {
-            super("");
-        }
     }
 }
