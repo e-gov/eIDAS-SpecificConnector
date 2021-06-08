@@ -698,7 +698,7 @@ Example log message containing failed Autentication end event (saml_response):
 
 ### 6.2 Custom application health endpoint configuration
 
-`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `truststore`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
+`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `responderMetadata`, `truststore`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
 
 Request:
 
@@ -734,6 +734,10 @@ Response:
     {
       "name": "connectorMetadata",
       "status": "UP"
+    },
+    {
+      "name": "responderMetadata",
+      "status": "UP"
     }
   ]
 }
@@ -749,7 +753,9 @@ Response:
 | `management.health.defaults.enabled` | No | Whether to enable default Spring Boot Actuator health indicators. Recommended value `false` |
 | `management.info.git.mode` | No | Mode to use to expose git information. Recommended value `full` |
 | `eidas.connector.health.dependencies.connect-timeout` | No | Timeout for `connectorMetadata` health indicators. Defaults to `3s` |
-| `eidas.connector.health.trust-store-expiration-warning` | No | Certificate expiration warning period for `truststore` health indicator. Default value `30d` |
+| `eidas.connector.health.hsm-test-interval` | No | Minimum interval for testing hardware security module for `responderMetadata` health indicator. Defaults to `60s` |
+| `eidas.connector.health.key-store-expiration-warning` | No | Responder metadata certificate expiration warning period for `responderMetadata` health indicator. Default value `30d` |
+| `eidas.connector.health.trust-store-expiration-warning` | No | Trusted certificates expiration warning period for `truststore` health indicator. Default value `30d` |
 
 <a name="security"></a>
 ## 7. Security

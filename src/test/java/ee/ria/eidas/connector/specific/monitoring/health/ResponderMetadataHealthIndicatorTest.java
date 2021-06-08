@@ -15,17 +15,17 @@ import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import io.restassured.response.Response;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.saml2.core.AuthnRequest;
-import org.opensaml.security.x509.BasicX509Credential;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
@@ -38,10 +38,13 @@ import java.util.Optional;
 import static ch.qos.logback.classic.Level.*;
 import static ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator.SIGNING_CERTIFICATE_EXPIRATION_WARNING;
 import static java.lang.String.format;
+import static java.time.Instant.now;
 import static java.time.ZoneId.of;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.readFileToByteArray;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.util.ResourceUtils.getFile;
 
@@ -51,12 +54,6 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "management.endpoints.web.exposure.include=heartbeat"
         })
 class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
-
-    @SpyBean
-    ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
-
-    @SpyBean
-    BasicX509Credential signingCredential;
 
     @Autowired
     ResponderMetadataGenerator responderMetadataGenerator;
@@ -73,16 +70,20 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
     @Autowired
     LightRequestFactory lightRequestFactory;
 
-    @AfterEach
-    void cleanUp() {
-        Mockito.reset(responderMetadataHealthIndicator, signingCredential);
+    @BeforeEach
+    void setup() {
+        Mockito.reset(responderMetadataHealthIndicator, signingCredential, hsmProperties);
+        Mockito.doReturn(true).when(hsmProperties).isEnabled();
     }
 
-    @Test
-    void healthStatusDownWhen_SigningCertificateExpired() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void healthStatusDownWhen_SigningCertificateExpired(boolean hsmEnabled) {
+        Mockito.doReturn(hsmEnabled).when(hsmProperties).isEnabled();
+
         X509Certificate x509 = signingCredential.getEntityCertificate();
         Instant certificateExpiryTime = x509.getNotAfter().toInstant().plus(1, SECONDS);
-        Mockito.when(responderMetadataHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(certificateExpiryTime, of("UTC")));
+        Mockito.doReturn(Clock.fixed(certificateExpiryTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
         Response healthResponse = getHealthResponse();
         assertLogs(WARN, format("Responder metadata signing certificate '%s' with serial number '%s' is not valid. Validity period %s - %s",
                 signingCredential.getEntityId(), x509.getSerialNumber().toString(), x509.getNotBefore().toInstant(), x509.getNotAfter().toInstant()));
@@ -91,11 +92,13 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
         assertDependenciesDown(healthResponse, Dependencies.RESPONDER_METADATA);
     }
 
-    @Test
-    void healthStatusDownWhen_SigningCertificateNotActive() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void healthStatusDownWhen_SigningCertificateNotActive(boolean hsmEnabled) {
+        Mockito.doReturn(hsmEnabled).when(hsmProperties).isEnabled();
         X509Certificate x509 = signingCredential.getEntityCertificate();
         Instant certificateExpiryTime = x509.getNotBefore().toInstant().minus(1, SECONDS);
-        Mockito.when(responderMetadataHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(certificateExpiryTime, of("UTC")));
+        Mockito.doReturn(Clock.fixed(certificateExpiryTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
         Response healthResponse = getHealthResponse();
         assertLogs(WARN, format("Responder metadata signing certificate '%s' with serial number '%s' is not valid. Validity period %s - %s",
                 signingCredential.getEntityId(), x509.getSerialNumber().toString(), x509.getNotBefore().toInstant(), x509.getNotAfter().toInstant()));
@@ -106,9 +109,9 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
 
     @Test
     void healthStatusUpWhen_ResponderMetadataGeneratorSigningCredentialRecovers() {
-        Mockito.when(signingCredential.getPrivateKey()).thenAnswer(invocation -> {
+        Mockito.doAnswer(invocation -> {
             throw new SignatureException("Signing exception");
-        });
+        }).when(signingCredential).getPrivateKey();
         TechnicalException technicalException = assertThrows(TechnicalException.class, () -> responderMetadataGenerator.createSignedMetadata());
         assertEquals("Unable to generate responder metadata", technicalException.getMessage());
         assertEquals("Signing exception", technicalException.getCause().getMessage());
@@ -124,9 +127,9 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
 
     @Test
     void healthStatusUpWhen_ResponseFactorySigningCredentialRecovers() throws IOException, UnmarshallingException, XMLParserException {
-        Mockito.when(signingCredential.getPrivateKey()).thenAnswer(invocation -> {
+        Mockito.doAnswer(invocation -> {
             throw new SignatureException("Signing exception");
-        });
+        }).when(signingCredential).getPrivateKey();
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         String expectedRelayState = RandomStringUtils.random(128, true, true);
@@ -153,28 +156,84 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
         assertDependenciesUp(healthResponse, Dependencies.RESPONDER_METADATA);
     }
 
-    @Test
-    void noCertificateWarningsWhen_WarningPeriodNotDue() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void noCertificateWarningsWhen_WarningPeriodNotDue(boolean hsmEnabled) {
+        Mockito.doReturn(hsmEnabled).when(hsmProperties).isEnabled();
         X509Certificate x509 = signingCredential.getEntityCertificate();
         Instant certificateExpiryTime = x509.getNotAfter().toInstant().minus(keyStoreExpirationWarningPeriod);
-        Mockito.when(responderMetadataHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(certificateExpiryTime, of("UTC")));
+        Mockito.doReturn(Clock.fixed(certificateExpiryTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
         Response healthResponse = getHealthResponse();
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
         assertNull(warnings);
         assertDependenciesUp(healthResponse, Dependencies.RESPONDER_METADATA);
     }
 
-    @Test
-    void certificateExpiryWarningWhen_WarningPeriodDue() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void certificateExpiryWarningWhen_WarningPeriodDue(boolean hsmEnabled) {
+        Mockito.doReturn(hsmEnabled).when(hsmProperties).isEnabled();
         X509Certificate x509 = signingCredential.getEntityCertificate();
         Instant certificateExpiryWarningTime = x509.getNotAfter().toInstant().minus(keyStoreExpirationWarningPeriod).plus(1, SECONDS);
-        Mockito.when(responderMetadataHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(certificateExpiryWarningTime, of("UTC")));
+        Mockito.doReturn(Clock.fixed(certificateExpiryWarningTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
+
         Response healthResponse = getHealthResponse();
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
         assertNotNull(warnings);
         assertWarnings(x509, warnings);
         assertDependenciesUp(healthResponse, Dependencies.RESPONDER_METADATA);
     }
+
+    @Test
+    void noSigningCredentialTestWhen_HsmDisabled() {
+        Mockito.doReturn(false).when(hsmProperties).isEnabled();
+
+        Instant lastHealthCheckTime = now();
+        Instant lastHsmTestTime = lastHealthCheckTime.minus(responderMetadataHealthIndicator.getHsmTestInterval()).minus(1, MILLIS);
+        Mockito.doReturn(Clock.fixed(lastHealthCheckTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
+        Mockito.doReturn(lastHsmTestTime).when(responderMetadataHealthIndicator).getLastTestTime();
+
+        Response healthResponse = getHealthResponse();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).isSigningCertificateExpired();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).isSigningCredentialInFailedState();
+        Mockito.verify(responderMetadataHealthIndicator, times(0)).testSigningCredential();
+        List<String> warnings = healthResponse.jsonPath().getList("warnings");
+        assertNull(warnings);
+        assertDependenciesUp(healthResponse, Dependencies.RESPONDER_METADATA);
+    }
+
+    @Test
+    void noSigningCredentialTestWhen_HsmEnabled_AndHsmCheckIntervalIsNotDue() {
+        Instant lastHealthCheckTime = now();
+        Instant lastHsmTestTime = lastHealthCheckTime.minus(responderMetadataHealthIndicator.getHsmTestInterval());
+        Mockito.doReturn(Clock.fixed(lastHealthCheckTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
+        Mockito.doReturn(lastHsmTestTime).when(responderMetadataHealthIndicator).getLastTestTime();
+
+        Response healthResponse = getHealthResponse();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).isSigningCertificateExpired();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).isSigningCredentialInFailedState();
+        Mockito.verify(responderMetadataHealthIndicator, times(0)).testSigningCredential();
+        List<String> warnings = healthResponse.jsonPath().getList("warnings");
+        assertNull(warnings);
+        assertDependenciesUp(healthResponse, Dependencies.RESPONDER_METADATA);
+    }
+
+    @Test
+    void signingCredentialTestWhen_HsmEnabled_AndHsmCheckIntervalIsDue() {
+        Instant lastHealthCheckTime = now();
+        Instant lastHsmTestTime = lastHealthCheckTime.minus(responderMetadataHealthIndicator.getHsmTestInterval()).minus(1, MILLIS);
+        Mockito.doReturn(Clock.fixed(lastHealthCheckTime, of("UTC"))).when(responderMetadataHealthIndicator).getSystemClock();
+        Mockito.doReturn(lastHsmTestTime).when(responderMetadataHealthIndicator).getLastTestTime();
+
+        Response healthResponse = getHealthResponse();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).isSigningCertificateExpired();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).isSigningCredentialInFailedState();
+        Mockito.verify(responderMetadataHealthIndicator, times(1)).testSigningCredential();
+        List<String> warnings = healthResponse.jsonPath().getList("warnings");
+        assertNull(warnings);
+        assertDependenciesUp(healthResponse, Dependencies.RESPONDER_METADATA);
+    }
+
 
     private void assertWarnings(X509Certificate x509, List<String> warnings) {
         Optional<String> signingCertificateWarning = warnings.stream()

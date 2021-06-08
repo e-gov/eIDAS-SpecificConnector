@@ -25,6 +25,7 @@ import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static lombok.AccessLevel.PACKAGE;
 
 @Slf4j
 @Component
@@ -32,7 +33,7 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
     public static final String X_509 = "X.509";
     public static final String TRUSTSTORE_WARNING = "Truststore certificate '%s' with serial number '%s' is expiring at %s";
     private final Map<String, CertificateInfo> trustStoreCertificates = new HashMap<>();
-    @Getter
+    @Getter(PACKAGE)
     private final Clock systemClock;
     @Value("${javax.net.ssl.trustStore}")
     private String trustStore;

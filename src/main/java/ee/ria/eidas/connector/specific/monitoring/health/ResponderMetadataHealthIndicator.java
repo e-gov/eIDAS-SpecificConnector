@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
+import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.HsmProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
 import ee.ria.eidas.connector.specific.responder.metadata.EntityDescriptorFactory;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.security.cert.X509Certificate;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static lombok.AccessLevel.PACKAGE;
 import static net.logstash.logback.argument.StructuredArguments.value;
 import static net.logstash.logback.marker.Markers.append;
 
@@ -39,11 +42,14 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     private static final String SIGNING_CERTIFICATE_INVALID_WARNING = "Responder metadata signing certificate '{}' with serial number '{}' is not valid. Validity period {} - {}";
     private static final String SIGNING_OPERATION_FAILED_WARNING = "Signing with credential '{}' failed";
     private static final String SIGNING_OPERATION_RECOVERED = "Signing with credential '{}' recovered";
-    private final AtomicBoolean credentialInFailedState = new AtomicBoolean();
+    private final AtomicBoolean signingCredentialInFailedState = new AtomicBoolean();
     private final Map<String, CertificateInfo> signingCertificateInfo = new HashMap<>();
 
-    @Getter
+    @Getter(PACKAGE)
     private Clock systemClock;
+
+    @Autowired
+    private HsmProperties hsmProperties;
 
     @Autowired
     private BasicX509Credential signingCredential;
@@ -56,6 +62,13 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
 
     @Value("${eidas.connector.health.key-store-expiration-warning:30d}")
     private Period keyStoreExpirationWarningPeriod;
+
+    @Getter(PACKAGE)
+    @Value("${eidas.connector.health.hsm-test-interval:60s}")
+    private Duration hsmTestInterval;
+
+    @Getter(PACKAGE)
+    private Instant lastTestTime = now();
 
     public ResponderMetadataHealthIndicator() {
         super("Responder metadata health check failed");
@@ -71,7 +84,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    private boolean isSigningCertificateExpired() {
+    boolean isSigningCertificateExpired() {
         Instant currentDateTime = now(getSystemClock());
         X509Certificate x509 = signingCredential.getEntityCertificate();
         if (currentDateTime.isAfter(x509.getNotAfter().toInstant()) || currentDateTime.isBefore(x509.getNotBefore().toInstant())) {
@@ -85,30 +98,35 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    private boolean isSigningCredentialInFailedState() {
-        if (credentialInFailedState.get()) {
-            X509Certificate x509 = signingCredential.getEntityCertificate();
-            LogstashMarker marker = append("x509.serial_number", x509.getSerialNumber())
-                    .and(append("x509.not_before", x509.getNotBefore().toInstant()))
-                    .and(append("x509.not_after", x509.getNotAfter().toInstant()));
-            try {
-                responderMetadataSigner.sign(EntityDescriptorFactory.create(responderMetadata, signingCredential));
-                log.info(marker, SIGNING_OPERATION_RECOVERED, signingCredential.getEntityId());
-                credentialInFailedState.set(false);
-                return false;
-            } catch (Exception ex) {
-                log.error(marker, SIGNING_OPERATION_FAILED_WARNING, signingCredential.getEntityId(), ex);
-                return true;
-            }
+    boolean isSigningCredentialInFailedState() {
+        if (hsmProperties.isEnabled() && (signingCredentialInFailedState.get() || getLastTestTime().plus(hsmTestInterval).isBefore(now(getSystemClock())))) {
+            return testSigningCredential();
         } else {
             return false;
         }
     }
 
+    boolean testSigningCredential() {
+        lastTestTime = now();
+        X509Certificate x509 = signingCredential.getEntityCertificate();
+        LogstashMarker marker = append("x509.serial_number", x509.getSerialNumber())
+                .and(append("x509.not_before", x509.getNotBefore().toInstant()))
+                .and(append("x509.not_after", x509.getNotAfter().toInstant()));
+        try {
+            responderMetadataSigner.sign(EntityDescriptorFactory.create(responderMetadata, signingCredential));
+            log.info(marker, SIGNING_OPERATION_RECOVERED, signingCredential.getEntityId());
+            signingCredentialInFailedState.set(false);
+            return false;
+        } catch (Exception ex) {
+            log.error(marker, SIGNING_OPERATION_FAILED_WARNING, signingCredential.getEntityId(), ex);
+            return true;
+        }
+    }
+
     @EventListener
     public void onFailedSigningEvent(FailedSigningEvent event) {
-        if (!credentialInFailedState.get()) {
-            credentialInFailedState.set(true);
+        if (!signingCredentialInFailedState.get()) {
+            signingCredentialInFailedState.set(true);
         }
     }
 

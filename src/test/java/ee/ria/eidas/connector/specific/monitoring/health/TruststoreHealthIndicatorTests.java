@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -27,16 +26,13 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
     private static final String CERTIFICATE_EXPIRY_TIME = "2031-04-19T11:20:37Z";
 
-    @SpyBean
-    TruststoreHealthIndicator truststoreHealthIndicator;
-
     @Value("${eidas.connector.health.trust-store-expiration-warning:30d}")
     private Period trustStoreExpirationWarningPeriod;
 
     @Test
     void noTruststoreWarningsWhen_WarningPeriodNotMet() {
         Instant noWarningTime = Instant.parse(CERTIFICATE_EXPIRY_TIME).minus(trustStoreExpirationWarningPeriod);
-        Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(noWarningTime, of("UTC")));
+        Mockito.doReturn(Clock.fixed(noWarningTime, of("UTC"))).when(truststoreHealthIndicator).getSystemClock();
         Response healthResponse = getHealthResponse();
 
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
@@ -47,7 +43,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
     @Test
     void truststoreWarningWhen_CertificateAboutToExpire() {
         Instant warningTime = Instant.parse(CERTIFICATE_EXPIRY_TIME).minus(trustStoreExpirationWarningPeriod).plus(1, SECONDS);
-        Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(warningTime, of("UTC")));
+        Mockito.doReturn(Clock.fixed(warningTime, of("UTC"))).when(truststoreHealthIndicator).getSystemClock();
         Response healthResponse = getHealthResponse();
 
         List<String> warnings = healthResponse.jsonPath().getList("warnings");
@@ -61,8 +57,8 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
 
     @Test
     void truststoreWarningAndHealthStatusDownWhen_CertificateExpired() {
-        Instant expectedTime = Instant.parse(CERTIFICATE_EXPIRY_TIME).plus(1, SECONDS);
-        Mockito.when(truststoreHealthIndicator.getSystemClock()).thenReturn(Clock.fixed(expectedTime, of("UTC")));
+        Instant expiredTime = Instant.parse(CERTIFICATE_EXPIRY_TIME).plus(1, SECONDS);
+        Mockito.doReturn(Clock.fixed(expiredTime, of("UTC"))).when(truststoreHealthIndicator).getSystemClock();
         Response healthResponse = getHealthResponse();
 
         List<String> warnings = healthResponse.jsonPath().getList("warnings");

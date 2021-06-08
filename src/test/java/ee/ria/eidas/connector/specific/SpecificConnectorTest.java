@@ -6,7 +6,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.integration.LightJAXBCodec;
+import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
+import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -19,10 +23,13 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
+import org.mockito.Mockito;
+import org.opensaml.security.x509.BasicX509Credential;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -86,6 +93,21 @@ public abstract class SpecificConnectorTest {
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
     }
 
+    @SpyBean
+    protected MeterRegistry meterRegistry;
+
+    @SpyBean
+    protected TruststoreHealthIndicator truststoreHealthIndicator;
+
+    @SpyBean
+    protected ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
+
+    @SpyBean
+    protected BasicX509Credential signingCredential;
+
+    @SpyBean
+    protected SpecificConnectorProperties.HsmProperties hsmProperties;
+
     @MockBean
     protected BuildProperties buildProperties;
 
@@ -113,6 +135,7 @@ public abstract class SpecificConnectorTest {
         RestAssured.responseSpecification = new ResponseSpecBuilder().expectHeaders(EXPECTED_RESPONSE_HEADERS).build();
         RestAssured.port = port;
         setupTestLogAppender();
+        Mockito.reset(meterRegistry, truststoreHealthIndicator, responderMetadataHealthIndicator, signingCredential, hsmProperties);
     }
 
     @AfterEach
