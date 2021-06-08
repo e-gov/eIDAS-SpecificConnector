@@ -1,7 +1,5 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
-
-import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration.FailedSigningEvent;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
 import ee.ria.eidas.connector.specific.responder.metadata.EntityDescriptorFactory;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
@@ -13,13 +11,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Period;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -38,6 +40,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     private static final String SIGNING_OPERATION_FAILED_WARNING = "Signing with credential '{}' failed";
     private static final String SIGNING_OPERATION_RECOVERED = "Signing with credential '{}' recovered";
     private final AtomicBoolean credentialInFailedState = new AtomicBoolean();
+    private final Map<String, CertificateInfo> signingCertificateInfo = new HashMap<>();
 
     @Getter
     private Clock systemClock;
@@ -61,17 +64,24 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
 
     @Override
     protected void doHealthCheck(Health.Builder builder) {
-        if (isSigningCertificateExpired()) {
-            X509Certificate x509 = signingCredential.getEntityCertificate();
+        if (isSigningCertificateExpired() || isSigningCredentialInFailedState()) {
+            builder.down().withDetails(signingCertificateInfo).build();
+        } else {
+            builder.up().withDetails(signingCertificateInfo).build();
+        }
+    }
+
+    private boolean isSigningCertificateExpired() {
+        Instant currentDateTime = now(getSystemClock());
+        X509Certificate x509 = signingCredential.getEntityCertificate();
+        if (currentDateTime.isAfter(x509.getNotAfter().toInstant()) || currentDateTime.isBefore(x509.getNotBefore().toInstant())) {
             log.warn(SIGNING_CERTIFICATE_INVALID_WARNING, signingCredential.getEntityId(),
                     value("x509.serial_number", x509.getSerialNumber()),
                     value("x509.not_before", x509.getNotBefore().toInstant()),
                     value("x509.not_after", x509.getNotAfter().toInstant()));
-            builder.down().build();
-        } else if (isSigningCredentialInFailedState()) {
-            builder.down().build();
+            return true;
         } else {
-            builder.up().build();
+            return false;
         }
     }
 
@@ -95,11 +105,11 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    private boolean isSigningCertificateExpired() {
-        Instant currentDateTime = now(getSystemClock());
-        X509Certificate x509 = signingCredential.getEntityCertificate();
-        return currentDateTime.isAfter(x509.getNotAfter().toInstant()) ||
-                currentDateTime.isBefore(x509.getNotBefore().toInstant());
+    @EventListener
+    public void onFailedSigningEvent(FailedSigningEvent event) {
+        if (!credentialInFailedState.get()) {
+            credentialInFailedState.set(true);
+        }
     }
 
     public Optional<String> getSigningCertificateExpirationWarning() {
@@ -116,10 +126,21 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    @EventListener
-    public void onFailedCredentialEvent(FailedSigningEvent event) {
-        if (!credentialInFailedState.get()) {
-            credentialInFailedState.set(true);
+    @PostConstruct
+    private void setupSigningCertificatesInfo() {
+        X509Certificate x509 = signingCredential.getEntityCertificate();
+        signingCertificateInfo.put(signingCredential.getEntityId(), CertificateInfo.builder()
+                .validTo(x509.getNotAfter().toInstant())
+                .subjectDN(x509.getSubjectDN().getName())
+                .serialNumber(x509.getSerialNumber().toString())
+                .build());
+    }
+
+    @Getter
+    public static class FailedSigningEvent extends ApplicationEvent {
+
+        public FailedSigningEvent() {
+            super("");
         }
     }
 }

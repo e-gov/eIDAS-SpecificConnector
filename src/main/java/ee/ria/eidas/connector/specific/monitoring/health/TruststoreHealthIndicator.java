@@ -1,6 +1,5 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -92,13 +91,5 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
                 }
             }
         }
-    }
-
-    @Builder
-    @Getter
-    public static class CertificateInfo {
-        private final Instant validTo;
-        private final String subjectDN;
-        private final String serialNumber;
     }
 }

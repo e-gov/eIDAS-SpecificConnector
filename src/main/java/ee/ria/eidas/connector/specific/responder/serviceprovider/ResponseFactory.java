@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
+import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
+import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator.FailedSigningEvent;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import eu.eidas.auth.commons.attribute.AttributeValue;
@@ -63,7 +65,7 @@ public class ResponseFactory {
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
         } catch (EncryptionException | AttributeValueMarshallingException | SecurityException | MarshallingException | SignatureException | ResolverException ex) {
-            applicationEventPublisher.publishEvent(new ResponderMetadataConfiguration.FailedSigningEvent());
+            applicationEventPublisher.publishEvent(new FailedSigningEvent());
             throw new TechnicalException("Unable to create SAML Response", ex);
         }
     }
@@ -75,7 +77,7 @@ public class ResponseFactory {
             responderMetadataSigner.sign(response);
             return OpenSAMLUtils.getXmlString(response);
         } catch (Exception ex) {
-            applicationEventPublisher.publishEvent(new ResponderMetadataConfiguration.FailedSigningEvent());
+            applicationEventPublisher.publishEvent(new FailedSigningEvent());
             throw new TechnicalException("Unable to create SAML Error Response", ex);
         }
     }

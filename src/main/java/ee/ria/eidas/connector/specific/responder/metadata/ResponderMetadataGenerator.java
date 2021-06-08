@@ -1,9 +1,9 @@
 package ee.ria.eidas.connector.specific.responder.metadata;
 
-import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration.FailedSigningEvent;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
+import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator.FailedSigningEvent;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.security.x509.BasicX509Credential;
 import org.springframework.beans.factory.annotation.Autowired;
