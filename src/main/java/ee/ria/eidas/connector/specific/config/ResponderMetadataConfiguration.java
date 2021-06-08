@@ -26,6 +26,8 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+
 @Slf4j
 @Configuration
 public class ResponderMetadataConfiguration {
@@ -66,7 +68,7 @@ public class ResponderMetadataConfiguration {
         log.info("Hardware security module enabled. Slot/slot index: {}/{}, Library: {}",
                 hsmProperties.getSlot(), hsmProperties.getSlotListIndex(),
                 hsmProperties.getLibrary());
-        SunPKCS11 provider = new SunPKCS11(new ByteArrayInputStream(hsmProperties.toString().getBytes()));
+        SunPKCS11 provider = new SunPKCS11(new ByteArrayInputStream(hsmProperties.toString().getBytes(ISO_8859_1)));
         Security.addProvider(provider);
         KeyStore keyStore = KeyStore.getInstance("PKCS11", provider);
         keyStore.load(null, hsmProperties.getPin().toCharArray());
