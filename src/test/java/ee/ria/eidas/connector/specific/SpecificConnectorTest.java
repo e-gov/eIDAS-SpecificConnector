@@ -23,7 +23,6 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
-import org.mockito.Mockito;
 import org.opensaml.security.x509.BasicX509Credential;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
@@ -135,7 +134,6 @@ public abstract class SpecificConnectorTest {
         RestAssured.responseSpecification = new ResponseSpecBuilder().expectHeaders(EXPECTED_RESPONSE_HEADERS).build();
         RestAssured.port = port;
         setupTestLogAppender();
-        Mockito.reset(meterRegistry, truststoreHealthIndicator, responderMetadataHealthIndicator, signingCredential, hsmProperties);
     }
 
     @AfterEach
