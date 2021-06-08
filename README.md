@@ -429,7 +429,7 @@ Custom fields related to authentication
 | `authn_request` | No | Fields related to SAML 2.0 AuthnRequest |
 | `saml_response` | No | Fields related to SAML 2.0 SAML Response |
 
-Example log message containing Autentication initialization event (authn_request):
+Example log message containing Authentication initialization event (authn_request):
 
 ```json
 {
@@ -513,7 +513,7 @@ Example log message containing Autentication initialization event (authn_request
 }
 ```
 
-Example log message containing successful Autentication end event (saml_response):
+Example log message containing successful Authentication end event (saml_response):
 
 ```json
 {
@@ -614,7 +614,7 @@ Example log message containing successful Autentication end event (saml_response
 }
 ```
 
-Example log message containing failed Autentication end event (saml_response): 
+Example log message containing failed Authentication end event (saml_response): 
 ```json
 {
   "@timestamp": "2020-10-23T14:36:09.447Z",
@@ -753,9 +753,13 @@ Response:
 | `management.health.defaults.enabled` | No | Whether to enable default Spring Boot Actuator health indicators. Recommended value `false` |
 | `management.info.git.mode` | No | Mode to use to expose git information. Recommended value `full` |
 | `eidas.connector.health.dependencies.connect-timeout` | No | Timeout for `connectorMetadata` health indicators. Defaults to `3s` |
-| `eidas.connector.health.hsm-test-interval` | No | Minimum interval for testing hardware security module for `responderMetadata` health indicator. Defaults to `60s` |
+| `eidas.connector.health.hsm-test-interval` | No<sup>1</sup> | Minimum interval for testing hardware security module for `responderMetadata` health indicator.<sup>2</sup> Defaults to `60s` |
 | `eidas.connector.health.key-store-expiration-warning` | No | Responder metadata certificate expiration warning period for `responderMetadata` health indicator. Default value `30d` |
 | `eidas.connector.health.trust-store-expiration-warning` | No | Trusted certificates expiration warning period for `truststore` health indicator. Default value `30d` |
+
+<sup>1</sup> Applicable only when `eidas.connector.hsm.enabled=true`
+
+<sup>2</sup> Hardware security module test is only executed when `heartbeat` endpoint is requested. To minimize impact on HSM `eidas.connector.health.hsm-test-interval` denotes time interval before next test can be executed. If the interval is not due, the previous test result is used instead unless an exception occurs somewhere in the application when using keys from HSM. When an exception occurs using keys from HSM, every request to `heartbeat` endpoint executes testing until the error resolves.  
 
 <a name="security"></a>
 ## 7. Security
