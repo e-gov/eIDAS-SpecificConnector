@@ -72,7 +72,6 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
 
     @BeforeEach
     void setup() {
-        Mockito.reset(responderMetadataHealthIndicator, signingCredential, hsmProperties);
         Mockito.doReturn(true).when(hsmProperties).isEnabled();
     }
 
