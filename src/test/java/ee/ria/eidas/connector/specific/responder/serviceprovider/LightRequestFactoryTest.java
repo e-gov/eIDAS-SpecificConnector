@@ -37,7 +37,7 @@ import static org.springframework.util.ResourceUtils.getFile;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {OpenSAMLConfiguration.class, ResponderMetadataConfiguration.class, LightRequestFactory.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
-@EnableConfigurationProperties(value = SpecificConnectorProperties.class)
+@EnableConfigurationProperties(value = SpecificConnectorProperties.ResponderMetadata.class)
 @TestPropertySource(value = "classpath:application-test.properties")
 class LightRequestFactoryTest {
 

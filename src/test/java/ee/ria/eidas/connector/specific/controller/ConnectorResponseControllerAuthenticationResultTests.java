@@ -7,7 +7,6 @@ import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigne
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
 import ee.ria.eidas.connector.specific.util.TestUtils;
-import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.light.impl.ResponseStatus;
@@ -45,7 +44,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static ee.ria.eidas.connector.specific.util.TestUtils.SECURE_RANDOM_REGEX;
-import static eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec.Definitions.*;
 import static io.restassured.RestAssured.given;
 import static java.lang.Math.toIntExact;
 import static java.util.Arrays.asList;
@@ -136,7 +134,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                 .failure(false)
                 .build();
 
-        LightResponse lightResponse = createLightResponse(lightRequest, successfulAuthenticationStatus);
+        LightResponse lightResponse = TestUtils.createLightResponse(lightRequest, successfulAuthenticationStatus);
         ResponseStatus expectedStatus = lightResponse.getStatus();
         String levelOfAssurance = lightResponse.getLevelOfAssurance();
 
@@ -184,7 +182,7 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
                 .subStatusCode("urn:oasis:names:tc:SAML:2.0:status:AuthnFailed")
                 .failure(true)
                 .build();
-        LightResponse lightResponse = createLightResponse(lightRequest, unsuccessfulAuthenticationStatus);
+        LightResponse lightResponse = TestUtils.createLightResponse(lightRequest, unsuccessfulAuthenticationStatus);
         String levelOfAssurance = lightResponse.getLevelOfAssurance();
         ResponseStatus expectedStatus = lightResponse.getStatus();
 
@@ -436,25 +434,6 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         String samlResponseXml = lightJAXBCodec.marshall(lightResponse);
         nodeSpecificConnectorResponseCache.put(tokenId, samlResponseXml);
         return binaryLightToken;
-    }
-
-    LightResponse createLightResponse(LightRequest lightRequest, ResponseStatus responseStatus) {
-        ImmutableAttributeMap requestedAttributes = ImmutableAttributeMap.builder()
-                .put(PERSON_IDENTIFIER, "123456789")
-                .put(CURRENT_FAMILY_NAME, "TestFamilyName")
-                .put(CURRENT_GIVEN_NAME, "TestGivenName")
-                .put(DATE_OF_BIRTH, "1965-01-01").build();
-        return LightResponse.builder()
-                .id("_7.t.B2GE0lkaDDkpvwZJfrdOLrKQqiINw.0XnzAEucYP7yO7WVBC_hR2kkQ-hwy")
-                .inResponseToId(lightRequest.getId())
-                .status(responseStatus)
-                .subject("assertion_subject")
-                .subjectNameIdFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
-                .levelOfAssurance(lightRequest.getLevelOfAssurance())
-                .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
-                .attributes(requestedAttributes)
-                .relayState(lightRequest.getRelayState())
-                .build();
     }
 
     @SneakyThrows

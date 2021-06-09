@@ -2,9 +2,6 @@ package ee.ria.eidas.connector.specific.responder.metadata;
 
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
-import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
-import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.core.xml.XMLObjectBuilder;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.MarshallerFactory;
@@ -14,7 +11,7 @@ import org.opensaml.saml.common.SignableSAMLObject;
 import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
 import org.opensaml.security.SecurityException;
 import org.opensaml.security.credential.Credential;
-import org.opensaml.security.credential.impl.KeyStoreCredentialResolver;
+import org.opensaml.security.x509.BasicX509Credential;
 import org.opensaml.xmlsec.SignatureSigningParameters;
 import org.opensaml.xmlsec.algorithm.DigestAlgorithm;
 import org.opensaml.xmlsec.algorithm.SignatureAlgorithm;
@@ -24,22 +21,18 @@ import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.*;
 import org.springframework.stereotype.Component;
 
-import java.security.KeyStore;
-import java.util.HashMap;
-import java.util.Map;
-
 @Component
 public class ResponderMetadataSigner {
     private final SignatureSigningParameters signingParameters;
     private final XMLObjectBuilder<?> builderFactory;
     private final MarshallerFactory marshallerFactory;
-    private final Credential signingCredential;
+    private final Credential metadataSigningCredential;
 
-    public ResponderMetadataSigner(SpecificConnectorProperties connectorProperties, KeyStore responderMetadataKeyStore) throws ResolverException {
+    public ResponderMetadataSigner(SpecificConnectorProperties connectorProperties, BasicX509Credential signingCredential) {
         SignatureAlgorithm signatureAlgorithm = OpenSAMLUtils.getSignatureAlgorithm(connectorProperties.getResponderMetadata().getSignatureAlgorithm());
         DigestAlgorithm digestAlgorithm = OpenSAMLUtils.getRelatedDigestAlgorithm(signatureAlgorithm);
-        signingCredential = resolveSigningCredential(connectorProperties, responderMetadataKeyStore);
-        signingParameters = getSignatureSigningParameters(signingCredential, signatureAlgorithm, digestAlgorithm);
+        metadataSigningCredential = signingCredential;
+        signingParameters = getSignatureSigningParameters(metadataSigningCredential, signatureAlgorithm, digestAlgorithm);
         builderFactory = XMLObjectProviderRegistrySupport.getBuilderFactory().getBuilder(Signature.DEFAULT_ELEMENT_NAME);
         marshallerFactory = XMLObjectProviderRegistrySupport.getMarshallerFactory();
     }
@@ -57,19 +50,7 @@ public class ResponderMetadataSigner {
     public void validate(Signature signature) throws SignatureException {
         SAMLSignatureProfileValidator profileValidator = new SAMLSignatureProfileValidator();
         profileValidator.validate(signature);
-        SignatureValidator.validate(signature, signingCredential);
-    }
-
-    public Credential getSigningCredential() {
-        return signingCredential;
-    }
-
-    private Credential resolveSigningCredential(SpecificConnectorProperties connectorProperties, KeyStore metadataKeyStore) throws ResolverException {
-        Map<String, String> passwordMap = new HashMap<>();
-        passwordMap.put(connectorProperties.getResponderMetadata().getKeyAlias(), connectorProperties.getResponderMetadata().getKeyPassword());
-        KeyStoreCredentialResolver resolver = new KeyStoreCredentialResolver(metadataKeyStore, passwordMap);
-        CriteriaSet criteria = new CriteriaSet(new EntityIdCriterion(connectorProperties.getResponderMetadata().getKeyAlias()));
-        return resolver.resolveSingle(criteria);
+        SignatureValidator.validate(signature, metadataSigningCredential);
     }
 
     private void setDigestAlgorithm(Signature signature) {

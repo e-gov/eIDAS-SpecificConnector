@@ -6,12 +6,11 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import ee.ria.eidas.connector.specific.integration.EidasNodeCommunication;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.integration.LightJAXBCodec;
-import eu.eidas.auth.commons.attribute.AttributeDefinition;
-import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
-import eu.eidas.auth.commons.light.impl.LightRequest;
-import eu.eidas.auth.commons.light.impl.LightResponse;
+import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
+import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -24,18 +23,18 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
+import org.opensaml.security.x509.BasicX509Credential;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -92,6 +91,21 @@ public abstract class SpecificConnectorTest {
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
     }
+
+    @SpyBean
+    protected MeterRegistry meterRegistry;
+
+    @SpyBean
+    protected TruststoreHealthIndicator truststoreHealthIndicator;
+
+    @SpyBean
+    protected ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
+
+    @SpyBean
+    protected BasicX509Credential signingCredential;
+
+    @SpyBean
+    protected SpecificConnectorProperties.HsmProperties hsmProperties;
 
     @MockBean
     protected BuildProperties buildProperties;

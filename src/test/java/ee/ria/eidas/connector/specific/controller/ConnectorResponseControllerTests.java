@@ -12,10 +12,8 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import ee.ria.eidas.connector.specific.util.TestUtils;
-import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.impl.LightRequest;
 import eu.eidas.auth.commons.light.impl.LightResponse;
-import eu.eidas.auth.commons.light.impl.ResponseStatus;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
@@ -221,7 +219,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
 
-        LightResponse lightResponse = createLightResponse(lightRequest);
+        LightResponse lightResponse = TestUtils.createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
         given()
                 .when()
@@ -248,7 +246,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
 
         LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
         specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
-        LightResponse lightResponse = createLightResponse(lightRequest);
+        LightResponse lightResponse = TestUtils.createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
         given()
                 .when()
@@ -383,33 +381,12 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     }
 
     @NotNull
-    private LightResponse createLightResponse(ILightRequest lightRequest) {
-        ResponseStatus responseStatus = ResponseStatus.builder()
-                .statusMessage("statusMessage")
-                .statusCode("statusCode")
-                .subStatusCode("subStatusCode")
-                .failure(false)
-                .build();
-
-        LightResponse lightResponse = LightResponse.builder()
-                .id("_7.t.B2GE0lkaDDkpvwZJfrdOLrKQqiINw.0XnzAEucYP7yO7WVBC_hR2kkQ-hwy")
-                .inResponseToId(lightRequest.getId())
-                .status(responseStatus)
-                .subject("assertion_subject")
-                .subjectNameIdFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
-                .levelOfAssurance("http://eidas.europa.eu/LoA/high")
-                .issuer("https://eidas-specificconnector:8443/EidasNode/ConnectorMetadata")
-                .build();
-        return lightResponse;
-    }
-
-    @NotNull
     private BinaryLightToken prepareAuthnRequest() throws IOException, XMLParserException, UnmarshallingException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
         specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
-        LightResponse lightResponse = createLightResponse(lightRequest);
+        LightResponse lightResponse = TestUtils.createLightResponse(lightRequest);
         return putLightResponseToEidasNodeCommunicationCache(lightResponse);
     }
 

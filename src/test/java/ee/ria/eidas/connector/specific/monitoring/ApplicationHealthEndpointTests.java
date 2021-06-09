@@ -85,8 +85,8 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
     void healthyApplicationStateWhen_MissingMetrics() {
         updateServiceProviderMetadata("sp-valid-metadata.xml");
         Search nonExistentMetric = meterRegistry.find("non-existent");
-        Mockito.when(meterRegistry.find("process.start.time")).thenReturn(nonExistentMetric);
-        Mockito.when(meterRegistry.find("process.uptime")).thenReturn(nonExistentMetric);
+        Mockito.doReturn(nonExistentMetric).when(meterRegistry).find("process.start.time");
+        Mockito.doReturn(nonExistentMetric).when(meterRegistry).find("process.uptime");
         Response healthResponse = getHealthResponse();
 
         assertNull(healthResponse.jsonPath().get("startTime"));

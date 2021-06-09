@@ -1,6 +1,5 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +15,6 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.Period;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -24,10 +22,10 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.String.format;
-import static java.time.OffsetDateTime.now;
-import static java.time.ZoneOffset.UTC;
+import static java.time.Instant.now;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static lombok.AccessLevel.PACKAGE;
 
 @Slf4j
 @Component
@@ -35,7 +33,7 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
     public static final String X_509 = "X.509";
     public static final String TRUSTSTORE_WARNING = "Truststore certificate '%s' with serial number '%s' is expiring at %s";
     private final Map<String, CertificateInfo> trustStoreCertificates = new HashMap<>();
-    @Getter
+    @Getter(PACKAGE)
     private final Clock systemClock;
     @Value("${javax.net.ssl.trustStore}")
     private String trustStore;
@@ -68,9 +66,9 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
                 .collect(toList());
     }
 
-    private Map<String, CertificateInfo> getCertificatesExpiredAt(OffsetDateTime expired) {
+    private Map<String, CertificateInfo> getCertificatesExpiredAt(Instant expired) {
         return trustStoreCertificates.entrySet().stream()
-                .filter(es -> expired.isAfter(es.getValue().getValidTo().atOffset(UTC)))
+                .filter(es -> expired.isAfter(es.getValue().getValidTo()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
@@ -94,13 +92,5 @@ public class TruststoreHealthIndicator extends AbstractHealthIndicator {
                 }
             }
         }
-    }
-
-    @Builder
-    @Getter
-    public static class CertificateInfo {
-        private final Instant validTo;
-        private final String subjectDN;
-        private final String serialNumber;
     }
 }
