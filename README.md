@@ -739,3 +739,5 @@ Response:
 | Parameter        | Mandatory | Description, example |
 | :---------------- | :---------- | :----------------|
 | `eidas.connector.content-security-policy` | No | HTTP Content security policy. Default value `block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='` |
+
+<img src="doc/eu_regional_development_fund_horizontal.jpg" width="350" height="200">
