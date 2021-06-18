@@ -1,3 +1,5 @@
+<img src="doc/img/eu_regional_development_fund_horizontal.jpg" width="350" height="200">
+
 # EE specific eIDAS connector service
 
 - [1. Building the SpecificConnector webapp](#build)
