@@ -13,7 +13,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static org.apache.logging.log4j.util.Strings.isBlank;
+import static org.apache.logging.log4j.util.Strings.isEmpty;
 import static org.springframework.util.StringUtils.isEmpty;
 
 @Target({ElementType.TYPE})
@@ -40,7 +40,7 @@ class HsmConfigurationValidator implements ConstraintValidator<ValidHsmConfigura
                     .addConstraintViolation();
             return false;
         } else return hsmDisabled
-                || (!isBlank(hsmProperties.getLibrary()) && !isBlank(hsmProperties.getPin())
-                && (hsmProperties.getSlotListIndex() != null || !isBlank(hsmProperties.getSlot())));
+                || (!isEmpty(hsmProperties.getLibrary()) && !isEmpty(hsmProperties.getPin())
+                && (hsmProperties.getSlotListIndex() != null || !isEmpty(hsmProperties.getSlot())));
     }
 }
