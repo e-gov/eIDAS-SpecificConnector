@@ -114,11 +114,14 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
                 .and(append("x509.not_after", x509.getNotAfter().toInstant()));
         try {
             responderMetadataSigner.sign(EntityDescriptorFactory.create(responderMetadata, signingCredential));
-            log.info(marker, SIGNING_OPERATION_RECOVERED, signingCredential.getEntityId());
+            if(signingCredentialInFailedState.get()) {
+                log.info(marker, SIGNING_OPERATION_RECOVERED, signingCredential.getEntityId());
+            }
             signingCredentialInFailedState.set(false);
             return false;
         } catch (Exception ex) {
             log.error(marker, SIGNING_OPERATION_FAILED_WARNING, signingCredential.getEntityId(), ex);
+            signingCredentialInFailedState.set(true);
             return true;
         }
     }
