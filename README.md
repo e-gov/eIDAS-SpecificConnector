@@ -64,7 +64,7 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | :---------------- | :---------- | :----------------|
 | `eidas.connector.hsm.enabled` | No | Whether to enable Hardware Security Module (HSM). Default value: `false` |
 | `eidas.connector.hsm.pin` | Yes<sup>1</sup> | Password to access partition. |
-| `eidas.connector.hsm.library` | Yes <sup>1</sup> | Vendor specific PKCS#11 library path. Example: `/usr/lib/softhsm/libsofthsm2.so` for testing SoftHSM or vendor specific library `/usr/safenet/lunaclient/lib/libCryptoki2_64.so`  |
+| `eidas.connector.hsm.library` | Yes <sup>1</sup> | Vendor specific PKCS#11 library path. Example: `/usr/lib/softhsm/libsofthsm2.so` for testing SoftHSM or vendor specific library. |
 | `eidas.connector.hsm.slot` | Yes <sup>1,2</sup> | Slot id. Example: `636432988` |
 | `eidas.connector.hsm.slot-list-index` | Yes <sup>1,2</sup> | Slot index. Example: `0` |
 | `eidas.connector.hsm.certificates-from-hsm` | No <sup>3</sup> | Denotes if certificates should be loaded from HSM. Default value: `false` |
