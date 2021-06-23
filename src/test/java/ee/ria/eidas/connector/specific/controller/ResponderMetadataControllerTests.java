@@ -69,6 +69,9 @@ public class ResponderMetadataControllerTests extends SpecificConnectorTest {
     @Autowired
     ResponderMetadataSigner responderMetadataSigner;
 
+    @Autowired
+    BasicX509Credential signingCredential;
+
     @BeforeEach
     void setUp() {
         metadataResponse = given()
@@ -95,7 +98,6 @@ public class ResponderMetadataControllerTests extends SpecificConnectorTest {
     @Test
     void metadataIsSignedAndContainsSigningCertificateWhen_MetadataRequested() throws CertificateEncodingException, UnmarshallingException, XMLParserException, SignatureException {
         String signingCertificate = metadataResponse.xmlPath().getString("EntityDescriptor.Signature.KeyInfo.X509Data.X509Certificate");
-        BasicX509Credential signingCredential = (BasicX509Credential) responderMetadataSigner.getSigningCredential();
         byte[] expectedSigningCertificate = signingCredential.getEntityCertificate().getEncoded();
         assertArrayEquals(expectedSigningCertificate, Base64.decode(signingCertificate));
         EntityDescriptor responderMetadata = OpenSAMLUtils.unmarshall(metadataResponse.getBody().asByteArray(), EntityDescriptor.class);

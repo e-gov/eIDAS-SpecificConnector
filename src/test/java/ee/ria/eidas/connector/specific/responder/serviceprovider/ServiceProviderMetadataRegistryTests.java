@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 @ExtendWith(SpringExtension.class)
-@EnableConfigurationProperties(value = SpecificConnectorProperties.class)
+@EnableConfigurationProperties(value = {SpecificConnectorProperties.class, SpecificConnectorProperties.ResponderMetadata.class})
 @ContextConfiguration(classes = {ServiceProviderMetadataConfiguration.class, ResponderMetadataConfiguration.class, OpenSAMLConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false,
         properties = {

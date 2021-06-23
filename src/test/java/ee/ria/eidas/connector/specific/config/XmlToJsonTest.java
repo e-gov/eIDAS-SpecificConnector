@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {OpenSAMLConfiguration.class, ResponderMetadataConfiguration.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
-@EnableConfigurationProperties(value = SpecificConnectorProperties.class)
+@EnableConfigurationProperties(value = SpecificConnectorProperties.ResponderMetadata.class)
 @TestPropertySource(value = "classpath:application-test.properties")
 public class XmlToJsonTest {
 

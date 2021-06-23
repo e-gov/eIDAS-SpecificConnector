@@ -10,10 +10,18 @@
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
     <artifactId>ee-specific-connector</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>war</packaging>
     <name>ee-specific-connector</name>
     <description>EE specific eIDAS connector</description>
+
+    <repositories>
+        <repository>
+            <id>nexus-eidas-local</id>
+            <name>nexus-eidas-local</name>
+            <url>https://nexus.ria.ee/repository/eidas-node-maven-local/</url>
+        </repository>
+    </repositories>
 
     <properties>
         <java.version>1.8</java.version>

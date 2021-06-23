@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
+import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
 import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.TimeGauge;
@@ -49,6 +50,9 @@ public class ApplicationHealthEndpoint {
     @Autowired
     private TruststoreHealthIndicator truststoreHealthIndicator;
 
+    @Autowired
+    private ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
+
     @ReadOperation(produces = "application/json")
     public ResponseEntity<Map<String, Object>> health() {
         HttpHeaders headers = new HttpHeaders();
@@ -68,14 +72,15 @@ public class ApplicationHealthEndpoint {
         details.put("currentTime", now());
         details.computeIfAbsent("startTime", v -> getServiceStartTime());
         details.computeIfAbsent("upTime", v -> getServiceUpTime());
-        details.computeIfAbsent("warnings", v -> getTrustStoreWarnings());
+        details.computeIfAbsent("warnings", v -> getWarnings());
         details.put("dependencies", getFormattedStatuses(healthIndicatorStatuses));
         return details;
     }
 
-    private List<String> getTrustStoreWarnings() {
-        List<String> certificateExpirationWarnings = truststoreHealthIndicator.getCertificateExpirationWarnings();
-        return certificateExpirationWarnings.isEmpty() ? null : certificateExpirationWarnings;
+    private List<String> getWarnings() {
+        List<String> warnings = truststoreHealthIndicator.getCertificateExpirationWarnings();
+        responderMetadataHealthIndicator.getSigningCertificateExpirationWarning().ifPresent(warnings::add);
+        return warnings.isEmpty() ? null : warnings;
     }
 
     private String getServiceStartTime() {

@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.config;
 
 import ee.ria.eidas.connector.specific.validation.SpELAssert;
+import ee.ria.eidas.connector.specific.validation.ValidHsmConfiguration;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.protocol.eidas.spec.LegalPersonSpec;
 import eu.eidas.auth.commons.protocol.eidas.spec.NaturalPersonSpec;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
@@ -34,10 +36,11 @@ import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_S
 @Slf4j
 @Data
 @Validated
+@ValidHsmConfiguration
 @ConfigurationProperties(prefix = "eidas.connector")
 public class SpecificConnectorProperties {
-
     public static final String DEFAULT_CONTENT_SECURITY_POLICY = "block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='";
+
     @NotEmpty
     private String appInstanceId;
 
@@ -48,6 +51,8 @@ public class SpecificConnectorProperties {
     @Valid
     @NotNull
     private ResponderMetadata responderMetadata;
+
+    private HsmProperties hsm = new HsmProperties();
 
     @SpELAssert(value = "new java.util.HashSet(#this.![id]).size() == #this.size()", message = "Service provider not unique", appliesTo = "id")
     @SpELAssert(value = "new java.util.HashSet(#this.![entityId]).size() == #this.size()", message = "Service provider not unique", appliesTo = "entityId")
@@ -97,6 +102,7 @@ public class SpecificConnectorProperties {
     }
 
     @Data
+    @ConfigurationProperties(prefix = "eidas.connector.responder-metadata")
     public static class ResponderMetadata {
 
         @Getter(AccessLevel.NONE)
@@ -146,7 +152,6 @@ public class SpecificConnectorProperties {
         @NotEmpty
         private String keyAlias;
 
-        @NotEmpty
         private String keyPassword;
 
         @NotEmpty
@@ -273,4 +278,30 @@ public class SpecificConnectorProperties {
         private final String name;
     }
 
+    @Data
+    @ConfigurationProperties(prefix = "eidas.connector.hsm")
+    public static class HsmProperties {
+
+        private boolean enabled;
+
+        private boolean certificatesFromHsm;
+
+        private String pin;
+
+        private String library;
+
+        private String slot;
+
+        @PositiveOrZero
+        private Integer slotListIndex;
+
+        @Override
+        public String toString() {
+            if (slot != null) {
+                return format("name=eidas\nlibrary=%s\nslot=%s\n", library, slot);
+            } else {
+                return format("name=eidas\nlibrary=%s\nslotListIndex=%s\n", library, slotListIndex);
+            }
+        }
+    }
 }

@@ -3,11 +3,7 @@ package ee.ria.eidas.connector.specific.integration;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
-import eu.eidas.auth.commons.attribute.AttributeDefinition;
-import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
 import eu.eidas.auth.commons.light.ILightRequest;
-import eu.eidas.auth.commons.light.impl.LightRequest;
-import eu.eidas.auth.commons.light.impl.LightResponse;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
@@ -17,11 +13,9 @@ import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.cache.Cache;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 
