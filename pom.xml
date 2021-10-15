@@ -10,7 +10,7 @@
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
     <artifactId>ee-specific-connector</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <packaging>war</packaging>
     <name>ee-specific-connector</name>
     <description>EE specific eIDAS connector</description>
@@ -276,6 +276,9 @@
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
+                <configuration>
+                    <offline>true</offline><!-- TODO Remove when >= 5.0.0 is used, there offline=true is default. -->
+                </configuration>
             </plugin>
         </plugins>
     </build>
