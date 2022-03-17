@@ -15,7 +15,11 @@ import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpHeaders;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DynamicNode;
+import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -52,7 +56,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.text.MatchesPattern.matchesPattern;
 import static org.hamcrest.xml.HasXPath.hasXPath;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.any;
@@ -270,7 +276,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .statusCode(400)
                 .body("error", equalTo("Bad Request"))
                 .body("incidentNumber", notNullValue())
-                .body("message", equalTo("Required String parameter 'SAMLRequest' is not present"));
+                .body("message", equalTo("Required request parameter 'SAMLRequest' for method parameter type String is not present"));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
@@ -287,7 +293,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .statusCode(400)
                 .body("error", equalTo("Bad Request"))
                 .body("incidentNumber", notNullValue())
-                .body("message", equalTo("Required String parameter 'country' is not present"));
+                .body("message", equalTo("Required request parameter 'country' for method parameter type String is not present"));
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }
