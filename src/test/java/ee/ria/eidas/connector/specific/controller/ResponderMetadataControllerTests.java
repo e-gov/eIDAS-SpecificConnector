@@ -41,7 +41,6 @@ import static org.springframework.util.ResourceUtils.getFile;
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false,
         properties = {
                 "eidas.connector.responder-metadata.name-id-format=urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-                "eidas.connector.responder-metadata.sp-type=public",
                 "eidas.connector.responder-metadata.supported-member-states=LV,LT",
                 "eidas.connector.responder-metadata.contacts[0].surname=SupportSurName",
                 "eidas.connector.responder-metadata.contacts[0].given-name=SupportGivenName",

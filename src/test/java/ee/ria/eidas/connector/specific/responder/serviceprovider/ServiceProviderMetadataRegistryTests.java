@@ -29,11 +29,9 @@ import static org.junit.jupiter.api.Assertions.*;
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
-                "eidas.connector.service-providers[0].type=public",
                 "eidas.connector.service-providers[1].id=service-provider-1",
                 "eidas.connector.service-providers[1].entity-id=https://localhost:9999/metadata",
                 "eidas.connector.service-providers[1].key-alias=service-provider-1-metadata-signing",
-                "eidas.connector.service-providers[1].type=public"
         })
 public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
 

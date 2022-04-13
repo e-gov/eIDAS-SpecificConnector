@@ -31,6 +31,7 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.xml.security.signature.XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA256_MGF1;
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA256;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA384;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA512;
 
 @Slf4j
@@ -121,6 +122,7 @@ public class SpecificConnectorProperties {
         @Getter(AccessLevel.NONE)
         public static final List<SigningMethod> DEFAULT_SIGNING_METHODS = unmodifiableList(asList(
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA512, 384, 384),
+                new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA384, 384, 384),
                 new SigningMethod(ALGO_ID_SIGNATURE_ECDSA_SHA256, 384, 384),
                 new SigningMethod(ALGO_ID_SIGNATURE_RSA_SHA256_MGF1, 4096, 4096)));
 
@@ -163,9 +165,6 @@ public class SpecificConnectorProperties {
         @Pattern(regexp = "^(urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified|urn:oasis:names:tc:SAML:2.0:nameid-format:transient|urn:oasis:names:tc:SAML:2.0:nameid-format:persistent)$",
                 message = "Invalid md:EntityDescriptor/md:IDPSSODescriptor/md:NameIDFormat")
         private String nameIdFormat;
-
-        @Pattern(regexp = "^(public|private)$", message = "Invalid Service Provider type")
-        private String spType = "public";
 
         @NotEmpty
         private String signatureAlgorithm = SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;

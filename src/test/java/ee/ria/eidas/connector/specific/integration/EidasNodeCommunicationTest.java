@@ -3,6 +3,7 @@ package ee.ria.eidas.connector.specific.integration;
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory;
+import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.exception.SpecificCommunicationException;
@@ -51,7 +52,8 @@ class EidasNodeCommunicationTest extends SpecificConnectorTest {
     void lightRequestRetrieavableByLightTokenWhen_putLightRequest() throws IOException, UnmarshallingException, XMLParserException, SpecificCommunicationException, JAXBException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476", "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        ILightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476");
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
         String tokenId = binaryLightToken.getToken().getId();
 

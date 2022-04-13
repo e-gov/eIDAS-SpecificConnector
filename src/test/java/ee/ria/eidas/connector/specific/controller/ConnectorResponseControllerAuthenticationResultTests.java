@@ -67,7 +67,6 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
-                "eidas.connector.service-providers[0].type=public",
                 "eidas.connector.add-saml-error-assertion=true"
         })
 public class ConnectorResponseControllerAuthenticationResultTests extends SpecificConnectorTest {
@@ -126,7 +125,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         String expectedRelayState = RandomStringUtils.random(128, true, true);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", expectedRelayState, "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "LT", expectedRelayState);
         ResponseStatus successfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("urn:oasis:names:tc:SAML:2.0:status:Success")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Success")
@@ -175,7 +175,8 @@ public class ConnectorResponseControllerAuthenticationResultTests extends Specif
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         String expectedRelayState = RandomStringUtils.random(128, true, true);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", expectedRelayState, "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "LT", expectedRelayState);
         ResponseStatus unsuccessfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("003002 - Authentication Failed.")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Responder")

@@ -132,7 +132,8 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
         String expectedRelayState = RandomStringUtils.random(128, true, true);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", expectedRelayState, "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "LT", expectedRelayState);
         ResponseStatus successfulAuthenticationStatus = ResponseStatus.builder()
                 .statusMessage("urn:oasis:names:tc:SAML:2.0:status:Success")
                 .statusCode("urn:oasis:names:tc:SAML:2.0:status:Success")

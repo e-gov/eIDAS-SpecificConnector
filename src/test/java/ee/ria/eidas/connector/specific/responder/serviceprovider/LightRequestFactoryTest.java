@@ -5,6 +5,7 @@ import ee.ria.eidas.connector.specific.config.OpenSAMLConfiguration;
 import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.util.TestUtils;
 import eu.eidas.auth.commons.attribute.AttributeDefinition;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
@@ -51,7 +52,8 @@ class LightRequestFactoryTest {
     void createValidLightRequest() throws IOException, UnmarshallingException, XMLParserException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476", "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        ILightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476");
 
         String correlationId = lightRequestFactory.getCorrelationId(authnRequest);
         assertEquals(correlationId, lightRequest.getId());
@@ -77,10 +79,11 @@ class LightRequestFactoryTest {
     void createValidCorrelationId() throws IOException, UnmarshallingException, XMLParserException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476", "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        ILightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "CA", "_5a5a7cd4616f46813fda1cd350cab476");
 
         String correlationId = lightRequestFactory.getCorrelationId(authnRequest);
-        assertEquals("eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310", correlationId);
+        assertEquals("5a968926a873fc52e65e6e87a2fbe0f7918cc0d18401ec3da366f2066a5c87ab07a497adffa521f16d3d7a0801d088819511c8f39beebb60a44b409851c64ca7", correlationId);
         assertEquals(correlationId, lightRequest.getId());
     }
 

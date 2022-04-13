@@ -10,6 +10,11 @@ import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
 import org.opensaml.saml.ext.saml2alg.DigestMethod;
 import org.opensaml.saml.ext.saml2alg.SigningMethod;
+import org.opensaml.saml.ext.saml2mdattr.EntityAttributes;
+import org.opensaml.saml.ext.saml2mdattr.impl.EntityAttributesBuilder;
+import org.opensaml.saml.saml2.core.Attribute;
+import org.opensaml.saml.saml2.core.AttributeValue;
+import org.opensaml.saml.saml2.core.impl.AttributeBuilder;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.Extensions;
 import org.opensaml.security.SecurityException;
@@ -25,6 +30,8 @@ import static java.util.stream.Collectors.toList;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class EntityDescriptorFactory {
     private static final String NS_SAML_EXTENSIONS = "http://eidas.europa.eu/saml-extensions";
+    private static final String REQUESTER_ID_ATTRIBUTE_NAME = "http://macedir.org/entity-category";
+    private static final String REQUESTER_ID_ATTRIBUTE_VALUE = "http://eidas.europa.eu/entity-attributes/termsofaccess/requesterid";
 
     public static EntityDescriptor create(ResponderMetadata responderMetadata, Credential metadataSigningCredential) throws SecurityException {
         EntityDescriptor descriptor = OpenSAMLUtils.buildObject(EntityDescriptor.class);
@@ -48,17 +55,11 @@ public class EntityDescriptorFactory {
     private static Extensions createExtensions(ResponderMetadata responderMetadata) {
         Extensions eidasExtensions = OpenSAMLUtils.buildObject(Extensions.class);
         eidasExtensions.getNamespaceManager().registerAttributeName(DigestMethod.TYPE_NAME);
-        eidasExtensions.getUnknownXMLObjects().add(createSpType(responderMetadata.getSpType()));
         eidasExtensions.getUnknownXMLObjects().add(createSupportedMemberStatesAttributes(responderMetadata));
         eidasExtensions.getUnknownXMLObjects().addAll(createDigestMethods(responderMetadata));
         eidasExtensions.getUnknownXMLObjects().addAll(createSigningMethods(responderMetadata));
+        eidasExtensions.getUnknownXMLObjects().add(createEntityAttributes());
         return eidasExtensions;
-    }
-
-    private static XSAny createSpType(String sp) {
-        XSAny spType = new XSAnyBuilder().buildObject(NS_SAML_EXTENSIONS, "SPType", "eidas");
-        spType.setTextContent(sp);
-        return spType;
     }
 
     private static XSAny createSupportedMemberStatesAttributes(ResponderMetadata responderMetadata) {
@@ -90,5 +91,23 @@ public class EntityDescriptorFactory {
             sm.setMaxKeySize(signingMethod.getMaxKeySize());
             return sm;
         }).collect(toList());
+    }
+
+    private static EntityAttributes createEntityAttributes() {
+        EntityAttributes entityAttributes = new EntityAttributesBuilder().buildObject();
+        Attribute attribute = createRequesterIdAttribute();
+        entityAttributes.getAttributes().add(attribute);
+        return entityAttributes;
+    }
+
+    private static Attribute createRequesterIdAttribute() {
+        Attribute attribute = new AttributeBuilder().buildObject();
+        attribute.setName(REQUESTER_ID_ATTRIBUTE_NAME);
+        attribute.setNameFormat(Attribute.URI_REFERENCE);
+
+        XSAny attributeValue = new XSAnyBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME);
+        attributeValue.setTextContent(REQUESTER_ID_ATTRIBUTE_VALUE);
+        attribute.getAttributeValues().add(attributeValue);
+        return attribute;
     }
 }

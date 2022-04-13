@@ -8,6 +8,7 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorConfiguration;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataGenerator;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
+import ee.ria.eidas.connector.specific.util.TestUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
@@ -35,11 +36,9 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
-                "eidas.connector.service-providers[0].type=public",
                 "eidas.connector.service-providers[1].id=service-provider-1",
                 "eidas.connector.service-providers[1].entity-id=https://localhost:9999/metadata",
                 "eidas.connector.service-providers[1].key-alias=service-provider-1-metadata-signing",
-                "eidas.connector.service-providers[1].type=public"
         })
 public class ServiceProviderMetadataTests extends ServiceProviderTest {
 
@@ -69,7 +68,8 @@ public class ServiceProviderMetadataTests extends ServiceProviderTest {
         assertTrue(spMetadata.isUpdatedAndValid());
         byte[] decodedAuthnRequest = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(decodedAuthnRequest, AuthnRequest.class);
-        spMetadata.validate(authnRequest.getSignature());
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        spMetadata.validate(signedAuthnRequest.getSignature());
 
         ServiceProviderMetadata sp1Metadata = serviceProviderMetadataRegistry.get(SP_1_ENTITY_ID);
         assertNotNull(sp1Metadata);

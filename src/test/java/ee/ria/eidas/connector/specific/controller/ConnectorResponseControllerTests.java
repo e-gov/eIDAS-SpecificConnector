@@ -34,6 +34,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.opensaml.core.xml.io.UnmarshallingException;
+import org.opensaml.saml.common.SignableSAMLObject;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Issuer;
 import org.opensaml.saml.saml2.core.Status;
@@ -79,7 +80,6 @@ import static org.springframework.util.ResourceUtils.getFile;
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
-                "eidas.connector.service-providers[0].type=public"
         })
 class ConnectorResponseControllerTests extends SpecificConnectorTest {
 
@@ -223,7 +223,8 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     void badRequestWhen_MissingAuthnRequestForLightResponse(String requestMethod) throws IOException, UnmarshallingException, XMLParserException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "LV", "");
 
         LightResponse lightResponse = TestUtils.createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
@@ -238,7 +239,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .body("incidentNumber", notNullValue())
                 .body("message", equalTo("Authentication request related to token is invalid or has expired"));
 
-        assertTestLogs(INFO, "Get and remove AuthnRequest from cache with correlation id: 'eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310', Result: false");
+        assertTestLogs(INFO, "Get and remove AuthnRequest from cache with correlation id: '5a968926a873fc52e65e6e87a2fbe0f7918cc0d18401ec3da366f2066a5c87ab07a497adffa521f16d3d7a0801d088819511c8f39beebb60a44b409851c64ca7', Result: false");
     }
 
     @ParameterizedTest
@@ -249,9 +250,10 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
         Issuer issuer = OpenSAMLUtils.buildObject(Issuer.class);
         issuer.setValue("https://localhost:1111/metadata");
         authnRequest.setIssuer(issuer);
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
 
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LV", "", "public");
-        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "LV", "");
+        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), signedAuthnRequest);
         LightResponse lightResponse = TestUtils.createLightResponse(lightRequest);
         BinaryLightToken binaryLightToken = putLightResponseToEidasNodeCommunicationCache(lightResponse);
         given()
@@ -390,8 +392,9 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     private BinaryLightToken prepareAuthnRequest() throws IOException, XMLParserException, UnmarshallingException {
         byte[] authnRequestXml = readFileToByteArray(getFile("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml"));
         AuthnRequest authnRequest = OpenSAMLUtils.unmarshall(authnRequestXml, AuthnRequest.class);
-        LightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, "LT", "", "public");
-        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
+        AuthnRequest signedAuthnRequest = (AuthnRequest) TestUtils.getSignedSamlObject(authnRequest);
+        LightRequest lightRequest = lightRequestFactory.createLightRequest(signedAuthnRequest, "LT", "");
+        specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), signedAuthnRequest);
         LightResponse lightResponse = TestUtils.createLightResponse(lightRequest);
         return putLightResponseToEidasNodeCommunicationCache(lightResponse);
     }

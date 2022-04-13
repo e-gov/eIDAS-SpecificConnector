@@ -63,11 +63,6 @@ public class SpecificConnectorPropertiesDefaultValuesTests {
     }
 
     @Test
-    void defaultSPType() {
-        assertEquals("public", specificConnectorProperties.getResponderMetadata().getSpType());
-    }
-
-    @Test
     void defaultValidityInDays() {
         assertEquals(1, specificConnectorProperties.getResponderMetadata().getValidityInterval().toDays());
     }

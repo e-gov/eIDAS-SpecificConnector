@@ -14,7 +14,10 @@ import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensaml.core.xml.XMLObject;
+import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.saml.common.xml.SAMLConstants;
+import org.opensaml.saml.ext.saml2mdattr.EntityAttributes;
+import org.opensaml.saml.saml2.core.Attribute;
 import org.opensaml.saml.saml2.metadata.*;
 import org.opensaml.security.credential.UsageType;
 import org.opensaml.security.x509.BasicX509Credential;
@@ -50,7 +53,6 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
                 "eidas.connector.responder-metadata.entity-id=https://localhost:9999/SpecificConnector/ConnectorResponderMetadata",
                 "eidas.connector.responder-metadata.sso-service-url=https://localhost:9999/SpecificConnector/ServiceProvider",
                 "eidas.connector.responder-metadata.name-id-format=urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-                "eidas.connector.responder-metadata.sp-type=private",
                 "eidas.connector.responder-metadata.validity-interval=2d",
                 "eidas.connector.responder-metadata.supported-member-states=LV,LT",
                 "eidas.connector.responder-metadata.signature-algorithm=http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
@@ -104,11 +106,11 @@ class ResponderMetadataGeneratorTest {
                 dynamicTest("validRoleDescriptors", () -> assertValidRoleDescriptors(metadata)),
                 dynamicTest("validOrganization", () -> assertOrganization(metadata)),
                 dynamicTest("validContacts", () -> assertContacts(metadata)),
-                dynamicContainer("validExtensions",
-                        of(dynamicTest("validSpType", () -> assertSPType(extensions)),
-                                dynamicTest("validSupportedMemberStates", () -> assertSupportedMemberStates(extensions)),
-                                dynamicTest("validSupportedDigestMethods", () -> assertSupportedDigestMethods(extensions)),
-                                dynamicTest("validSupportedSigningMethods", () -> assertSupportedSigningMethods(extensions)))),
+                dynamicContainer("validExtensions", of(
+                        dynamicTest("validRequesterId", () -> assertRequesterId(extensions)),
+                        dynamicTest("validSupportedMemberStates", () -> assertSupportedMemberStates(extensions)),
+                        dynamicTest("validSupportedDigestMethods", () -> assertSupportedDigestMethods(extensions)),
+                        dynamicTest("validSupportedSigningMethods", () -> assertSupportedSigningMethods(extensions)))),
                 dynamicContainer("validIDPSSODescriptor",
                         of(dynamicTest("isWantAuthnRequestsSigned", () -> assertTrue(idpSSODescriptor.getWantAuthnRequestsSigned())),
                                 dynamicTest("validNameIdFormat", () -> assertNameIdFormat(idpSSODescriptor)),
@@ -220,13 +222,23 @@ class ResponderMetadataGeneratorTest {
         assertThat(attributes).containsExactlyInAnyOrderElementsOf(supportedAttributes);
     }
 
-    private void assertSPType(Extensions extensions) {
-        List<XMLObject> xmlObjects = extensions.getUnknownXMLObjects(constructQName("http://eidas.europa.eu/saml-extensions", "SPType", "eias"));
+    private void assertRequesterId(Extensions extensions) {
+        List<XMLObject> xmlObjects = extensions.getUnknownXMLObjects(constructQName("urn:oasis:names:tc:SAML:metadata:attribute", "EntityAttributes", "mdattr"));
         assertNotNull(xmlObjects);
-        XMLObject spType = xmlObjects.get(0);
-        assertNotNull(spType);
-        assertNotNull(spType.getDOM());
-        assertEquals("private", spType.getDOM().getTextContent());
+        EntityAttributes entityAttributes = (EntityAttributes) xmlObjects.get(0);
+        assertNotNull(entityAttributes);
+        assertEquals(1, entityAttributes.getAttributes().size());
+
+        Attribute attribute = entityAttributes.getAttributes().get(0);
+        assertNotNull(attribute);
+        assertNotNull(attribute.getDOM());
+        assertEquals("http://macedir.org/entity-category", attribute.getDOM().getAttribute("Name"));
+        assertEquals("urn:oasis:names:tc:SAML:2.0:attrname-format:uri", attribute.getDOM().getAttribute("NameFormat"));
+        assertEquals(1, attribute.getAttributeValues().size());
+
+        XSAny attributeValue = (XSAny) attribute.getAttributeValues().get(0);
+        assertNotNull(attributeValue);
+        assertEquals("http://eidas.europa.eu/entity-attributes/termsofaccess/requesterid", attributeValue.getTextContent());
     }
 
     private void assertSupportedMemberStates(Extensions extensions) {

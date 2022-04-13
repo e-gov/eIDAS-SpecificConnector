@@ -91,7 +91,6 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.entity-id` | Yes | Exact HTTPS URL where metadata is published. Examlpe: `https://eidas-specificconnector:8443/SpecificConnector/ConnectorResponderMetadata` |
 | `eidas.connector.responder-metadata.sso-service-url` | Yes | Exact HTTPS URL where authentication endpoint for service providers is located. Example: `https://eidas-specificconnector:8443/SpecificConnector/ServiceProvider` |
 | `eidas.connector.responder-metadata.name-id-format` | No | Possible values: `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`,`urn:oasis:names:tc:SAML:2.0:nameid-format:transient`,`urn:oasis:names:tc:SAML:2.0:nameid-format:persistent` |
-| `eidas.connector.responder-metadata.sp-type` | No | Public or private sector service provider. Possible values: `public`, `private` |
 | `eidas.connector.responder-metadata.validity-interval` | No | Metadata validity duration. [Defined as standard ISO-8601 format used by java.time.Duration](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-conversion-duration) Default value: `1d` |
 | `eidas.connector.responder-metadata.assertion-validity-interval` | No | Authentication response assertion validity duration. [Defined as standard ISO-8601 format used by java.time.Duration](https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-conversion-duration) Default value: `5m` |
 | `eidas.connector.responder-metadata.supported-member-states` | Yes | Supported member states for authentication (defined by ISO 3166-1 alpha-2) |
@@ -129,7 +128,6 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.hsm.enabled=false`
 | `eidas.connector.hsm.certificates-from-hsm=false`
 | `eidas.connector.responder-metadata.path=ConnectorResponderMetadata` |
-| `eidas.connector.responder-metadata.sp-type=public` |
 | `eidas.connector.responder-metadata.validity-in-days=1` |
 | `eidas.connector.responder-metadata.key-store-type=PKCS12` |
 | `eidas.connector.responder-metadata.trust-store-type=PKCS12` |
@@ -240,7 +238,6 @@ OF6TawGAOCgZSsptJbU=</ds:X509Certificate>
       </ds:KeyInfo>
    </ds:Signature>
    <md:Extensions xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport">
-      <eidas:SPType xmlns:eidas="http://eidas.europa.eu/saml-extensions">public</eidas:SPType>
       <ria:SupportedMemberStates xmlns:ria="http://eidas.europa.eu/saml-extensions">
          <ria:MemberState>CA</ria:MemberState>
          <ria:MemberState>DE</ria:MemberState>
@@ -250,6 +247,11 @@ OF6TawGAOCgZSsptJbU=</ds:X509Certificate>
       <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512" MaxKeySize="384" MinKeySize="384" />
       <alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256" MaxKeySize="384" MinKeySize="384" />
       <alg:SigningMethod Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1" MaxKeySize="4096" MinKeySize="4096" />
+      <mdattr:EntityAttributes xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute">
+         <saml2:Attribute xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" Name="http://macedir.org/entity-category" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+            <saml2:AttributeValue>http://eidas.europa.eu/entity-attributes/termsofaccess/requesterid</saml2:AttributeValue>
+         </saml2:Attribute>
+      </mdattr:EntityAttributes>
    </md:Extensions>
    <md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
       <md:KeyDescriptor use="signing">
@@ -338,7 +340,6 @@ To add new service provider, following properties must be set for each service p
 | `eidas.connector.service-providers[X].id` | Yes | Id of service provider. Must be unique. |
 | `eidas.connector.service-providers[X].entity-id` | Yes | `entityId` published in service provider metadata. It is a HTTPS URL pointing to the location of metadata. Must be unique. |
 | `eidas.connector.service-providers[X].key-alias` | Yes | Certificate key alias in [responder truststore](). Must be unique. |
-| `eidas.connector.service-providers[X].type` | Yes | Type of service provider. Possible values: `public`, `private` |
 
 * Where X is index starting from zero and incremented for each new service provider.
 
@@ -495,6 +496,7 @@ Example log message containing Authentication initialization event (authn_reques
     },
     "Extensions": {
       "SPType": "public",
+      "RequesterID": "SAMPLE-REQUESTER-ID",
       "RequestedAttributes": {
         "RequestedAttribute": {
           "FriendlyName": "PersonIdentifier",

@@ -63,6 +63,8 @@ import static net.logstash.logback.marker.Markers.appendRaw;
 public class ServiceProviderController {
     private static final List<String> VALID_NAME_ID_FORMATS = Arrays.asList(NameIDType.UNSPECIFIED, NameIDType.PERSISTENT, NameIDType.TRANSIENT);
     private static final QName REQUESTED_ATTRIBUTES_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
+    private static final QName SPTYPE_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
+    private static final QName REQUESTER_ID_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequesterID", "eidas");
     private final SpecificConnectorProperties specificConnectorProperties;
     private final EidasNodeCommunication eidasNodeCommunication;
     private final SpecificConnectorCommunication specificConnectorCommunication;
@@ -111,7 +113,7 @@ public class ServiceProviderController {
             throw new BadRequestException("SAML request is invalid - country not supported");
         }
         validateAuthnRequest(authnRequest, spMetadata);
-        return createLightRequestToken(authnRequest, country, relayState, spMetadata.getType());
+        return createLightRequestToken(authnRequest, country, relayState);
     }
 
     private void validateAuthnRequest(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) {
@@ -141,7 +143,7 @@ public class ServiceProviderController {
         if (!spMetadata.getAssertionConsumerServiceUrl().equals(authnRequest.getAssertionConsumerServiceURL())) {
             throw new BadRequestException("SAML request is invalid - invalid assertion consumer url");
         }
-        validateRequestedAttributes(authnRequest);
+        validateExtensions(authnRequest);
     }
 
     private void validateSignature(AuthnRequest authnRequest, ServiceProviderMetadata spMetadata) {
@@ -167,32 +169,39 @@ public class ServiceProviderController {
         }
     }
 
-    private void validateRequestedAttributes(AuthnRequest authnRequest) {
+    private void validateExtensions(AuthnRequest authnRequest) {
         Extensions extensions = authnRequest.getExtensions();
         if (extensions == null) {
             throw new BadRequestException("SAML request is invalid - no requested attributes");
-        } else {
-            List<XMLObject> bindings = extensions.getUnknownXMLObjects(REQUESTED_ATTRIBUTES_QNAME);
-            if (bindings.isEmpty()) {
-                throw new BadRequestException("SAML request is invalid - no requested attributes");
-            }
-            List<XMLObject> requestedAttributes = bindings.get(0).getOrderedChildren();
-            if (requestedAttributes == null || requestedAttributes.isEmpty()) {
-                throw new BadRequestException("SAML request is invalid - no requested attributes");
-            }
-            Optional<Element> unsupportedRequestedAttribute = requestedAttributes.stream()
-                    .map(XMLObject::getDOM)
-                    .filter(Objects::nonNull)
-                    .filter(requestedAttribute -> supportedAttributesRegistry.getByName(requestedAttribute.getAttribute("Name")) == null)
-                    .findFirst();
-            if (unsupportedRequestedAttribute.isPresent()) {
-                throw new BadRequestException("SAML request is invalid - unsupported requested attributes");
-            }
+        }
+        List<XMLObject> requestedAttributesContainer = extensions.getUnknownXMLObjects(REQUESTED_ATTRIBUTES_QNAME);
+        if (requestedAttributesContainer.isEmpty()) {
+            throw new BadRequestException("SAML request is invalid - no requested attributes");
+        }
+        List<XMLObject> spTypeContainer = extensions.getUnknownXMLObjects(SPTYPE_QNAME);
+        if (spTypeContainer.isEmpty()) {
+            throw new BadRequestException("SAML request is invalid - no SPType");
+        }
+        List<XMLObject> requesterIdContainer = extensions.getUnknownXMLObjects(REQUESTER_ID_QNAME);
+        if (requesterIdContainer.isEmpty()) {
+            throw new BadRequestException("SAML request is invalid - no RequesterID");
+        }
+        List<XMLObject> requestedAttributes = requestedAttributesContainer.get(0).getOrderedChildren();
+        if (requestedAttributes == null || requestedAttributes.isEmpty()) {
+            throw new BadRequestException("SAML request is invalid - no requested attributes");
+        }
+        Optional<Element> unsupportedRequestedAttribute = requestedAttributes.stream()
+                .map(XMLObject::getDOM)
+                .filter(Objects::nonNull)
+                .filter(requestedAttribute -> supportedAttributesRegistry.getByName(requestedAttribute.getAttribute("Name")) == null)
+                .findFirst();
+        if (unsupportedRequestedAttribute.isPresent()) {
+            throw new BadRequestException("SAML request is invalid - unsupported requested attributes");
         }
     }
 
-    private String createLightRequestToken(AuthnRequest authnRequest, String country, String relayState, String spType) {
-        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState, spType);
+    private String createLightRequestToken(AuthnRequest authnRequest, String country, String relayState) {
+        ILightRequest lightRequest = lightRequestFactory.createLightRequest(authnRequest, country, relayState);
         specificConnectorCommunication.putAuthenticationRequest(lightRequest.getId(), authnRequest);
         BinaryLightToken binaryLightToken = eidasNodeCommunication.putLightRequest(lightRequest);
         return BinaryLightTokenHelper.encodeBinaryLightTokenBase64(binaryLightToken);

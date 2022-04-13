@@ -10,6 +10,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.xml.security.signature.XMLSignature;
 import org.jetbrains.annotations.NotNull;
 import org.opensaml.core.xml.XMLObject;
+import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.saml.saml2.core.AuthnContextClassRef;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Extensions;
@@ -34,15 +35,18 @@ public class LightRequestFactory {
     @Autowired
     private AttributeRegistry supportedAttributesRegistry;
 
-    public LightRequest createLightRequest(AuthnRequest authnRequest, String country, String relayState, String spType) {
+    public LightRequest createLightRequest(AuthnRequest authnRequest, String country, String relayState) {
         String correlationId = getCorrelationId(authnRequest);
+        String requesterId = getExtensionValue(authnRequest, "RequesterID");
+        String spType = getExtensionValue(authnRequest, "SPType");
         LightRequest.Builder builder = LightRequest.builder()
                 .id(correlationId)
                 .citizenCountryCode(country)
                 .issuer(authnRequest.getIssuer().getValue())
                 .providerName(authnRequest.getProviderName())
                 .requestedAttributes(createRequestedAttributes(authnRequest))
-                .spType(spType);
+                .spType(spType)
+                .requesterId(requesterId);
 
         if (authnRequest.getNameIDPolicy() != null) {
             builder.nameIdFormat(authnRequest.getNameIDPolicy().getFormat());
@@ -58,6 +62,15 @@ public class LightRequestFactory {
         }
 
         return builder.build();
+    }
+
+    private String getExtensionValue(AuthnRequest authnRequest, String extensionName) {
+        List<XMLObject> extensions = authnRequest.getExtensions().getUnknownXMLObjects();
+        XMLObject element = extensions.stream()
+                .filter(xmlObject -> xmlObject.getElementQName().getLocalPart().equals(extensionName))
+                .findFirst()
+                .get();
+        return ((XSAny)element).getTextContent();
     }
 
     @NotNull

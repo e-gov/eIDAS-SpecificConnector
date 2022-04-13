@@ -2,6 +2,7 @@ package ee.ria.eidas.connector.specific.controller;
 
 import ee.ria.eidas.connector.specific.SpecificConnectorTest;
 import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
+import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import ee.ria.eidas.connector.specific.util.TestUtils;
@@ -24,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.opensaml.core.xml.io.UnmarshallingException;
+import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Status;
 import org.opensaml.security.credential.UsageType;
 import org.opensaml.xmlsec.signature.support.SignatureException;
@@ -71,7 +73,6 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
                 "eidas.connector.service-providers[0].id=service-provider",
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
-                "eidas.connector.service-providers[0].type=public"
         })
 class ServiceProviderControllerTests extends SpecificConnectorTest {
 
@@ -111,10 +112,12 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void successfulWhen_ValidParameters(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
+    void successfulWhen_ValidParameters(String requestMethod) throws UnmarshallingException, IOException, XMLParserException, SpecificCommunicationException, ParserConfigurationException, SAXException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
         String relayState = RandomStringUtils.random(80, true, true);
-        String token = assertReturnParameter(requestMethod, authnRequestBase64, "LV", relayState, "token");
+        String token = assertReturnParameter(requestMethod, authnRequestBase64Signed, "LV", relayState, "token");
         String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
         assertNotNull(lightRequest);
@@ -124,10 +127,12 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void successfulWithGeneratedRelayStateWhen_ValidParametersAndNoRelayState(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException {
+    void successfulWithGeneratedRelayStateWhen_ValidParametersAndNoRelayState(String requestMethod) throws IOException, SpecificCommunicationException, ParserConfigurationException, SAXException, XMLParserException, UnmarshallingException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
         String relayState = RandomStringUtils.random(80, true, true);
-        String token = assertReturnParameter(requestMethod, authnRequestBase64, "LV", relayState, "token");
+        String token = assertReturnParameter(requestMethod, authnRequestBase64Signed, "LV", relayState, "token");
         String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
         assertNotNull(lightRequest);
@@ -153,16 +158,18 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException {
+    void internalServerExceptionWhen_AuthenticationRequestReplay(String requestMethod) throws IOException, SpecificCommunicationException, XMLParserException, UnmarshallingException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
         String relayState = RandomStringUtils.random(80, true, true);
-        String token = assertReturnParameter(requestMethod, authnRequestBase64, "LV", relayState, "token");
+        String token = assertReturnParameter(requestMethod, authnRequestBase64Signed, "LV", relayState, "token");
         String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
         String lightRequest = specificNodeConnectorRequestCache.get(binaryLightTokenId);
         assertNotNull(lightRequest);
 
         given()
-                .param("SAMLRequest", authnRequestBase64)
+                .param("SAMLRequest", authnRequestBase64Signed)
                 .param("country", "LV")
                 .param("RelayState", RandomStringUtils.random(80, true, true))
                 .when()
@@ -174,7 +181,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .body("message", equalTo("Something went wrong internally. Please consult server logs for further details."));
 
         assertNotNull(specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId));
-        assertNotNull(specificMSSpRequestCorrelationMap.getAndRemove("eafe0049c9fdc5317f3c369c058e6fc549689bc52b6359d0e79d0099614c6d35f9dfe199b8a2ab9d50a76763d4802cc6d6828b05a1b2ca8401899f1e0eb65310"));
+        assertNotNull(specificMSSpRequestCorrelationMap.getAndRemove("5a968926a873fc52e65e6e87a2fbe0f7918cc0d18401ec3da366f2066a5c87ab07a497adffa521f16d3d7a0801d088819511c8f39beebb60a44b409851c64ca7"));
     }
 
     @ParameterizedTest
@@ -185,7 +192,9 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         Mockito.doReturn("https://localhost:8888/returnUrl").when(mockSp).getAssertionConsumerServiceUrl();
         Mockito.doThrow(new CertificateResolverException(UsageType.SIGNING, "Metadata SIGNING certificate missing or invalid")).when(mockSp).validate(any());
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-valid-request-signature.xml");
-        String samlResponseBase64 = assertReturnParameter(requestMethod, authnRequestBase64, "LV", "", "SAMLResponse");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
+        String samlResponseBase64 = assertReturnParameter(requestMethod, authnRequestBase64Signed, "LV", "", "SAMLResponse");
 
         Status status = TestUtils.getStatus(samlResponseBase64);
         assertEquals(SP_SIGNING_CERT_MISSING_OR_INVALID.getStatusMessage(), status.getStatusMessage().getMessage());
@@ -252,16 +261,38 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_NoRequestedAttributes(String requestMethod) throws IOException {
+    void badRequestWhen_NoRequestedAttributes(String requestMethod) throws IOException, XMLParserException, UnmarshallingException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-requested-attributes.xml");
-        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - no requested attributes", "LV");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
+        assertBadRequest(requestMethod, authnRequestBase64Signed, "SAML request is invalid - no requested attributes", "LV");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
-    void badRequestWhen_UnsupportedRequestedAttributes(String requestMethod) throws IOException {
+    void badRequestWhen_NoRequesterId(String requestMethod) throws IOException, XMLParserException, UnmarshallingException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-requester-id.xml");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
+        assertBadRequest(requestMethod, authnRequestBase64Signed, "SAML request is invalid - no RequesterID", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_NoSpType(String requestMethod) throws IOException, XMLParserException, UnmarshallingException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-no-sp-type.xml");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
+        assertBadRequest(requestMethod, authnRequestBase64Signed, "SAML request is invalid - no SPType", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_UnsupportedRequestedAttributes(String requestMethod) throws IOException, XMLParserException, UnmarshallingException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-unsupported-requested-attributes.xml");
-        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - unsupported requested attributes", "LV");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
+        assertBadRequest(requestMethod, authnRequestBase64Signed, "SAML request is invalid - unsupported requested attributes", "LV");
     }
 
     @ParameterizedTest
