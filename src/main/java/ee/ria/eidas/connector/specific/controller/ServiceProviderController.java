@@ -42,7 +42,6 @@ import org.w3c.dom.Element;
 
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
-import javax.xml.namespace.QName;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -50,6 +49,9 @@ import java.net.URL;
 import java.util.*;
 
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
+import static ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory.REQUESTED_ATTRIBUTES_QNAME;
+import static ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory.REQUESTER_ID_QNAME;
+import static ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory.SPTYPE_QNAME;
 import static eu.eidas.auth.commons.EidasParameterKeys.TOKEN;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
@@ -62,9 +64,6 @@ import static net.logstash.logback.marker.Markers.appendRaw;
 @RequiredArgsConstructor
 public class ServiceProviderController {
     private static final List<String> VALID_NAME_ID_FORMATS = Arrays.asList(NameIDType.UNSPECIFIED, NameIDType.PERSISTENT, NameIDType.TRANSIENT);
-    private static final QName REQUESTED_ATTRIBUTES_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
-    private static final QName SPTYPE_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
-    private static final QName REQUESTER_ID_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequesterID", "eidas");
     private final SpecificConnectorProperties specificConnectorProperties;
     private final EidasNodeCommunication eidasNodeCommunication;
     private final SpecificConnectorCommunication specificConnectorCommunication;

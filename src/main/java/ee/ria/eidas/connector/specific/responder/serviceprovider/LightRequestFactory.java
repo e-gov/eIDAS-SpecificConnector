@@ -31,14 +31,17 @@ import static org.apache.commons.lang.StringUtils.isNotEmpty;
 @Slf4j
 @Component
 public class LightRequestFactory {
+    public static final QName SPTYPE_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
+    public static final QName REQUESTER_ID_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequesterID", "eidas");
+    public static final QName REQUESTED_ATTRIBUTES_QNAME = new QName("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
 
     @Autowired
     private AttributeRegistry supportedAttributesRegistry;
 
     public LightRequest createLightRequest(AuthnRequest authnRequest, String country, String relayState) {
         String correlationId = getCorrelationId(authnRequest);
-        String requesterId = getExtensionValue(authnRequest, "RequesterID");
-        String spType = getExtensionValue(authnRequest, "SPType");
+        String requesterId = getExtensionValue(authnRequest, REQUESTER_ID_QNAME);
+        String spType = getExtensionValue(authnRequest, SPTYPE_QNAME);
         LightRequest.Builder builder = LightRequest.builder()
                 .id(correlationId)
                 .citizenCountryCode(country)
@@ -64,10 +67,10 @@ public class LightRequestFactory {
         return builder.build();
     }
 
-    private String getExtensionValue(AuthnRequest authnRequest, String extensionName) {
+    private String getExtensionValue(AuthnRequest authnRequest, QName extensionName) {
         List<XMLObject> extensions = authnRequest.getExtensions().getUnknownXMLObjects();
         XMLObject element = extensions.stream()
-                .filter(xmlObject -> xmlObject.getElementQName().getLocalPart().equals(extensionName))
+                .filter(xmlObject -> xmlObject.getElementQName().equals(extensionName))
                 .findFirst()
                 .get();
         return ((XSAny)element).getTextContent();
@@ -86,8 +89,7 @@ public class LightRequestFactory {
         if (extensions == null) {
             return null;
         }
-        QName requestedAttributesQName = new QName("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
-        List<XMLObject> bindings = extensions.getUnknownXMLObjects(requestedAttributesQName);
+        List<XMLObject> bindings = extensions.getUnknownXMLObjects(REQUESTED_ATTRIBUTES_QNAME);
         if (bindings.isEmpty()) {
             return null;
         }
