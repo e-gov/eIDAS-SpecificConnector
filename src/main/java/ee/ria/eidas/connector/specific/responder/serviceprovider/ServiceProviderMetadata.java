@@ -100,10 +100,6 @@ public class ServiceProviderMetadata {
         return serviceProvider.getEntityId();
     }
 
-    public String getType() {
-        return serviceProvider.getType();
-    }
-
     public String getAssertionConsumerServiceUrl() {
         try {
             return getEntityDescriptor().getSPSSODescriptor(SAML20P_NS).getDefaultAssertionConsumerService().getLocation();
@@ -142,7 +138,7 @@ public class ServiceProviderMetadata {
         metadataResolver.setRefreshDelayFactor(refreshDelayFactor);
 
         List<MetadataFilter> metadataFilters = new ArrayList<>();
-        metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId(), serviceProvider.getType()));
+        metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId()));
         metadataFilters.add(new SignatureValidationFilter(metadataIssuerTrustEngine));
         metadataFilters.add(new RequiredValidUntilFilter());
         MetadataFilterChain metadataFilterChain = new MetadataFilterChain();

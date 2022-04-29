@@ -34,7 +34,7 @@ public class SpecificConnectorPropertiesValidationTests {
             .id("sp_id_1")
             .entityId("https://sp_metadata_1")
             .keyAlias("sp_key_alias_1")
-            .type("public").build();
+            .build();
 
     private Validator validator;
 
@@ -69,7 +69,7 @@ public class SpecificConnectorPropertiesValidationTests {
                 .id("sp_id_1")
                 .entityId("https://sp_metadata_2")
                 .keyAlias("sp_key_alias_2")
-                .type("public").build());
+                .build());
         ConstraintViolation<SpecificConnectorProperties> constraintViolation = validate();
         assertEquals("Service provider not unique", constraintViolation.getMessage());
         assertEquals("serviceProviders.id", constraintViolation.getPropertyPath().toString());
@@ -81,7 +81,7 @@ public class SpecificConnectorPropertiesValidationTests {
                 .id("sp_id_2")
                 .entityId("https://sp_metadata_1")
                 .keyAlias("sp_key_alias_2")
-                .type("public").build());
+                .build());
         ConstraintViolation<SpecificConnectorProperties> constraintViolation = validate();
         assertEquals("Service provider not unique", constraintViolation.getMessage());
         assertEquals("serviceProviders.entityId", constraintViolation.getPropertyPath().toString());
@@ -93,7 +93,7 @@ public class SpecificConnectorPropertiesValidationTests {
                 .id("sp_id_2")
                 .entityId("https://sp_metadata_2")
                 .keyAlias("sp_key_alias_1")
-                .type("public").build());
+                .build());
         ConstraintViolation<SpecificConnectorProperties> constraintViolation = validate();
         assertEquals("Service provider not unique", constraintViolation.getMessage());
         assertEquals("serviceProviders.keyAlias", constraintViolation.getPropertyPath().toString());

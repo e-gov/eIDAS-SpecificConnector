@@ -50,7 +50,6 @@ public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
         assertTrue(spMetadataFromRegistry.isUpdatedAndValid());
         assertEquals("service-provider", spMetadataFromRegistry.getId());
         assertEquals("https://localhost:8888/metadata", spMetadataFromRegistry.getEntityId());
-        assertEquals("public", spMetadataFromRegistry.getType());
         assertEquals("https://localhost:8888/returnUrl", spMetadataFromRegistry.getAssertionConsumerServiceUrl());
         assertTrue(spMetadataFromRegistry.isWantAssertionsSigned());
     }
@@ -62,7 +61,6 @@ public class ServiceProviderMetadataRegistryTests extends ServiceProviderTest {
         assertFalse(spMetadata1FromRegistry.isUpdatedAndValid());
         assertEquals("service-provider-1", spMetadata1FromRegistry.getId());
         assertEquals("https://localhost:9999/metadata", spMetadata1FromRegistry.getEntityId());
-        assertEquals("public", spMetadata1FromRegistry.getType());
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::getEntityDescriptor);
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::getAssertionConsumerServiceUrl);
         assertThrows(TechnicalException.class, spMetadata1FromRegistry::isWantAssertionsSigned);

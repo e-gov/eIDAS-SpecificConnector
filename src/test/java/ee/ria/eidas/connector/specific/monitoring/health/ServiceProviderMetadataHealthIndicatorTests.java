@@ -49,12 +49,6 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
     }
 
     @Test
-    void healthStatusDownWhen_InvalidSPType() {
-        updateServiceProviderMetadata("sp-invalid-sp-type.xml");
-        assertServiceProviderMetadata(ERROR_FILTERING_METADATA, "Invalid Service provider metadata SPType");
-    }
-
-    @Test
     void healthStatusDownWhen_InvalidSignerCert() {
         updateServiceProviderMetadata("sp-invalid-signer-cert.xml");
         assertServiceProviderMetadata(ERROR_FILTERING_METADATA,

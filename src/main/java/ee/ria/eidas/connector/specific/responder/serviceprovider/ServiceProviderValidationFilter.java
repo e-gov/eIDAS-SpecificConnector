@@ -27,15 +27,10 @@ import static org.opensaml.saml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_
 @Slf4j
 public class ServiceProviderValidationFilter implements MetadataFilter {
     public static final String INVALID_ENTITY_ID = "Invalid Service provider metadata entityId: %s";
-    public static final String INVALID_SP_TYPE = "Invalid Service provider metadata SPType";
     private final String entityId;
-    private final String spType;
-    private final QName spTypeQName;
 
-    public ServiceProviderValidationFilter(String entityId, String spType) {
+    public ServiceProviderValidationFilter(String entityId) {
         this.entityId = entityId;
-        this.spType = spType;
-        this.spTypeQName = new QName("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
     }
 
     @Nullable
@@ -46,7 +41,6 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
         }
         EntityDescriptor entityDescriptor = (EntityDescriptor) metadata;
         validateEntityId(entityDescriptor);
-        validateSPType(entityDescriptor);
         validateSPSSODescriptor(entityDescriptor);
         return metadata;
     }
@@ -54,14 +48,6 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
     private void validateEntityId(EntityDescriptor entityDescriptor) {
         if (!entityId.equals(entityDescriptor.getEntityID())) {
             throw new SpecificConnectorException(INVALID_ENTITY_ID, entityDescriptor.getEntityID());
-        }
-    }
-
-    private void validateSPType(EntityDescriptor entityDescriptor) throws FilterException {
-        List<XMLObject> spTypes = entityDescriptor.getExtensions().getUnknownXMLObjects(spTypeQName);
-
-        if (spTypes.isEmpty() || !spType.equals(((XSAny) spTypes.get(0)).getTextContent())) {
-            throw new FilterException(INVALID_SP_TYPE);
         }
     }
 

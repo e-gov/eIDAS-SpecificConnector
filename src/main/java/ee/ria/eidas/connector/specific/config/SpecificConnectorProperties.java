@@ -96,10 +96,6 @@ public class SpecificConnectorProperties {
 
         @NotEmpty
         private String keyAlias;
-
-        @NotEmpty
-        @Pattern(regexp = "^(public|private)$", message = "Invalid Service Provider type")
-        private String type = "public";
     }
 
     @Data
