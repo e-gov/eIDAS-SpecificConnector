@@ -31,7 +31,6 @@ import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static lombok.AccessLevel.PACKAGE;
 import static net.logstash.logback.argument.StructuredArguments.value;
 import static net.logstash.logback.marker.Markers.append;
 
@@ -45,8 +44,8 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     private final AtomicBoolean signingCredentialInFailedState = new AtomicBoolean();
     private final Map<String, CertificateInfo> signingCertificateInfo = new HashMap<>();
 
-    @Getter(PACKAGE)
-    private Clock systemClock;
+    @Getter
+    private final Clock systemClock;
 
     @Autowired
     private HsmProperties hsmProperties;
@@ -63,11 +62,11 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
     @Value("${eidas.connector.health.key-store-expiration-warning:30d}")
     private Period keyStoreExpirationWarningPeriod;
 
-    @Getter(PACKAGE)
+    @Getter
     @Value("${eidas.connector.health.hsm-test-interval:60s}")
     private Duration hsmTestInterval;
 
-    @Getter(PACKAGE)
+    @Getter
     private Instant lastTestTime = now();
 
     public ResponderMetadataHealthIndicator() {
@@ -114,7 +113,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
                 .and(append("x509.not_after", x509.getNotAfter().toInstant()));
         try {
             responderMetadataSigner.sign(EntityDescriptorFactory.create(responderMetadata, signingCredential));
-            if(signingCredentialInFailedState.get()) {
+            if (signingCredentialInFailedState.get()) {
                 log.info(marker, SIGNING_OPERATION_RECOVERED, signingCredential.getEntityId());
             }
             signingCredentialInFailedState.set(false);
