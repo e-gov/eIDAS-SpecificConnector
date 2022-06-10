@@ -83,7 +83,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    boolean isSigningCertificateExpired() {
+    protected boolean isSigningCertificateExpired() {
         Instant currentDateTime = now(getSystemClock());
         X509Certificate x509 = signingCredential.getEntityCertificate();
         if (currentDateTime.isAfter(x509.getNotAfter().toInstant()) || currentDateTime.isBefore(x509.getNotBefore().toInstant())) {
@@ -97,7 +97,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    boolean isSigningCredentialInFailedState() {
+    protected boolean isSigningCredentialInFailedState() {
         if (hsmProperties.isEnabled() && (signingCredentialInFailedState.get() || getLastTestTime().plus(hsmTestInterval).isBefore(now(getSystemClock())))) {
             return testSigningCredential();
         } else {
@@ -105,7 +105,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         }
     }
 
-    boolean testSigningCredential() {
+    protected boolean testSigningCredential() {
         lastTestTime = now();
         X509Certificate x509 = signingCredential.getEntityCertificate();
         LogstashMarker marker = append("x509.serial_number", x509.getSerialNumber())
