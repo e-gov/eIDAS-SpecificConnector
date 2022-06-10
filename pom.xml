@@ -247,6 +247,11 @@
                 <configuration>
                     <excludes>
                         <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                        <!-- TODO Remove spring-boot-configuration-processor on newer Spring Boot, it is performed automatically -->
+                        <exclude>
                             <groupId>org.springframework.boot</groupId>
                             <artifactId>spring-boot-configuration-processor</artifactId>
                         </exclude>
