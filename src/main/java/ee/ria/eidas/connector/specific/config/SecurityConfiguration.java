@@ -9,6 +9,7 @@ import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 @EnableWebSecurity
 @RequiredArgsConstructor
+// TODO Replace deprecated WebSecurityConfigurerAdapter with SecurityFilterChain etc.
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     private final SpecificConnectorProperties connectorProperties;
 
