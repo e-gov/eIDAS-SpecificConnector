@@ -21,6 +21,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.time.Clock;
 
 @Slf4j
 @Configuration
@@ -67,5 +68,10 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
         String hostAddress = InetAddress.getByName(new URL(issuerUrl).getHost()).getHostAddress();
         log.info("Responder metadata issuer: {}, IP address: {}", issuerUrl, hostAddress);
         return hostAddress;
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemUTC();
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.math.BigDecimal;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,15 +24,15 @@ public class ServiceProviderMetadataConfiguration {
     private final KeyStore responderMetadataTrustStore;
 
     @Bean
-    public List<ServiceProviderMetadata> serviceProviders() throws ResolverException, KeyStoreException, ComponentInitializationException {
+    public List<ServiceProviderMetadata> serviceProviders(Clock clock) throws ResolverException, KeyStoreException, ComponentInitializationException {
         List<ServiceProviderMetadata> serviceProviderMetadataResolvers = new ArrayList<>();
         for (ServiceProvider serviceProvider : specificConnectorProperties.getServiceProviders()) {
-            serviceProviderMetadataResolvers.add(setupServiceProviderMetadataResolver(serviceProvider));
+            serviceProviderMetadataResolvers.add(setupServiceProviderMetadataResolver(serviceProvider, clock));
         }
         return serviceProviderMetadataResolvers;
     }
 
-    private ServiceProviderMetadata setupServiceProviderMetadataResolver(ServiceProvider serviceProvider)
+    private ServiceProviderMetadata setupServiceProviderMetadataResolver(ServiceProvider serviceProvider, Clock clock)
             throws ResolverException, KeyStoreException, ComponentInitializationException {
         log.info("Initializing metadata resolver for: {}", serviceProvider);
         Long minRefreshDelay = specificConnectorProperties.getServiceProviderMetadataMinRefreshDelay();
@@ -42,6 +43,6 @@ public class ServiceProviderMetadataConfiguration {
 
         return new ServiceProviderMetadata(serviceProvider, responderMetadataTrustStore,
                 supportedKeyTransportAlgorithm, supportedEncryptionAlgorithm,
-                minRefreshDelay, maxRefreshDelay, delayFactor.floatValue());
+                minRefreshDelay, maxRefreshDelay, delayFactor.floatValue(), clock);
     }
 }

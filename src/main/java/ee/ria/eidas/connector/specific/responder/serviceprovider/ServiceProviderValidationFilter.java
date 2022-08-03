@@ -1,10 +1,10 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import ee.ria.eidas.connector.specific.exception.SpecificConnectorException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 import org.opensaml.core.xml.XMLObject;
-import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.saml.metadata.resolver.filter.FilterException;
 import org.opensaml.saml.metadata.resolver.filter.MetadataFilter;
 import org.opensaml.saml.saml2.core.NameIDType;
@@ -15,8 +15,9 @@ import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.security.x509.X509Support;
 import org.opensaml.xmlsec.signature.X509Certificate;
 
-import javax.xml.namespace.QName;
 import java.security.cert.CertificateException;
+import java.time.Clock;
+import java.util.Date;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -25,13 +26,11 @@ import static org.opensaml.saml.common.xml.SAMLConstants.SAML2_POST_BINDING_URI;
 import static org.opensaml.saml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_URI;
 
 @Slf4j
+@RequiredArgsConstructor
 public class ServiceProviderValidationFilter implements MetadataFilter {
     public static final String INVALID_ENTITY_ID = "Invalid Service provider metadata entityId: %s";
     private final String entityId;
-
-    public ServiceProviderValidationFilter(String entityId) {
-        this.entityId = entityId;
-    }
+    private final Clock clock;
 
     @Nullable
     @Override
@@ -98,9 +97,10 @@ public class ServiceProviderValidationFilter implements MetadataFilter {
     }
 
     private void validateCertificate(X509Certificate cert) throws FilterException {
+        Date currentDate = new Date(clock.millis());
         try {
             requireNonNull(cert.getValue());
-            requireNonNull(X509Support.decodeCertificate(cert.getValue())).checkValidity();
+            requireNonNull(X509Support.decodeCertificate(cert.getValue())).checkValidity(currentDate);
         } catch (CertificateException e) {
             throw new FilterException("Invalid SPSSODescriptor certificate", e);
         }

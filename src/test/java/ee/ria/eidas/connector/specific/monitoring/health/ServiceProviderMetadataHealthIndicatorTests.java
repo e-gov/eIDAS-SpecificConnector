@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.monitoring.health;
 
 import com.github.tomakehurst.wiremock.client.CountMatchingStrategy;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorTestConfiguration;
 import ee.ria.eidas.connector.specific.monitoring.ApplicationHealthTest;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import io.restassured.response.Response;
@@ -9,6 +10,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import static ch.qos.logback.classic.Level.INFO;
 import static ch.qos.logback.classic.Level.WARN;
@@ -27,6 +29,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
                 "eidas.connector.service-providers[0].entity-id=https://localhost:8888/metadata",
                 "eidas.connector.service-providers[0].key-alias=service-provider-metadata-signing",
         })
+@Import(SpecificConnectorTestConfiguration.class)
 public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHealthTest {
     public static final String ERROR_FILTERING_METADATA = "Error filtering metadata from https://localhost:8888/metadata";
     public static final String RESOLVER_EXCEPTION = "net.shibboleth.utilities.java.support.resolver.ResolverException: Unable to unmarshall metadata";

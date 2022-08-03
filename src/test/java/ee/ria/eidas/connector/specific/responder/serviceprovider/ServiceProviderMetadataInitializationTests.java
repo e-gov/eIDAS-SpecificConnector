@@ -4,6 +4,7 @@ import ee.ria.eidas.connector.specific.config.OpenSAMLConfiguration;
 import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.ServiceProviderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorTestConfiguration;
 import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,8 @@ import static org.springframework.util.ResourceUtils.getFile;
 @Slf4j
 @ExtendWith(SpringExtension.class)
 @EnableConfigurationProperties(value = {SpecificConnectorProperties.class, SpecificConnectorProperties.ResponderMetadata.class})
-@ContextConfiguration(classes = {ServiceProviderMetadataConfiguration.class, ResponderMetadataConfiguration.class, OpenSAMLConfiguration.class})
+@ContextConfiguration(classes = {ServiceProviderMetadataConfiguration.class, ResponderMetadataConfiguration.class,
+        OpenSAMLConfiguration.class, SpecificConnectorTestConfiguration.class})
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false,
         properties = {
                 "eidas.connector.service-provider-metadata-min-refresh-delay=1000",

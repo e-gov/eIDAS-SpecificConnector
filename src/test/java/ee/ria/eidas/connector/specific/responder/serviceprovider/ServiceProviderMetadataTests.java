@@ -5,6 +5,7 @@ import ee.ria.eidas.connector.specific.config.OpenSAMLConfiguration;
 import ee.ria.eidas.connector.specific.config.ResponderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.ServiceProviderMetadataConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorConfiguration;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorTestConfiguration;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataGenerator;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
@@ -29,7 +30,7 @@ import static org.springframework.util.ResourceUtils.getFile;
 @Slf4j
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {OpenSAMLConfiguration.class, SpecificConnectorConfiguration.class, ResponderMetadataConfiguration.class,
-        ServiceProviderMetadataConfiguration.class,
+        ServiceProviderMetadataConfiguration.class, SpecificConnectorTestConfiguration.class,
         ServiceProviderMetadataRegistry.class, ResponderMetadataGenerator.class, ResponderMetadataSigner.class}, initializers = SpecificConnectorTest.TestContextInitializer.class)
 @TestPropertySource(value = "classpath:application-test.properties",
         properties = {

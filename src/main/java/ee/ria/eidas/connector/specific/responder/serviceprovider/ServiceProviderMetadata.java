@@ -47,6 +47,7 @@ import org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngin
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,13 +67,13 @@ public class ServiceProviderMetadata {
     private final String supportedEncryptionAlgorithm;
 
     public ServiceProviderMetadata(ServiceProvider serviceProvider, KeyStore responderTrustStore, String supportedKeyTransportAlgorithm, String supportedEncryptionAlgorithm,
-                                   long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor)
+                                   long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor, Clock clock)
             throws ResolverException, ComponentInitializationException, KeyStoreException {
         this.serviceProvider = serviceProvider;
         this.supportedKeyTransportAlgorithm = supportedKeyTransportAlgorithm;
         this.supportedEncryptionAlgorithm = supportedEncryptionAlgorithm;
         this.metadataIssuerTrustEngine = createServiceProviderMetadataTrustEngine(responderTrustStore, serviceProvider.getKeyAlias());
-        this.httpMetadataResolver = createReloadingMetadataResolver(minRefreshDelay, maxRefreshDelay, refreshDelayFactor);
+        this.httpMetadataResolver = createReloadingMetadataResolver(minRefreshDelay, maxRefreshDelay, refreshDelayFactor, clock);
         this.serviceProviderSSOTrustEngine = createServiceProviderSSOTrustEngine();
     }
 
@@ -126,7 +127,7 @@ public class ServiceProviderMetadata {
         httpMetadataResolver.refresh();
     }
 
-    private HTTPMetadataResolver createReloadingMetadataResolver(long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor) throws ResolverException, ComponentInitializationException {
+    private HTTPMetadataResolver createReloadingMetadataResolver(long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor, Clock clock) throws ResolverException, ComponentInitializationException {
         HTTPMetadataResolver metadataResolver = new HTTPMetadataResolver(HttpClients.createDefault(), serviceProvider.getEntityId());
         metadataResolver.setId(serviceProvider.getId());
         ParserPool schemaValidatingParserPool = requireNonNull(XMLObjectProviderRegistrySupport.getParserPool(), "Parser pool not initialized!");
@@ -138,7 +139,7 @@ public class ServiceProviderMetadata {
         metadataResolver.setRefreshDelayFactor(refreshDelayFactor);
 
         List<MetadataFilter> metadataFilters = new ArrayList<>();
-        metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId()));
+        metadataFilters.add(new ServiceProviderValidationFilter(serviceProvider.getEntityId(), clock));
         metadataFilters.add(new SignatureValidationFilter(metadataIssuerTrustEngine));
         metadataFilters.add(new RequiredValidUntilFilter());
         MetadataFilterChain metadataFilterChain = new MetadataFilterChain();

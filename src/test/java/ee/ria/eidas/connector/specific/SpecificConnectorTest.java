@@ -7,6 +7,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
+import ee.ria.eidas.connector.specific.config.SpecificConnectorTestConfiguration;
 import ee.ria.eidas.connector.specific.integration.LightJAXBCodec;
 import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
 import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
@@ -54,7 +55,7 @@ import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 @Slf4j
 @ActiveProfiles("test")
-@ContextConfiguration(initializers = SpecificConnectorTest.TestContextInitializer.class)
+@ContextConfiguration(initializers = SpecificConnectorTest.TestContextInitializer.class, classes = SpecificConnectorTestConfiguration.class)
 public abstract class SpecificConnectorTest {
     private static final Logger rootLogger = (Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
     private static final Map<String, Object> EXPECTED_RESPONSE_HEADERS = new HashMap<String, Object>() {{
