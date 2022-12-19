@@ -122,7 +122,22 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
         assertNotNull(lightRequest);
         Element lightRequestXml = TestUtils.getXmlDocument(lightRequest);
-        assertLightRequest(lightRequestXml, relayState);
+        assertLightRequest(lightRequestXml, relayState, "http://eidas.europa.eu/LoA/substantial");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void successfulWhen_NonNotifiedLOA(String requestMethod) throws UnmarshallingException, IOException, XMLParserException, SpecificCommunicationException, ParserConfigurationException, SAXException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-non-notified-loa.xml");
+        AuthnRequest authnRequest = OpenSAMLUtils.unmarshallAuthnRequest(authnRequestBase64);
+        String authnRequestBase64Signed = TestUtils.getSignedSamlAsBase64(authnRequest);
+        String relayState = RandomStringUtils.random(80, true, true);
+        String token = assertReturnParameter(requestMethod, authnRequestBase64Signed, "LV", relayState, "token");
+        String binaryLightTokenId = BinaryLightTokenHelper.getBinaryLightTokenId(token, lightTokenRequestSecret, lightTokenRequestAlgorithm);
+        String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
+        assertNotNull(lightRequest);
+        Element lightRequestXml = TestUtils.getXmlDocument(lightRequest);
+        assertLightRequest(lightRequestXml, relayState, "http://eidas.europa.eu/test/LoA/substantial");
     }
 
     @ParameterizedTest
@@ -137,10 +152,10 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         String lightRequest = specificNodeConnectorRequestCache.getAndRemove(binaryLightTokenId);
         assertNotNull(lightRequest);
         Element lightRequestXml = TestUtils.getXmlDocument(lightRequest);
-        assertLightRequest(lightRequestXml, relayState);
+        assertLightRequest(lightRequestXml, relayState, "http://eidas.europa.eu/LoA/substantial");
     }
 
-    private void assertLightRequest(Element lightRequestXml, String relayState) {
+    private void assertLightRequest(Element lightRequestXml, String relayState, String levelOfAssurance) {
         assertThat(lightRequestXml, hasXPath("/lightRequest/id", matchesPattern(SHA512_REGEX)));
         if (relayState == null) {
             assertThat(lightRequestXml, hasXPath("/lightRequest/relayState", matchesPattern(UUID_REGEX)));
@@ -149,7 +164,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
         }
         assertThat(lightRequestXml, hasXPath("/lightRequest/citizenCountryCode", equalTo("LV")));
         assertThat(lightRequestXml, hasXPath("/lightRequest/issuer", equalTo("https://localhost:8888/metadata")));
-        assertThat(lightRequestXml, hasXPath("/lightRequest/levelOfAssurance", equalTo("http://eidas.europa.eu/LoA/substantial")));
+        assertThat(lightRequestXml, hasXPath("/lightRequest/levelOfAssurance", equalTo(levelOfAssurance)));
         assertThat(lightRequestXml, hasXPath("/lightRequest/nameIdFormat", equalTo("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")));
         assertThat(lightRequestXml, hasXPath("/lightRequest/spType", equalTo("public")));
         assertThat(lightRequestXml, hasXPath("/lightRequest/providerName", equalTo("eidas-eeserviceprovider")));
@@ -447,6 +462,13 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_InvalidAuthnRequest_InvalidLevelOfAssurance(String requestMethod) throws IOException {
         String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-invalid-loa.xml");
+        assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid Level of Assurance", "LV");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void badRequestWhen_InvalidAuthnRequest_NonNotifiedLevelOfAssuranceWithNotifiedPrefix(String requestMethod) throws IOException {
+        String authnRequestBase64 = TestUtils.getAuthnRequestAsBase64("classpath:__files/sp_authnrequests/sp-non-notified-loa-with-notified-prefix.xml");
         assertBadRequest(requestMethod, authnRequestBase64, "SAML request is invalid - invalid Level of Assurance", "LV");
     }
 

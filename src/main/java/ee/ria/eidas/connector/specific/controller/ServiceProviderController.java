@@ -14,8 +14,10 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
+import eu.eidas.auth.commons.light.ILevelOfAssurance;
 import eu.eidas.auth.commons.light.ILightRequest;
-import eu.eidas.auth.commons.protocol.eidas.LevelOfAssurance;
+import eu.eidas.auth.commons.light.LevelOfAssuranceType;
+import eu.eidas.auth.commons.light.impl.LevelOfAssurance;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.io.UnmarshallingException;
 import org.opensaml.saml.common.SAMLVersion;
+import org.opensaml.saml.saml2.core.AuthnContextClassRef;
+import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Extensions;
 import org.opensaml.saml.saml2.core.NameIDType;
@@ -122,12 +126,16 @@ public class ServiceProviderController {
         if (authnRequest.getRequestedAuthnContext() == null) {
             throw new BadRequestException("SAML request is invalid - missing RequestedAuthnContext");
         }
-        long nrOfInvalidLoA = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
-                .map(ref -> LevelOfAssurance.fromString(ref.getAuthnContextClassRef()))
-                .filter(Objects::isNull)
-                .count();
-        if (nrOfInvalidLoA != 0) {
-            throw new BadRequestException("SAML request is invalid - invalid Level of Assurance");
+        AuthnContextComparisonTypeEnumeration comparison = authnRequest.getRequestedAuthnContext().getComparison();
+        for (AuthnContextClassRef a: authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs()) {
+            try {
+                LevelOfAssuranceType loa = LevelOfAssuranceType.fromLoAValue(a.getAuthnContextClassRef());
+                if(LevelOfAssuranceType.NON_NOTIFIED == loa && !AuthnContextComparisonTypeEnumeration.EXACT.equals(comparison)) {
+                    throw new BadRequestException("SAML request is invalid - invalid Level of Assurance");
+                }
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("SAML request is invalid - invalid Level of Assurance");
+            }
         }
         if (authnRequest.getNameIDPolicy() != null && !VALID_NAME_ID_FORMATS.contains(authnRequest.getNameIDPolicy().getFormat())) {
             throw new BadRequestException("SAML request is invalid - invalid NameIDPolicy");

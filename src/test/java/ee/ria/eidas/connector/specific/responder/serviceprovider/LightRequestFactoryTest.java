@@ -10,7 +10,7 @@ import eu.eidas.auth.commons.attribute.AttributeDefinition;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
 import eu.eidas.auth.commons.attribute.ImmutableAttributeMap;
 import eu.eidas.auth.commons.light.ILightRequest;
-import eu.eidas.auth.commons.protocol.eidas.LevelOfAssurance;
+import eu.eidas.auth.commons.light.impl.LevelOfAssurance;
 import net.shibboleth.utilities.java.support.xml.XMLParserException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,8 +62,7 @@ class LightRequestFactoryTest {
         assertEquals(authnRequest.getNameIDPolicy().getFormat(), lightRequest.getNameIdFormat());
 
         Optional<LevelOfAssurance> levelOfAssurance = authnRequest.getRequestedAuthnContext().getAuthnContextClassRefs().stream()
-                .map(ref -> LevelOfAssurance.fromString(ref.getAuthnContextClassRef()))
-                .filter(Objects::nonNull)
+                .map(ref -> LevelOfAssurance.build(ref.getAuthnContextClassRef()))
                 .findFirst();
         assertTrue(levelOfAssurance.isPresent());
         assertEquals(levelOfAssurance.get().getValue(), lightRequest.getLevelOfAssurance());
