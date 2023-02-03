@@ -5,6 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
+        <!-- TODO AUT-942 Upgrade Spring Boot. -->
         <version>2.3.12.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
@@ -25,17 +26,18 @@
     <properties>
         <java.version>1.8</java.version>
         <eidas.node.version>2.5.0</eidas.node.version>
+        <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
-        <wiremock.version>2.33.2</wiremock.version>
+        <wiremock.version>2.35.0</wiremock.version>
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
-        <spring-security.version>5.7.2</spring-security.version>
+        <spring-security.version>5.8.1</spring-security.version>
         <!-- Using newer version than Spring Boot's default to fix vulnerability CVE-2022-22965.
              TODO Remove this property after upgrading Spring Boot. -->
-        <spring-framework.version>5.3.21</spring-framework.version>
+        <spring-framework.version>5.3.25</spring-framework.version>
         <!-- Using newer version than Spring Boot's default to fix vulnerability CVE-2020-36518.
              TODO Remove this property after upgrading Spring Boot. -->
-        <jackson-bom.version>2.13.3</jackson-bom.version>
+        <jackson-bom.version>2.14.2</jackson-bom.version>
     </properties>
 
     <dependencyManagement>
@@ -45,7 +47,7 @@
                      TODO Remove this property after upgrading opensaml-saml-impl. -->
                 <groupId>org.apache.santuario</groupId>
                 <artifactId>xmlsec</artifactId>
-                <version>3.0.0</version>
+                <version>3.0.1</version>
             </dependency>
             <dependency>
                 <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2020-7226.
@@ -138,6 +140,13 @@
             <groupId>org.opensaml</groupId>
             <artifactId>opensaml-saml-api</artifactId>
             <version>${opensaml.version}</version>
+            <exclusions>
+                <exclusion>
+                    <!-- Excluded because we are already using bcprov-jdk18on as a dependency.-->
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.opensaml</groupId>
@@ -150,6 +159,11 @@
                     <groupId>org.apache.velocity</groupId>
                     <artifactId>velocity</artifactId>
                 </exclusion>
+                <exclusion>
+                    <!-- Excluded because we are already using bcprov-jdk18on as a dependency.-->
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -159,8 +173,8 @@
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.70</version>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.72</version>
         </dependency>
 
         <!-- eIDAS node specific dependencies -->
@@ -196,6 +210,13 @@
             <artifactId>spring-cloud-starter-sleuth</artifactId>
             <!-- TODO Version 3.x doesn't work with Spring Boot 2.3 -->
             <version>2.2.8.RELEASE</version>
+            <exclusions>
+                <!-- Excluded because we are already using bcprov-jdk18on as a dependency.-->
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- test dependencies -->
@@ -231,6 +252,7 @@
         <dependency>
             <groupId>org.apache.ignite</groupId>
             <artifactId>ignite-core</artifactId>
+            <!-- eIDAS-Node 2.5.0 uses Apache Ignite 2.8.1 -->
             <version>2.8.1</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -315,7 +337,7 @@
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
                 <configuration>
-                    <offline>true</offline><!-- TODO Remove when >= 5.0.0 is used, there offline=true is default. -->
+                    <offline>true</offline><!-- TODO AUT-942 Remove when >= 5.0.0 is used (with Spring Boot 3.x), there offline=true is default. -->
                 </configuration>
             </plugin>
         </plugins>
