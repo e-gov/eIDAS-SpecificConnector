@@ -292,10 +292,11 @@ public class SpecificConnectorProperties {
 
         @Override
         public String toString() {
+            // The -- at the beginning of the return string is required in order to configure our PKCS11 security provider by using the HsmProperties defined here instead of a .cfg file
             if (slot != null) {
-                return format("name=eidas\nlibrary=%s\nslot=%s\n", library, slot);
+                return format("--name=eidas\nlibrary=%s\nslot=%s\n", library, slot);
             } else {
-                return format("name=eidas\nlibrary=%s\nslotListIndex=%s\n", library, slotListIndex);
+                return format("--name=eidas\nlibrary=%s\nslotListIndex=%s\n", library, slotListIndex);
             }
         }
     }

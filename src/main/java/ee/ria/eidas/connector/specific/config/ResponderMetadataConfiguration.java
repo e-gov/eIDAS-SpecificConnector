@@ -16,17 +16,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import sun.security.pkcs11.SunPKCS11;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 @Slf4j
 @Configuration
@@ -68,7 +64,8 @@ public class ResponderMetadataConfiguration {
         log.info("Hardware security module enabled. Slot/slot index: {}/{}, Library: {}",
                 hsmProperties.getSlot(), hsmProperties.getSlotListIndex(),
                 hsmProperties.getLibrary());
-        SunPKCS11 provider = new SunPKCS11(new ByteArrayInputStream(hsmProperties.toString().getBytes(ISO_8859_1)));
+        Provider provider = Security.getProvider("SunPKCS11");
+        provider = provider.configure(hsmProperties.toString());
         Security.addProvider(provider);
         KeyStore keyStore = KeyStore.getInstance("PKCS11", provider);
         keyStore.load(null, hsmProperties.getPin().toCharArray());
