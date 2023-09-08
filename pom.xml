@@ -28,7 +28,7 @@
         <eidas.node.version>2.5.0</eidas.node.version>
         <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
-        <wiremock.version>2.35.0</wiremock.version>
+        <wiremock.version>2.35.1</wiremock.version>
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
         <spring-security.version>5.8.4</spring-security.version>
