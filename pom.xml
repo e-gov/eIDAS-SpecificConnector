@@ -28,13 +28,13 @@
         <eidas.node.version>2.6.0</eidas.node.version>
         <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
-        <wiremock.version>2.35.0</wiremock.version>
+        <wiremock.version>2.35.1</wiremock.version>
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
-        <spring-security.version>5.8.5</spring-security.version>
+        <spring-security.version>5.8.6</spring-security.version>
         <!-- Using newer version than Spring Boot's default to fix vulnerability CVE-2022-22965.
              TODO Remove this property after upgrading Spring Boot. -->
-        <spring-framework.version>5.3.28</spring-framework.version>
+        <spring-framework.version>5.3.29</spring-framework.version>
         <!-- Using newer version than Spring Boot's default to fix vulnerability CVE-2020-36518.
              TODO Remove this property after upgrading Spring Boot. -->
         <jackson-bom.version>2.15.2</jackson-bom.version>
@@ -54,7 +54,7 @@
                      TODO Remove this property after upgrading opensaml-saml-impl. -->
                 <groupId>org.cryptacular</groupId>
                 <artifactId>cryptacular</artifactId>
-                <version>1.2.5</version>
+                <version>1.2.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -93,7 +93,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.1.1-jre</version>
+            <version>32.1.2-jre</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -174,7 +174,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.75</version>
+            <version>1.76</version>
         </dependency>
 
         <!-- eIDAS node specific dependencies -->
