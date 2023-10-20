@@ -47,7 +47,7 @@
                      TODO Remove this property after upgrading opensaml-saml-impl. -->
                 <groupId>org.apache.santuario</groupId>
                 <artifactId>xmlsec</artifactId>
-                <version>3.0.2</version>
+                <version>3.0.3</version>
             </dependency>
             <dependency>
                 <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2020-7226.
