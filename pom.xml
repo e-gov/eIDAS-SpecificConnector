@@ -5,8 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- TODO AUT-942 Upgrade Spring Boot. -->
-        <version>2.3.12.RELEASE</version>
+        <version>2.7.18</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
@@ -34,20 +33,14 @@
         <logstash-logback-encoder.version>7.3</logstash-logback-encoder.version><!-- TODO Upgrade to >= 7.4 after Spring Boot is upgraded to 3.x which includes Logback >= 1.3 -->
         <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
-        <spring-cloud.version>2.2.8.RELEASE</spring-cloud.version><!-- TODO Version 3.x doesn't work with Spring Boot 2.3 -->
+        <spring-cloud.version>2021.0.9</spring-cloud.version><!-- Spring Cloud 2021.0.x release train is only compatible with Spring Boot 2.7.x, see table 1 at https://spring.io/projects/spring-cloud -->
         <wiremock.version>2.35.2</wiremock.version> <!-- TODO Upgrade to >=3.0.1 after Spring Boot is upgraded to 3.x which includes jetty >= 11.0.12 -->
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
         <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2020-7226.
              TODO Remove this property after upgrading opensaml-saml-impl. -->
         <cryptacular.version>1.2.6</cryptacular.version>
-        <!-- Using newer version than Spring Boot's default to fix vulnerability CVE-2020-36518.
-             TODO Remove this property after upgrading Spring Boot. -->
-        <jackson-bom.version>2.15.4</jackson-bom.version>
-        <!-- Using newer version than Spring Boot's default to fix vulnerability CVE-2022-22965.
-             TODO Remove this property after upgrading Spring Boot. -->
-        <spring-framework.version>5.3.32</spring-framework.version>
-        <spring-security.version>5.8.10</spring-security.version>
+        <spring-security.version>5.8.14</spring-security.version>
         <!-- Replacement for vulnerable jstl libraries -->
         <taglibs-standard.version>1.2.5</taglibs-standard.version>
         <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2021-40690.
@@ -67,6 +60,13 @@
                 <groupId>org.cryptacular</groupId>
                 <artifactId>cryptacular</artifactId>
                 <version>${cryptacular.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -217,7 +217,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-sleuth</artifactId>
-            <version>${spring-cloud.version}</version>
             <exclusions>
                 <!-- Excluded because we are already using bcprov-jdk18on as a dependency.-->
                 <exclusion>
@@ -310,11 +309,6 @@
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
-                        </exclude>
-                        <!-- TODO Remove spring-boot-configuration-processor on newer Spring Boot, it is performed automatically -->
-                        <exclude>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-configuration-processor</artifactId>
                         </exclude>
                     </excludes>
                 </configuration>

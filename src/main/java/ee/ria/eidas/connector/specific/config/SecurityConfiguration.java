@@ -1,20 +1,21 @@
 package ee.ria.eidas.connector.specific.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 @EnableWebSecurity
-@RequiredArgsConstructor
-// TODO Replace deprecated WebSecurityConfigurerAdapter with SecurityFilterChain etc.
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-    private final SpecificConnectorProperties connectorProperties;
+public class SecurityConfiguration {
+    @Autowired
+    private SpecificConnectorProperties connectorProperties;
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
                 .headers()
@@ -24,12 +25,15 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .httpStrictTransportSecurity()
                 .includeSubDomains(true)
                 .maxAgeInSeconds(600000);
+        return http.build();
     }
 
-    @Override
-    public void configure(WebSecurity webSecurity) {
-        StrictHttpFirewall firewall = new StrictHttpFirewall();
-        firewall.setUnsafeAllowAnyHttpMethod(true);
-        webSecurity.httpFirewall(firewall);
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> {
+            StrictHttpFirewall firewall = new StrictHttpFirewall();
+            firewall.setUnsafeAllowAnyHttpMethod(true);
+            web.httpFirewall(firewall);
+        };
     }
 }
