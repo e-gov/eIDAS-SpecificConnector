@@ -1,14 +1,14 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
 import ee.ria.eidas.connector.specific.monitoring.health.ServiceProviderMetadataHealthIndicator;
+import jakarta.annotation.Nullable;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.springframework.boot.actuate.health.HealthContributorRegistry;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nullable;
-import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 

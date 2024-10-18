@@ -8,9 +8,9 @@ import eu.eidas.specificcommunication.LightRequest;
 import eu.eidas.specificcommunication.LightResponse;
 import eu.eidas.specificcommunication.protocol.util.LightMessagesConverter;
 import eu.eidas.specificcommunication.protocol.util.SecurityUtils;
+import javax.xml.bind.JAXBContext;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;

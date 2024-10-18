@@ -3,18 +3,17 @@ package ee.ria.eidas.connector.specific.validation;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.HsmProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static org.apache.logging.log4j.util.Strings.isEmpty;
-import static org.springframework.util.StringUtils.isEmpty;
 
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

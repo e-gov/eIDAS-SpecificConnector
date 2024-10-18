@@ -4,6 +4,7 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.HsmPro
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.ResponderMetadata;
 import ee.ria.eidas.connector.specific.responder.metadata.EntityDescriptorFactory;
 import ee.ria.eidas.connector.specific.responder.metadata.ResponderMetadataSigner;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.logstash.logback.marker.LogstashMarker;
@@ -16,7 +17,6 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Duration;

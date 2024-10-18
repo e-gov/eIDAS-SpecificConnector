@@ -3,6 +3,9 @@ package ee.ria.eidas.connector.specific.exception;
 import com.fasterxml.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.logstash.logback.marker.LogstashMarker;
@@ -16,13 +19,12 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.UUID;
@@ -66,6 +68,12 @@ public class SpecificConnectorExceptionHandler {
                         .and(append("event.outcome", "failure")),
                 format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()), ex.getCause());
         response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        return new ModelAndView();
+    }
+
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ModelAndView handleNoResourceException(Exception ex, HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_NOT_FOUND);
         return new ModelAndView();
     }
 

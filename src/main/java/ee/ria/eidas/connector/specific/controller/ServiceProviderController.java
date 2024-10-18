@@ -14,12 +14,12 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadata;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProviderMetadataRegistry;
 import eu.eidas.auth.commons.attribute.AttributeRegistry;
-import eu.eidas.auth.commons.light.ILevelOfAssurance;
 import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.LevelOfAssuranceType;
-import eu.eidas.auth.commons.light.impl.LevelOfAssurance;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -44,8 +44,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.w3c.dom.Element;
 
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
+        <version>3.3.4</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
@@ -30,23 +30,21 @@
         <guava.version>33.0.0-jre</guava.version>
         <ignite.version>2.8.1</ignite.version><!-- eIDAS-Node 2.6.0 uses Apache Ignite 2.8.1 -->
         <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
-        <logstash-logback-encoder.version>7.3</logstash-logback-encoder.version><!-- TODO Upgrade to >= 7.4 after Spring Boot is upgraded to 3.x which includes Logback >= 1.3 -->
+        <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
         <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
-        <spring-cloud.version>2021.0.9</spring-cloud.version><!-- Spring Cloud 2021.0.x release train is only compatible with Spring Boot 2.7.x, see table 1 at https://spring.io/projects/spring-cloud -->
-        <wiremock.version>2.35.2</wiremock.version> <!-- TODO Upgrade to >=3.0.1 after Spring Boot is upgraded to 3.x which includes jetty >= 11.0.12 -->
+        <wiremock.version>3.9.1</wiremock.version>
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
         <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2020-7226.
              TODO Remove this property after upgrading opensaml-saml-impl. -->
         <cryptacular.version>1.2.6</cryptacular.version>
-        <spring-security.version>5.8.14</spring-security.version>
-        <!-- Replacement for vulnerable jstl libraries -->
-        <taglibs-standard.version>1.2.5</taglibs-standard.version>
         <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2021-40690.
              TODO Remove this property after upgrading opensaml-saml-impl.
              TODO xmlsec 3.0.3 causes error: InvalidKeyException: Private keys must be instance of RSAPrivate(Crt)Key or have PKCS#8 encoding -->
         <xmlsec.version>3.0.2</xmlsec.version>
+        <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version><!-- Update to >= 3.x when eIDAS-Node switches to jakarta imports -->
+        <jaxb-runtime.version>2.3.9</jaxb-runtime.version><!-- Versions >= 3.x throw JAXBException -->
     </properties>
 
     <dependencyManagement>
@@ -60,13 +58,6 @@
                 <groupId>org.cryptacular</groupId>
                 <artifactId>cryptacular</artifactId>
                 <version>${cryptacular.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -111,6 +102,21 @@
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>${jakarta.xml.bind-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>${jaxb-runtime.version}</version>
+        </dependency>
 
         <!-- jsp support -->
         <dependency>
@@ -119,19 +125,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.taglibs</groupId>
-            <artifactId>taglibs-standard-spec</artifactId>
-            <version>${taglibs-standard.version}</version>
+            <groupId>jakarta.servlet.jsp.jstl</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.taglibs</groupId>
-            <artifactId>taglibs-standard-impl</artifactId>
-            <version>${taglibs-standard.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.taglibs</groupId>
-            <artifactId>taglibs-standard-jstlel</artifactId>
-            <version>${taglibs-standard.version}</version>
+            <groupId>org.glassfish.web</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
         </dependency>
         <dependency>
             <groupId>org.owasp.encoder</groupId>
@@ -214,23 +213,6 @@
             <artifactId>logstash-logback-encoder</artifactId>
             <version>${logstash-logback-encoder.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-sleuth</artifactId>
-            <exclusions>
-                <!-- Excluded because we are already using bcprov-jdk18on as a dependency.-->
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
-                <!-- https://docs.spring.io/spring-cloud-commons/docs/4.0.x/reference/html/#encryption-and-decryption
-                     pulls in older Bouncy Castle. This feature is not used in current application. -->
-                <exclusion>
-                    <groupId>org.springframework.security</groupId>
-                    <artifactId>spring-security-rsa</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
 
         <!-- test dependencies -->
         <dependency>
@@ -257,8 +239,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-jre8</artifactId>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
             <version>${wiremock.version}</version>
             <scope>test</scope>
         </dependency>
@@ -491,13 +473,8 @@
                 </executions>
             </plugin>
             <plugin>
-                <!-- TODO GSSO-534 Replace with io.github.git-commit-id:git-commit-id-maven-plugin and remove
-                      offline=true after upgrading to Spring Boot 3. Starting from 5.0.0 offline=true is default. -->
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <configuration>
-                    <offline>true</offline>
-                </configuration>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

@@ -13,6 +13,8 @@ import ee.ria.eidas.connector.specific.responder.serviceprovider.ServiceProvider
 import eu.eidas.auth.commons.exceptions.SecurityEIDASException;
 import eu.eidas.auth.commons.light.ILightResponse;
 import eu.eidas.auth.commons.light.IResponseStatus;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -29,8 +31,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.Pattern;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
