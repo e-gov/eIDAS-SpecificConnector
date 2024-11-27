@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
+        <version>3.4.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
@@ -25,22 +25,22 @@
     <properties>
         <java.version>17</java.version>
 
-        <bouncycastle.version>1.77</bouncycastle.version>
+        <bouncycastle.version>1.79</bouncycastle.version>
         <eidas.node.version>2.6.0</eidas.node.version>
         <elastic-apm.version>1.52.1</elastic-apm.version>
-        <encoder-jsp.version>1.2.3</encoder-jsp.version>
-        <guava.version>33.0.0-jre</guava.version>
+        <encoder-jsp.version>1.3.1</encoder-jsp.version>
+        <guava.version>33.3.1-jre</guava.version>
         <ignite.version>2.8.1</ignite.version><!-- eIDAS-Node 2.6.0 uses Apache Ignite 2.8.1 -->
-        <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
         <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
         <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
-        <wiremock.version>3.9.1</wiremock.version>
+        <wiremock.version>3.9.2</wiremock.version>
         <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
         <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2020-7226.
              TODO Remove this property after upgrading opensaml-saml-impl. -->
-        <cryptacular.version>1.2.6</cryptacular.version>
+        <cryptacular.version>1.2.7</cryptacular.version>
         <!-- Using newer version than opensaml-saml-impl's default to fix vulnerability CVE-2021-40690.
              TODO Remove this property after upgrading opensaml-saml-impl.
              TODO xmlsec 3.0.3 causes error: InvalidKeyException: Private keys must be instance of RSAPrivate(Crt)Key or have PKCS#8 encoding -->
