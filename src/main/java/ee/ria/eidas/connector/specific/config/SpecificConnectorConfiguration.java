@@ -53,7 +53,7 @@ public class SpecificConnectorConfiguration implements WebMvcConfigurer {
     public static PropertySourcesPlaceholderConfigurer properties(
             @Value("#{environment.SPECIFIC_CONNECTOR_CONFIG_REPOSITORY}/specificCommunicationDefinitionConnector.xml")
                     String specificCommunicationConfig,
-            @Value("#{environment.EIDAS_CONFIG_REPOSITORY}/eidas.xml") String eidasConfig) throws MalformedURLException {
+            @Value("#{environment.EIDAS_CONNECTOR_CONFIG_REPOSITORY}/eidas.xml") String eidasConfig) throws MalformedURLException {
         Assert.isTrue(new File(specificCommunicationConfig).exists(), "Required configuration file not found: " + specificCommunicationConfig);
         Assert.isTrue(new File(eidasConfig).exists(), "Required configuration file not found: " + eidasConfig);
         PropertySourcesPlaceholderConfigurer ppc = new PropertySourcesPlaceholderConfigurer();

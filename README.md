@@ -39,7 +39,7 @@ In order to enable communication between `EidasNode` and `SpecificConnector` web
 ### 2.1 Configuring communication with EidasNode
 
 It is required that the `SpecificConnector` has access to communication definitions provided in the following `EidasNode` configuration files:
-`$EIDAS_CONFIG_REPOSITORY/eidas.xml`,
+`$EIDAS_CONNECTOR_CONFIG_REPOSITORY/eidas.xml`,
 `$SPECIFIC_CONNECTOR_CONFIG_REPOSITORY/specificCommunicationDefinitionConnector.xml`
 
 | Parameter        | Mandatory | Description, example |
@@ -49,7 +49,7 @@ It is required that the `SpecificConnector` has access to communication definiti
 <a name="ignite_conf"></a>
 ### 2.2 Ignite configuration
 
-It is required that `EidasNode` and `SpecificConnector` will share the same xml configuration file: `$EIDAS_CONFIG_REPOSITORY/igniteSpecificCommunication.xml`
+It is required that `EidasNode` and `SpecificConnector` will share the same xml configuration file: `$EIDAS_CONNECTOR_CONFIG_REPOSITORY/ignite/igniteSpecificCommunication.xml`
 
 The `SpecificConnector` webapp starts Ignite node in client mode using EidasNode webapp's Ignite configuration. The ignite client is started lazily (initialized on the first query).
 
@@ -63,7 +63,7 @@ Note that `SpecificConnector` requires access to four predefined maps in the clu
 
 Table 1 - Shared map's used in `SpecificConnector` webapp.
 
-An example of a configuration file is provided [here](src/test/resources/mock_eidasnode/igniteSpecificCommunication.xml).
+An example of a configuration file is provided [here](src/test/resources/mock_eidasnode/ignite/igniteSpecificCommunication.xml).
 
 <a name="metdata_generation"></a>
 ## 3. Metadata generation

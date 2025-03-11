@@ -157,7 +157,7 @@ public abstract class SpecificConnectorTest {
             System.setProperty("IGNITE_HOME", System.getProperty("java.io.tmpdir"));
             System.setProperty("java.net.preferIPv4Stack", "true");
             InputStream cfgXml = SpecificConnectorTest.class.getClassLoader()
-                    .getResourceAsStream("mock_eidasnode/igniteSpecificCommunication.xml");
+                    .getResourceAsStream("mock_eidasnode/ignite/igniteSpecificCommunication.xml");
             IgniteConfiguration cfg = Ignition.loadSpringBean(cfgXml, "igniteSpecificCommunication.cfg");
             cfg.setIncludeEventTypes(EVT_CACHE_OBJECT_PUT, EVT_CACHE_OBJECT_READ, EVT_CACHE_OBJECT_REMOVED, EVT_CACHE_OBJECT_EXPIRED);
             eidasNodeIgnite = Ignition.getOrStart(cfg);
@@ -219,7 +219,7 @@ public abstract class SpecificConnectorTest {
             TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
             String currentDirectory = System.getProperty("user.dir");
             System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
-            System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
+            System.setProperty("EIDAS_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
         }
     }
 }

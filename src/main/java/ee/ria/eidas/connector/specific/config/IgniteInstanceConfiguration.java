@@ -22,7 +22,7 @@ public class IgniteInstanceConfiguration {
 
     @Lazy
     @Bean
-    public Ignite igniteClient(@Value("#{environment.EIDAS_CONFIG_REPOSITORY}/igniteSpecificCommunication.xml") String igniteConfig) throws IOException {
+    public Ignite igniteClient(@Value("#{environment.EIDAS_CONNECTOR_CONFIG_REPOSITORY}/ignite/igniteSpecificCommunication.xml") String igniteConfig) throws IOException {
         Assert.isTrue(new File(igniteConfig).exists(), "Required Ignite configuration file not found: " + igniteConfig);
         Ignition.setClientMode(true);
         IgniteConfiguration cfg = Ignition.loadSpringBean(new FileUrlResource(igniteConfig).getInputStream(), "igniteSpecificCommunication.cfg");
