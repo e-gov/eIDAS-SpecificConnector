@@ -35,6 +35,8 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -93,25 +95,25 @@ public abstract class SpecificConnectorTest {
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
     }
 
-    @SpyBean
+    @MockitoSpyBean
     protected MeterRegistry meterRegistry;
 
-    @SpyBean
+    @MockitoSpyBean
     protected TruststoreHealthIndicator truststoreHealthIndicator;
 
-    @SpyBean
+    @MockitoSpyBean
     protected ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
 
-    @SpyBean
+    @MockitoSpyBean
     protected BasicX509Credential signingCredential;
 
-    @SpyBean
+    @MockitoSpyBean
     protected SpecificConnectorProperties.HsmProperties hsmProperties;
 
-    @MockBean
+    @MockitoBean
     protected BuildProperties buildProperties;
 
-    @MockBean
+    @MockitoBean
     protected GitProperties gitProperties;
 
     @LocalServerPort

@@ -13,6 +13,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.cache.Cache;
 import javax.cache.CacheException;
@@ -35,15 +36,15 @@ public class IgniteClusterHealthIndicatorTests extends ApplicationHealthTest {
     private static final AtomicInteger cacheRemoves = new AtomicInteger();
     private static IgnitePredicate<CacheEvent> eidasNodeCacheEventListener;
 
-    @SpyBean
+    @MockitoSpyBean
     @Qualifier("specificNodeConnectorRequestCache")
     Cache<String, String> specificNodeConnectorRequestCache;
 
-    @SpyBean
+    @MockitoSpyBean
     @Qualifier("nodeSpecificConnectorResponseCache")
     Cache<String, String> nodeSpecificConnectorResponseCache;
 
-    @SpyBean
+    @MockitoSpyBean
     @Qualifier("specificMSSpRequestCorrelationMap")
     Cache<String, String> specificMSSpRequestCorrelationMap;
 

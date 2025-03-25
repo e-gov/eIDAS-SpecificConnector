@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.cache.Cache;
 import java.util.concurrent.CountDownLatch;
@@ -27,15 +28,15 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 public class CacheExpirationTests extends SpecificConnectorTest {
     private static final long EVENT_TIMEOUT = 10_000;
 
-    @SpyBean
+    @MockitoSpyBean
     @Qualifier("specificNodeConnectorRequestCache")
     Cache<String, String> specificNodeConnectorRequestCache;
 
-    @SpyBean
+    @MockitoSpyBean
     @Qualifier("nodeSpecificConnectorResponseCache")
     Cache<String, String> nodeSpecificConnectorResponseCache;
 
-    @SpyBean
+    @MockitoSpyBean
     @Qualifier("specificMSSpRequestCorrelationMap")
     Cache<String, String> specificMSSpRequestCorrelationMap;
 

@@ -46,6 +46,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.cache.Cache;
 import java.io.IOException;
@@ -116,10 +117,10 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
     @Autowired
     LightRequestFactory lightRequestFactory;
 
-    @SpyBean
+    @MockitoSpyBean
     ServiceProviderMetadataRegistry serviceProviderMetadataRegistry;
 
-    @SpyBean
+    @MockitoSpyBean
     ResponseFactory responseFactory;
 
     @BeforeAll
