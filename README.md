@@ -40,7 +40,7 @@ In order to enable communication between `EidasNode` and `SpecificConnector` web
 
 It is required that the `SpecificConnector` has access to communication definitions provided in the following `EidasNode` configuration files:
 `$EIDAS_CONNECTOR_CONFIG_REPOSITORY/eidas.xml`,
-`$SPECIFIC_CONNECTOR_CONFIG_REPOSITORY/specificCommunicationDefinitionConnector.xml`
+`$SPECIFIC_CONNECTOR_CONFIG_REPOSITORY/specificCommunicationDefinition.xml`
 
 | Parameter        | Mandatory | Description, example |
 | :---------------- | :---------- | :----------------|
