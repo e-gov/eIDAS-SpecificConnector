@@ -51,7 +51,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
         Optional<String> authenticationService = warnings.stream()
                 .filter(w -> w.contains("1618831237"))
                 .findFirst();
-        assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1618831237' is expiring at 2031-04-19T11:20:37Z", authenticationService.get());
+        assertEquals("Truststore certificate 'CN=localhost,OU=test,O=test,L=test,ST=test,C=EE' with serial number '1618831237' is expiring at 2031-04-19T11:20:37Z", authenticationService.get());
         assertDependenciesUp(healthResponse, Dependencies.TRUSTSTORE);
     }
 
@@ -66,7 +66,7 @@ class TruststoreHealthIndicatorTests extends ApplicationHealthTest {
         Optional<String> authenticationService = warnings.stream()
                 .filter(w -> w.contains("1618831237"))
                 .findFirst();
-        assertEquals("Truststore certificate 'CN=localhost, OU=test, O=test, L=test, ST=test, C=EE' with serial number '1618831237' is expiring at 2031-04-19T11:20:37Z", authenticationService.get());
+        assertEquals("Truststore certificate 'CN=localhost,OU=test,O=test,L=test,ST=test,C=EE' with serial number '1618831237' is expiring at 2031-04-19T11:20:37Z", authenticationService.get());
         assertDependenciesDown(healthResponse, Dependencies.TRUSTSTORE);
     }
 }

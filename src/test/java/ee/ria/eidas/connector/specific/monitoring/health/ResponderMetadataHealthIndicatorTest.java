@@ -241,7 +241,7 @@ class ResponderMetadataHealthIndicatorTest extends ApplicationHealthTest {
                 .findFirst();
         assertTrue(signingCertificateWarning.isPresent());
         assertEquals(format(SIGNING_CERTIFICATE_EXPIRATION_WARNING,
-                x509.getSubjectDN(),
+                x509.getSubjectX500Principal(),
                 x509.getSerialNumber(),
                 x509.getNotAfter().toInstant()), signingCertificateWarning.get());
     }

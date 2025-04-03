@@ -138,7 +138,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         Instant certificateExpiry = x509.getNotAfter().toInstant();
         if (currentDateTime.plus(keyStoreExpirationWarningPeriod).isAfter(certificateExpiry)) {
             return of(format(SIGNING_CERTIFICATE_EXPIRATION_WARNING,
-                    x509.getSubjectDN(),
+                    x509.getSubjectX500Principal(),
                     x509.getSerialNumber(),
                     x509.getNotAfter().toInstant()));
         } else {
@@ -151,7 +151,7 @@ public class ResponderMetadataHealthIndicator extends AbstractHealthIndicator {
         X509Certificate x509 = signingCredential.getEntityCertificate();
         signingCertificateInfo.put(signingCredential.getEntityId(), CertificateInfo.builder()
                 .validTo(x509.getNotAfter().toInstant())
-                .subjectDN(x509.getSubjectDN().getName())
+                .subjectDN(x509.getSubjectX500Principal().getName())
                 .serialNumber(x509.getSerialNumber().toString())
                 .build());
     }
