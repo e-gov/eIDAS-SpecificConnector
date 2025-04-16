@@ -175,9 +175,6 @@ public class SpecificConnectorProperties {
         private String signatureAlgorithm = SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
 
         @NotEmpty
-        private String keyTransportAlgorithm = EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP;
-
-        @NotEmpty
         private String encryptionAlgorithm = EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256_GCM;
 
         @NotNull

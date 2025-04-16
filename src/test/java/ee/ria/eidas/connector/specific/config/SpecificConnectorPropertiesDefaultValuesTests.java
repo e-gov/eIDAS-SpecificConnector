@@ -73,11 +73,6 @@ public class SpecificConnectorPropertiesDefaultValuesTests {
     }
 
     @Test
-    void defaultKeyTransportAlgorithm() {
-        assertEquals(EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP, specificConnectorProperties.getResponderMetadata().getKeyTransportAlgorithm());
-    }
-
-    @Test
     void defaultEncryptionAlgorithm() {
         assertEquals(EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256_GCM, specificConnectorProperties.getResponderMetadata().getEncryptionAlgorithm());
     }

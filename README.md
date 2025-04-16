@@ -85,7 +85,6 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.trust-store-password` | Yes | Trust store password |
 | `eidas.connector.responder-metadata.trust-store-type` | No | Trust store type. Default value: `PKCS12` |
 | `eidas.connector.responder-metadata.signature-algorithm` | No | Signature algorithm used to sign published metadata, SAML response objects and assertions (defined by RFC 4051). Default value: `http://www.w3.org/2001/04/xmldsig-more#rsa-sha512` |
-| `eidas.connector.responder-metadata.key-transport-algorithm` | No | Key transport algorithm used in SAML response assertions encryption. Default value: `http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p` |
 | `eidas.connector.responder-metadata.encryption-algorithm` | No | Algorithm used in SAML response assertions encryption. Default value: `http://www.w3.org/2009/xmlenc11#aes256-gcm` |
 | `eidas.connector.responder-metadata.path` | No | Metadata endpoint path. https://eidas-specificconnector:8443/SpecificConnector/{eidas.connector.responder-metadata.path}. Default value: `ConnectorResponderMetadata` |
 | `eidas.connector.responder-metadata.entity-id` | Yes | Exact HTTPS URL where metadata is published. Examlpe: `https://eidas-specificconnector:8443/SpecificConnector/ConnectorResponderMetadata` |
