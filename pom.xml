@@ -10,7 +10,7 @@
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
     <artifactId>ee-specific-connector</artifactId>
-    <version>1.4.1</version>
+    <version>1.5.0</version>
     <packaging>war</packaging>
     <name>ee-specific-connector</name>
     <description>EE specific eIDAS connector</description>
