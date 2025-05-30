@@ -10,7 +10,6 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorTestConfiguration;
 import ee.ria.eidas.connector.specific.integration.LightJAXBCodec;
 import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
-import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -95,9 +94,6 @@ public abstract class SpecificConnectorTest {
 
     @MockitoSpyBean
     protected MeterRegistry meterRegistry;
-
-    @MockitoSpyBean
-    protected TruststoreHealthIndicator truststoreHealthIndicator;
 
     @MockitoSpyBean
     protected ResponderMetadataHealthIndicator responderMetadataHealthIndicator;

@@ -707,7 +707,7 @@ Example log message containing failed Authentication end event (saml_response):
 
 ### 6.2 Custom application health endpoint configuration
 
-`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `responderMetadata`, `truststore`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
+`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `responderMetadata`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
 
 Request:
 
@@ -730,10 +730,6 @@ Response:
   "dependencies": [
     {
       "name": "igniteCluster",
-      "status": "UP"
-    },
-    {
-      "name": "truststore",
       "status": "UP"
     },
     {
@@ -764,7 +760,6 @@ Response:
 | `eidas.connector.health.dependencies.connect-timeout` | No | Timeout for `connectorMetadata` health indicators. Defaults to `3s` |
 | `eidas.connector.health.hsm-test-interval` | No<sup>1</sup> | Minimum interval for testing hardware security module for `responderMetadata` health indicator.<sup>2</sup> Defaults to `60s` |
 | `eidas.connector.health.key-store-expiration-warning` | No | Responder metadata certificate expiration warning period for `responderMetadata` health indicator. Default value `30d` |
-| `eidas.connector.health.trust-store-expiration-warning` | No | Trusted certificates expiration warning period for `truststore` health indicator. Default value `30d` |
 
 <sup>1</sup> Applicable only when `eidas.connector.hsm.enabled=true`
 

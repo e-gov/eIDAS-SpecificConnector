@@ -1,7 +1,6 @@
 package ee.ria.eidas.connector.specific.monitoring;
 
 import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
-import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.TimeGauge;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,9 +49,6 @@ public class ApplicationHealthEndpoint {
     private MeterRegistry meterRegistry;
 
     @Autowired
-    private TruststoreHealthIndicator truststoreHealthIndicator;
-
-    @Autowired
     private ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
 
     @ReadOperation(produces = "application/json")
@@ -79,7 +76,7 @@ public class ApplicationHealthEndpoint {
     }
 
     private List<String> getWarnings() {
-        List<String> warnings = truststoreHealthIndicator.getCertificateExpirationWarnings();
+        List<String> warnings = new ArrayList<>();
         responderMetadataHealthIndicator.getSigningCertificateExpirationWarning().ifPresent(warnings::add);
         return warnings.isEmpty() ? null : warnings;
     }
