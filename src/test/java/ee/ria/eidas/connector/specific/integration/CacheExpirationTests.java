@@ -12,6 +12,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.cache.Cache;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -56,23 +57,29 @@ public class CacheExpirationTests extends SpecificConnectorTest {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     void cacheEventExpires(Cache cache) {
+        String cacheEntryKey = "testKey-" + UUID.randomUUID();
         CountDownLatch objectExpiredLatch = new CountDownLatch(1);
         AtomicReference<CacheEvent> expiredEvent = new AtomicReference<>();
         IgnitePredicate<CacheEvent> localListener = evt -> {
             log.debug("Ignite client event: {}/{}/{}  Cache: {}", evt.type(), evt.key(), evt.oldValue(), evt.cacheName());
-            if (evt.type() == EVT_CACHE_OBJECT_EXPIRED) {
-                expiredEvent.set(evt);
-                objectExpiredLatch.countDown();
+            if (!evt.cacheName().equals(cache.getName())) {
+                return true;
             }
+            if (evt.type() != EVT_CACHE_OBJECT_EXPIRED) {
+                return true;
+            }
+            if (!evt.key().equals(cacheEntryKey)) {
+                return true;
+            }
+            expiredEvent.set(evt);
+            objectExpiredLatch.countDown();
             return true;
         };
 
         eidasNodeIgnite.events().localListen(localListener, EVT_CACHE_OBJECT_EXPIRED);
-        cache.put(cache.getName(), "testValue");
+        cache.put(cacheEntryKey, "testValue");
         assertExpirationEvent(objectExpiredLatch);
-        CacheEvent evt = expiredEvent.get();
-        assertEquals(cache.getName(), evt.key());
-        assertEquals("testValue", evt.oldValue());
+        assertEquals("testValue", expiredEvent.get().oldValue());
         eidasNodeIgnite.events().stopLocalListen(localListener);
     }
 
