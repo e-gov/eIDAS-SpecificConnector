@@ -317,15 +317,15 @@ OF6TawGAOCgZSsptJbU=</ds:X509Certificate>
       <md:Company>RIA</md:Company>
       <md:GivenName>Desk</md:GivenName>
       <md:SurName>Help</md:SurName>
-      <md:EmailAddress>help@ria.ee</md:EmailAddress>
-      <md:TelephoneNumber>+372 663 0230</md:TelephoneNumber>
+      <md:EmailAddress>klient@ria.ee</md:EmailAddress>
+      <md:TelephoneNumber>+372 666 8800</md:TelephoneNumber>
    </md:ContactPerson>
    <md:ContactPerson contactType="technical">
       <md:Company>RIA</md:Company>
       <md:GivenName>Desk</md:GivenName>
       <md:SurName>Help</md:SurName>
-      <md:EmailAddress>help@ria.ee</md:EmailAddress>
-      <md:TelephoneNumber>+372 663 0230</md:TelephoneNumber>
+      <md:EmailAddress>klient@ria.ee</md:EmailAddress>
+      <md:TelephoneNumber>+372 666 8800</md:TelephoneNumber>
    </md:ContactPerson>
 </md:EntityDescriptor>
 ```
