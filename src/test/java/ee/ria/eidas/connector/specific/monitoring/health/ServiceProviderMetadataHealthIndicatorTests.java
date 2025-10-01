@@ -71,7 +71,7 @@ public class ServiceProviderMetadataHealthIndicatorTests extends ApplicationHeal
         assertServiceProviderMetadata(ERROR_FILTERING_METADATA);
         assertTestLogs(WARN, "Verification failed for URI \"#_hixqcccubh4zhy3k314yx8x2f6ucqyuyxz31cjb\"",
                 "Expected Digest: jFuAdSyo/nKvMNUjksbhIqTCbds1qlArJjS5QGUasGvAsl66y08C8ZgkK94bheYd6Ovf6S7dgIfg",
-                "Actual Digest: 1+C2BkDtXNgF4dB4FI2XzymY8kpRVmkXxRYV1J5Ctfs9lKBwvLBri3jnyJpRQG9VQ9erSa6kA9p/");
+                "Actual Digest: t+9rNGXru7FDGt+Kwqie2DjrEq3UypY5VxUt63pizYTLlJCmg/wRJgqj88W8hnLW9yRmBO6qFPd3");
     }
 
     @Test

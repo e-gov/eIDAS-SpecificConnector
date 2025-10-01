@@ -1,30 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<md:EntityDescriptor ID="_vlzh26muhaxgshkiniszfytyxdmlzleoyz6zlre" entityID="https://localhost:9999/metadata" validUntil="2025-10-08T06:58:00.850Z" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-<ds:SignedInfo>
-<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512"/>
-<ds:Reference URI="#_vlzh26muhaxgshkiniszfytyxdmlzleoyz6zlre">
-<ds:Transforms>
-<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-</ds:Transforms>
-<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>
-<ds:DigestValue>+b3W1a7iFVl2fTOcSGQhucSEkn+tPTcTCXVX1TSp0oF4ICW0ayus2zuKw8Gg+Sx+ptshn9y5ZfLS&#xd;
-LiZIkzbiYw==</ds:DigestValue>
-</ds:Reference>
-</ds:SignedInfo>
-<ds:SignatureValue>
-i/8RVf7BE4wixqpktT3F8lK7IjJRRuxKNCrUzHw0GQWfp7p9tyMNoCTGcEirYnqRC3MdiYyRnBb4&#xd;
-bkiZt75MQQ==
-</ds:SignatureValue>
-<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIB+jCCAaGgAwIBAgIEX2d0YzAKBggqhkjOPQQDAjB0MQswCQYDVQQGEwJFRTENMAsGA1UECAwE
-dGVzdDENMAsGA1UEBwwEdGVzdDENMAsGA1UECgwEdGVzdDENMAsGA1UECwwEdGVzdDEpMCcGA1UE
-AwwgZWlkYXMtZWVzZXJ2aWNlcHJvdmlkZXItbWV0YWRhdGEwHhcNMjAwOTIwMTUyNTIzWhcNMzAw
-OTIwMTUyNTIzWjB0MQswCQYDVQQGEwJFRTENMAsGA1UECAwEdGVzdDENMAsGA1UEBwwEdGVzdDEN
-MAsGA1UECgwEdGVzdDENMAsGA1UECwwEdGVzdDEpMCcGA1UEAwwgZWlkYXMtZWVzZXJ2aWNlcHJv
-dmlkZXItbWV0YWRhdGEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQdIjwCv/EyVCFO8ezaBXU/
-F6zHwA+HYiVK0l7P92IWxXE1XfJAubu7Ys1SKVzV8Qlys/4Svf2UtvRMItJkc9DcoyEwHzAdBgNV
-HQ4EFgQUYBGkmmWL79OuIrSnff3BfoG/3IkwCgYIKoZIzj0EAwIDRwAwRAIgYfacHRTfm3DF24MJ
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" ID="_vlzh26muhaxgshkiniszfytyxdmlzleoyz6zlre" entityID="https://localhost:9999/metadata" validUntil="2125-10-08T06:58:00.850Z"><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512"/><ds:Reference URI="#_vlzh26muhaxgshkiniszfytyxdmlzleoyz6zlre"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/><ds:DigestValue>PFzNh82XO5Z1Ekl51tk6DLWw4Flbl7QrI8D0kDEVZbMu2zagi8UL9Sent+Wb/T9KiCBt4qjnaMAD&#13;
+7h7Nh0toPA==</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>o/JEeUxISG1DUdtLdHLdPEjV9/XvWx9b3jqZKTQ16mCwf8Jlsz84v1BuPWF8EYAn+HO/4ub+j/3/&#13;
+Td3lMPFyAQ==</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIB+jCCAaGgAwIBAgIEX2d0YzAKBggqhkjOPQQDAjB0MQswCQYDVQQGEwJFRTENMAsGA1UECAwE&#13;
+dGVzdDENMAsGA1UEBwwEdGVzdDENMAsGA1UECgwEdGVzdDENMAsGA1UECwwEdGVzdDEpMCcGA1UE&#13;
+AwwgZWlkYXMtZWVzZXJ2aWNlcHJvdmlkZXItbWV0YWRhdGEwHhcNMjAwOTIwMTUyNTIzWhcNMzAw&#13;
+OTIwMTUyNTIzWjB0MQswCQYDVQQGEwJFRTENMAsGA1UECAwEdGVzdDENMAsGA1UEBwwEdGVzdDEN&#13;
+MAsGA1UECgwEdGVzdDENMAsGA1UECwwEdGVzdDEpMCcGA1UEAwwgZWlkYXMtZWVzZXJ2aWNlcHJv&#13;
+dmlkZXItbWV0YWRhdGEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQdIjwCv/EyVCFO8ezaBXU/&#13;
+F6zHwA+HYiVK0l7P92IWxXE1XfJAubu7Ys1SKVzV8Qlys/4Svf2UtvRMItJkc9DcoyEwHzAdBgNV&#13;
+HQ4EFgQUYBGkmmWL79OuIrSnff3BfoG/3IkwCgYIKoZIzj0EAwIDRwAwRAIgYfacHRTfm3DF24MJ&#13;
 LBrgXV+FH72BQoJEPtMsz0TZZFsCIGGHFWCS8lhoq242XvxugzJOzW13idfhgOVh5m8jsAWm</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature><md:Extensions xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"><eidas:SPType xmlns:eidas="http://eidas.europa.eu/saml-extensions">public</eidas:SPType><alg:SigningMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512"/></md:Extensions><md:SPSSODescriptor AuthnRequestsSigned="true" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIIB8zCCAZmgAwIBAgIEX2d0kTAKBggqhkjOPQQDAjBwMQswCQYDVQQGEwJFRTENMAsGA1UECAwE
 dGVzdDENMAsGA1UEBwwEdGVzdDENMAsGA1UECgwEdGVzdDENMAsGA1UECwwEdGVzdDElMCMGA1UE
 AwwcZWlkYXMtZWVzZXJ2aWNlcHJvdmlkZXItc2lnbjAeFw0yMDA5MjAxNTI2MDlaFw0zMDA5MjAx
