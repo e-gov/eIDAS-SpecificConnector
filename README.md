@@ -18,7 +18,7 @@
 
 ## 1. Building the SpecificConnector webapp
 
-First, make sure you have built [eIDAS-Node](https://ec.europa.eu/digital-building-blocks/wikis/display/DIGITAL/eIDAS-Node+version+2.6) artifacts and installed these to local Maven repository:
+First, make sure you have built [eIDAS-Node](https://ec.europa.eu/digital-building-blocks/sites/display/DIGITAL/eIDAS-Node+version+2.8.2) artifacts and installed these to local Maven repository:
 ```
 cd EIDAS-Parent && mvn -DskipTests clean install -P NodeOnly,DemoToolsOnly -PnodeJcacheIgnite,specificCommunicationJcacheIgnite
 ```
@@ -39,8 +39,8 @@ In order to enable communication between `EidasNode` and `SpecificConnector` web
 ### 2.1 Configuring communication with EidasNode
 
 It is required that the `SpecificConnector` has access to communication definitions provided in the following `EidasNode` configuration files:
-`$EIDAS_CONFIG_REPOSITORY/eidas.xml`,
-`$SPECIFIC_CONNECTOR_CONFIG_REPOSITORY/specificCommunicationDefinitionConnector.xml`
+`$EIDAS_CONNECTOR_CONFIG_REPOSITORY/eidas.xml`,
+`$SPECIFIC_CONNECTOR_CONFIG_REPOSITORY/specificCommunicationDefinition.xml`
 
 | Parameter        | Mandatory | Description, example |
 | :---------------- | :---------- | :----------------|
@@ -49,7 +49,7 @@ It is required that the `SpecificConnector` has access to communication definiti
 <a name="ignite_conf"></a>
 ### 2.2 Ignite configuration
 
-It is required that `EidasNode` and `SpecificConnector` will share the same xml configuration file: `$EIDAS_CONFIG_REPOSITORY/igniteSpecificCommunication.xml`
+It is required that `EidasNode` and `SpecificConnector` will share the same xml configuration file: `$EIDAS_CONNECTOR_CONFIG_REPOSITORY/ignite/igniteSpecificCommunication.xml`
 
 The `SpecificConnector` webapp starts Ignite node in client mode using EidasNode webapp's Ignite configuration. The ignite client is started lazily (initialized on the first query).
 
@@ -63,7 +63,7 @@ Note that `SpecificConnector` requires access to four predefined maps in the clu
 
 Table 1 - Shared map's used in `SpecificConnector` webapp.
 
-An example of a configuration file is provided [here](src/test/resources/mock_eidasnode/igniteSpecificCommunication.xml).
+An example of a configuration file is provided [here](src/test/resources/mock_eidasnode/ignite/igniteSpecificCommunication.xml).
 
 <a name="metdata_generation"></a>
 ## 3. Metadata generation
@@ -85,7 +85,6 @@ An example of a configuration file is provided [here](src/test/resources/mock_ei
 | `eidas.connector.responder-metadata.trust-store-password` | Yes | Trust store password |
 | `eidas.connector.responder-metadata.trust-store-type` | No | Trust store type. Default value: `PKCS12` |
 | `eidas.connector.responder-metadata.signature-algorithm` | No | Signature algorithm used to sign published metadata, SAML response objects and assertions (defined by RFC 4051). Default value: `http://www.w3.org/2001/04/xmldsig-more#rsa-sha512` |
-| `eidas.connector.responder-metadata.key-transport-algorithm` | No | Key transport algorithm used in SAML response assertions encryption. Default value: `http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p` |
 | `eidas.connector.responder-metadata.encryption-algorithm` | No | Algorithm used in SAML response assertions encryption. Default value: `http://www.w3.org/2009/xmlenc11#aes256-gcm` |
 | `eidas.connector.responder-metadata.path` | No | Metadata endpoint path. https://eidas-specificconnector:8443/SpecificConnector/{eidas.connector.responder-metadata.path}. Default value: `ConnectorResponderMetadata` |
 | `eidas.connector.responder-metadata.entity-id` | Yes | Exact HTTPS URL where metadata is published. Examlpe: `https://eidas-specificconnector:8443/SpecificConnector/ConnectorResponderMetadata` |
@@ -708,7 +707,7 @@ Example log message containing failed Authentication end event (saml_response):
 
 ### 6.2 Custom application health endpoint configuration
 
-`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `responderMetadata`, `truststore`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
+`SpecificConnector` webapp implements [custom health endpoint](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#production-ready-endpoints-custom) with id `heartbeat` and [custom health indicators](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html#writing-custom-healthindicators) with id's `igniteCluster`, `connectorMetadata`, `responderMetadata`, `sp-%{service-provider-id}-metadata`. This endpoint is disabled by default.
 
 Request:
 
@@ -731,10 +730,6 @@ Response:
   "dependencies": [
     {
       "name": "igniteCluster",
-      "status": "UP"
-    },
-    {
-      "name": "truststore",
       "status": "UP"
     },
     {
@@ -765,7 +760,6 @@ Response:
 | `eidas.connector.health.dependencies.connect-timeout` | No | Timeout for `connectorMetadata` health indicators. Defaults to `3s` |
 | `eidas.connector.health.hsm-test-interval` | No<sup>1</sup> | Minimum interval for testing hardware security module for `responderMetadata` health indicator.<sup>2</sup> Defaults to `60s` |
 | `eidas.connector.health.key-store-expiration-warning` | No | Responder metadata certificate expiration warning period for `responderMetadata` health indicator. Default value `30d` |
-| `eidas.connector.health.trust-store-expiration-warning` | No | Trusted certificates expiration warning period for `truststore` health indicator. Default value `30d` |
 
 <sup>1</sup> Applicable only when `eidas.connector.hsm.enabled=true`
 

@@ -1,6 +1,7 @@
 package ee.ria.eidas.connector.specific.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -57,7 +58,7 @@ public class OpenSAMLConfiguration {
         JacksonXmlModule jacksonXmlModule = new JacksonXmlModule();
         jacksonXmlModule.setXMLTextElementName(DEFAULT_TEXT_ELEMENT_NAME);
         XmlMapper objectMapper = new XmlMapper(jacksonXmlModule);
-        objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+        objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         ObjectMapper.findModules().forEach(objectMapper::registerModule);
         return new MappingJackson2XmlHttpMessageConverter(objectMapper);
     }

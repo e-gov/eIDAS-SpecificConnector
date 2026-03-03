@@ -106,7 +106,7 @@ public class SpecificConnectorExceptionHandler {
             return modelAndView;
         } else {
             request.setAttribute(RESPONSE_STATUS_ATTRIBUTE, HttpStatus.FOUND);
-            String uri = UriComponentsBuilder.fromHttpUrl(authnRequest.getAssertionConsumerServiceURL())
+            String uri = UriComponentsBuilder.fromUriString(authnRequest.getAssertionConsumerServiceURL())
                     .queryParam(SAML_RESPONSE.getValue(), UriUtils.encode(samlResponseBase64, UTF_8))
                     .queryParam(RELAY_STATE.getValue(), lightResponse != null ? lightResponse.getRelayState() : UUID.randomUUID())
                     .build(true)

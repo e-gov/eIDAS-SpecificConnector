@@ -12,7 +12,7 @@ import org.springframework.util.Assert;
 public class SpecificConnectorApplication extends SpringBootServletInitializer {
 
     public static void main(String[] args) {
-        Assert.notNull(System.getenv("EIDAS_CONFIG_REPOSITORY"), "Required environment variable EIDAS_CONFIG_REPOSITORY is not set");
+        Assert.notNull(System.getenv("EIDAS_CONNECTOR_CONFIG_REPOSITORY"), "Required environment variable EIDAS_CONNECTOR_CONFIG_REPOSITORY is not set");
         Assert.notNull(System.getenv("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY"), "Required environment variable SPECIFIC_CONNECTOR_CONFIG_REPOSITORY is not set");
         ElasticApmAttacher.attach();
         SpringApplication.run(SpecificConnectorApplication.class, args);

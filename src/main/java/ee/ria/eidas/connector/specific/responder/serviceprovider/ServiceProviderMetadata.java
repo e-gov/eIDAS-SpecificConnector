@@ -34,6 +34,7 @@ import org.opensaml.security.criteria.UsageCriterion;
 import org.opensaml.security.x509.X509Credential;
 import org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap;
 import org.opensaml.xmlsec.encryption.support.DataEncryptionParameters;
+import org.opensaml.xmlsec.encryption.support.EncryptionConstants;
 import org.opensaml.xmlsec.encryption.support.EncryptionException;
 import org.opensaml.xmlsec.encryption.support.KeyEncryptionParameters;
 import org.opensaml.xmlsec.keyinfo.KeyInfoCredentialResolver;
@@ -66,11 +67,11 @@ public class ServiceProviderMetadata {
     private final String supportedKeyTransportAlgorithm;
     private final String supportedEncryptionAlgorithm;
 
-    public ServiceProviderMetadata(ServiceProvider serviceProvider, KeyStore responderTrustStore, String supportedKeyTransportAlgorithm, String supportedEncryptionAlgorithm,
+    public ServiceProviderMetadata(ServiceProvider serviceProvider, KeyStore responderTrustStore, String supportedEncryptionAlgorithm,
                                    long minRefreshDelay, long maxRefreshDelay, float refreshDelayFactor, Clock clock)
             throws ResolverException, ComponentInitializationException, KeyStoreException {
         this.serviceProvider = serviceProvider;
-        this.supportedKeyTransportAlgorithm = supportedKeyTransportAlgorithm;
+        this.supportedKeyTransportAlgorithm = EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSAOAEP11;
         this.supportedEncryptionAlgorithm = supportedEncryptionAlgorithm;
         this.metadataIssuerTrustEngine = createServiceProviderMetadataTrustEngine(responderTrustStore, serviceProvider.getKeyAlias());
         this.httpMetadataResolver = createReloadingMetadataResolver(minRefreshDelay, maxRefreshDelay, refreshDelayFactor, clock);

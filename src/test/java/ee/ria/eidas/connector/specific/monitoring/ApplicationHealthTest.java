@@ -103,8 +103,7 @@ public abstract class ApplicationHealthTest extends SpecificConnectorTest {
         IGNITE_CLUSTER("igniteCluster"),
         RESPONDER_METADATA("responderMetadata"),
         CONNECTOR_METADATA("connectorMetadata"),
-        SP_METADATA("sp-service-provider-metadata"),
-        TRUSTSTORE("truststore");
+        SP_METADATA("sp-service-provider-metadata");
         @Getter
         public final String name;
     }

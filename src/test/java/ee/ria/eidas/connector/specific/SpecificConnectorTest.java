@@ -10,7 +10,6 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorTestConfiguration;
 import ee.ria.eidas.connector.specific.integration.LightJAXBCodec;
 import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator;
-import ee.ria.eidas.connector.specific.monitoring.health.TruststoreHealthIndicator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -28,13 +27,13 @@ import org.opensaml.security.x509.BasicX509Credential;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -93,25 +92,22 @@ public abstract class SpecificConnectorTest {
         System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
     }
 
-    @SpyBean
+    @MockitoSpyBean
     protected MeterRegistry meterRegistry;
 
-    @SpyBean
-    protected TruststoreHealthIndicator truststoreHealthIndicator;
-
-    @SpyBean
+    @MockitoSpyBean
     protected ResponderMetadataHealthIndicator responderMetadataHealthIndicator;
 
-    @SpyBean
+    @MockitoSpyBean
     protected BasicX509Credential signingCredential;
 
-    @SpyBean
+    @MockitoSpyBean
     protected SpecificConnectorProperties.HsmProperties hsmProperties;
 
-    @MockBean
+    @MockitoBean
     protected BuildProperties buildProperties;
 
-    @MockBean
+    @MockitoBean
     protected GitProperties gitProperties;
 
     @LocalServerPort
@@ -157,7 +153,7 @@ public abstract class SpecificConnectorTest {
             System.setProperty("IGNITE_HOME", System.getProperty("java.io.tmpdir"));
             System.setProperty("java.net.preferIPv4Stack", "true");
             InputStream cfgXml = SpecificConnectorTest.class.getClassLoader()
-                    .getResourceAsStream("mock_eidasnode/igniteSpecificCommunication.xml");
+                    .getResourceAsStream("mock_eidasnode/ignite/igniteSpecificCommunication.xml");
             IgniteConfiguration cfg = Ignition.loadSpringBean(cfgXml, "igniteSpecificCommunication.cfg");
             cfg.setIncludeEventTypes(EVT_CACHE_OBJECT_PUT, EVT_CACHE_OBJECT_READ, EVT_CACHE_OBJECT_REMOVED, EVT_CACHE_OBJECT_EXPIRED);
             eidasNodeIgnite = Ignition.getOrStart(cfg);
@@ -219,7 +215,7 @@ public abstract class SpecificConnectorTest {
             TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
             String currentDirectory = System.getProperty("user.dir");
             System.setProperty("SPECIFIC_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
-            System.setProperty("EIDAS_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
+            System.setProperty("EIDAS_CONNECTOR_CONFIG_REPOSITORY", currentDirectory + "/src/test/resources/mock_eidasnode");
         }
     }
 }
