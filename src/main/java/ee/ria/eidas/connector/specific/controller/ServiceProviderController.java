@@ -43,8 +43,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.w3c.dom.Element;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -233,7 +233,7 @@ public class ServiceProviderController {
                             .and(append("event.category", "authentication"))
                             .and(append("event.type", "start")),
                     "SAML AuthNRequest received");
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             log.error("Unable to convert AuthnRequest from xml to json", e);
         }
     }
