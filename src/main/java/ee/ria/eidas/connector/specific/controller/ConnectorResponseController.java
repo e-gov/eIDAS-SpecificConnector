@@ -14,6 +14,7 @@ import eu.eidas.auth.commons.exceptions.SecurityEIDASException;
 import eu.eidas.auth.commons.light.ILightResponse;
 import eu.eidas.auth.commons.light.IResponseStatus;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ import java.net.URL;
 import java.util.Base64;
 
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_ENCRYPTION_CERT_MISSING_OR_INVALID;
+import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.DEFAULT_CONTENT_SECURITY_POLICY;
 import static eu.eidas.auth.commons.EidasParameterKeys.RELAY_STATE;
 import static eu.eidas.auth.commons.EidasParameterKeys.SAML_RESPONSE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -65,8 +67,10 @@ public class ConnectorResponseController {
     }
 
     @PostMapping(value = "/ConnectorResponse")
-    public ModelAndView post(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token, HttpServletRequest request) {
+    public ModelAndView post(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token, HttpServletRequest request,
+                             HttpServletResponse servletResponse) {
         Response response = processResponse(token);
+        applyResponseHeaders(servletResponse);
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject(SAML_RESPONSE.getValue(), response.getSamlResponseBase64());
         modelAndView.addObject(RELAY_STATE.getValue(), response.getRelayState());
@@ -142,6 +146,15 @@ public class ConnectorResponseController {
         } catch (JacksonException e) {
             log.error("Unable to convert SAMLResponse from xml to json", e);
         }
+    }
+
+    private void applyResponseHeaders(HttpServletResponse response) {
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("Content-Security-Policy", DEFAULT_CONTENT_SECURITY_POLICY);
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
     }
 
     @Getter

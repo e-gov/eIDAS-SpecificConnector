@@ -9,8 +9,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static java.lang.String.format;
 
@@ -21,7 +23,10 @@ public class DuplicateRequestParameterFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         Optional<Map.Entry<String, String[]>> duplicateParameter = request.getParameterMap().entrySet().stream().filter(es -> es.getValue().length > 1).findFirst();
         if (duplicateParameter.isPresent()) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, format("Duplicate request parameter '%s'", duplicateParameter.get().getKey()));
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.getWriter().write(format("{\"timestamp\":\"%s\",\"status\":400,\"error\":\"Bad Request\",\"message\":\"Duplicate request parameter '%s'\",\"path\":\"%s\",\"locale\":\"%s\",\"incidentNumber\":\"%s\"}",
+                    Instant.now(), duplicateParameter.get().getKey(), request.getRequestURI(), request.getLocale(), UUID.randomUUID()));
             return;
         }
         filterChain.doFilter(request, response);

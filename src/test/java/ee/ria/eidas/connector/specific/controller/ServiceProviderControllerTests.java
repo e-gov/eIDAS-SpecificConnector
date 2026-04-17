@@ -52,6 +52,7 @@ import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.of;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
@@ -347,7 +348,7 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
     @ParameterizedTest
     @ValueSource(strings = {"GET", "POST"})
     void badRequestWhen_InvalidSAMLRequestFormat(String requestMethod) {
-        given()
+        Response response = given()
                 .param("country", "LV")
                 .param("SAMLRequest", "NonBASE64CharsÄÖÜÕ")
                 .when()
@@ -355,10 +356,17 @@ class ServiceProviderControllerTests extends SpecificConnectorTest {
                 .then()
                 .assertThat()
                 .statusCode(400)
-                .body("error", equalTo("Bad Request"))
-                .body("errors", nullValue())
-                .body("incidentNumber", notNullValue())
-                .body("message", equalTo(format("%s.SAMLRequest: must match \"^[A-Za-z0-9+/=]+$\"", requestMethod.toLowerCase())));
+                .extract().response();
+
+        if (requestMethod.equals("POST")) {
+            assertThat(response.asString(), containsString("Character decoding failed. Parameter [SAMLRequest]"));
+        } else {
+            response.then()
+                    .body("error", equalTo("Bad Request"))
+                    .body("errors", nullValue())
+                    .body("incidentNumber", notNullValue())
+                    .body("message", equalTo(format("%s.SAMLRequest: must match \"^[A-Za-z0-9+/=]+$\"", requestMethod.toLowerCase())));
+        }
 
         assertSpecificNodeConnectorRequestCacheIsEmpty();
     }

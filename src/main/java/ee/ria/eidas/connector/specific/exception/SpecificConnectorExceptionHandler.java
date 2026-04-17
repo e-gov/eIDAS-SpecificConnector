@@ -1,5 +1,6 @@
 package ee.ria.eidas.connector.specific.exception;
 
+import org.slf4j.MDC;
 import tools.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
@@ -12,6 +13,8 @@ import net.logstash.logback.marker.LogstashMarker;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -26,9 +29,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
+import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.DEFAULT_CONTENT_SECURITY_POLICY;
 import static eu.eidas.auth.commons.EidasParameterKeys.RELAY_STATE;
 import static eu.eidas.auth.commons.EidasParameterKeys.SAML_RESPONSE;
 import static java.lang.String.format;
@@ -47,38 +54,35 @@ public class SpecificConnectorExceptionHandler {
     private final ResponseFactory responseFactory;
 
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
-    public ModelAndView handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Map<String, Object>> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex,
+                                                                                             HttpServletRequest request) {
         log.error(format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()));
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-        return new ModelAndView();
+        return errorResponse(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request);
     }
 
     @ExceptionHandler({MissingServletRequestParameterException.class, ConstraintViolationException.class, BindException.class})
-    public ModelAndView handleValidationException(Exception ex, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Map<String, Object>> handleValidationException(Exception ex, HttpServletRequest request) {
         log.error(format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()));
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-        return new ModelAndView();
+        return errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler({BadRequestException.class})
-    public ModelAndView handleBadRequestException(BadRequestException ex, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Map<String, Object>> handleBadRequestException(BadRequestException ex, HttpServletRequest request) {
         log.error(append("event.kind", "event")
                         .and(append("event.category", "authentication"))
                         .and(append("event.type", "end"))
                         .and(append("event.outcome", "failure")),
                 format(BAD_REQUEST_ERROR_MESSAGE, ex.getMessage()), ex.getCause());
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-        return new ModelAndView();
+        return errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
-    public ModelAndView handleNoResourceException(Exception ex, HttpServletResponse response) throws IOException {
-        response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        return new ModelAndView();
+    public ResponseEntity<Map<String, Object>> handleNoResourceException(Exception ex, HttpServletRequest request) {
+        return errorResponse(HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND.getReasonPhrase(), request);
     }
 
     @ExceptionHandler({AuthenticationException.class})
-    public Object handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) throws IOException {
+    public Object handleAuthenticationException(AuthenticationException ex, HttpServletRequest request, HttpServletResponse response) throws IOException {
         AuthnRequest authnRequest = ex.getAuthnRequest();
         ILightResponse lightResponse = ex.getLightResponse();
         String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, ex.getStatusCode(), ex.getSubStatusCode(), ex.getStatusMessage());
@@ -98,6 +102,7 @@ public class SpecificConnectorExceptionHandler {
 
         String samlResponseBase64 = Base64.getEncoder().encodeToString(samlResponse.getBytes());
         if (HttpMethod.POST.matches(request.getMethod())) {
+            applyResponseHeaders(response);
             ModelAndView modelAndView = new ModelAndView();
             modelAndView.addObject(SAML_RESPONSE.getValue(), samlResponseBase64);
             modelAndView.addObject(RELAY_STATE.getValue(), lightResponse != null ? lightResponse.getRelayState() : UUID.randomUUID());
@@ -117,16 +122,43 @@ public class SpecificConnectorExceptionHandler {
     }
 
     @ExceptionHandler({TechnicalException.class})
-    public ModelAndView handleTechnicalException(TechnicalException ex, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Map<String, Object>> handleTechnicalException(TechnicalException ex, HttpServletRequest request) {
         log.error(ex.getMessage(), ex);
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        return new ModelAndView();
+        return errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, SpecificConnectorErrorAttributes.INTERNAL_EXCEPTION_MSG, request);
     }
 
     @ExceptionHandler({Exception.class})
-    public ModelAndView handleAll(Exception ex, HttpServletResponse response) throws IOException {
+    public ResponseEntity<Map<String, Object>> handleAll(Exception ex, HttpServletRequest request) {
         log.error("Unexpected exception", ex);
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        return new ModelAndView();
+        return errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, SpecificConnectorErrorAttributes.INTERNAL_EXCEPTION_MSG, request);
+    }
+
+    private ResponseEntity<Map<String, Object>> errorResponse(HttpStatus status, String message, HttpServletRequest request) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", status.value());
+        body.put("error", status.getReasonPhrase());
+        body.put("message", message);
+        body.put("path", request.getRequestURI());
+        body.put("locale", request.getLocale().toString());
+        body.put("incidentNumber", getIncidentNumber());
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(body);
+    }
+
+    private String getIncidentNumber() {
+        String traceId = MDC.get("traceId");
+        return traceId != null ? traceId : UUID.randomUUID().toString();
+    }
+
+    private void applyResponseHeaders(HttpServletResponse response) {
+        if (response == null) {
+            return;
+        }
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("Content-Security-Policy", DEFAULT_CONTENT_SECURITY_POLICY);
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
     }
 }

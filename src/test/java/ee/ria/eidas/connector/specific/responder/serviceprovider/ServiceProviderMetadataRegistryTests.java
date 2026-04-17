@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(SpringExtension.class)
 @EnableConfigurationProperties(value = {SpecificConnectorProperties.class, SpecificConnectorProperties.ResponderMetadata.class})
 @ContextConfiguration(classes = {ServiceProviderMetadataConfiguration.class, ResponderMetadataConfiguration.class,
-        OpenSAMLConfiguration.class, SpecificConnectorTestConfiguration.class})
+        OpenSAMLConfiguration.class, SpecificConnectorTestConfiguration.class, ServiceProviderMetadataRegistry.class})
 @TestPropertySource(value = "classpath:application-test.properties", inheritLocations = false, inheritProperties = false,
         properties = {
                 "eidas.connector.service-providers[0].id=service-provider",

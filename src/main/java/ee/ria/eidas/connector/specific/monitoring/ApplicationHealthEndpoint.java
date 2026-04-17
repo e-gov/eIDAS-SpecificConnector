@@ -93,8 +93,12 @@ public class ApplicationHealthEndpoint {
     private Map<String, Status> getHealthIndicatorStatuses() {
         return healthContributorRegistry.stream()
                 .filter(healthContributor -> healthContributor.contributor() instanceof HealthIndicator)
-                .collect(Collectors.toMap(healthContributor -> healthContributor.name(),
+                .collect(Collectors.toMap(healthContributor -> formatDependencyName(healthContributor.name()),
                         healthContributor -> ((HealthIndicator) healthContributor.contributor()).health().getStatus()));
+    }
+
+    private String formatDependencyName(String name) {
+        return name.endsWith("HealthIndicator") ? name.substring(0, name.length() - "HealthIndicator".length()) : name;
     }
 
     private Status getAggregatedStatus(Map<String, Status> healthIndicatorStatuses) {
