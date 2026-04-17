@@ -7,12 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.Access;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
-import org.springframework.boot.actuate.health.HealthContributorRegistry;
-import org.springframework.boot.actuate.health.HealthIndicator;
-import org.springframework.boot.actuate.health.NamedContributor;
-import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
+import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
+import org.springframework.boot.health.registry.HealthContributorRegistry;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -93,10 +92,9 @@ public class ApplicationHealthEndpoint {
 
     private Map<String, Status> getHealthIndicatorStatuses() {
         return healthContributorRegistry.stream()
-                .filter(hc -> hc.getContributor() instanceof HealthIndicator)
-                .collect(Collectors.toMap(NamedContributor::getName,
-                        healthContributorNamedContributor -> ((HealthIndicator) healthContributorNamedContributor
-                                .getContributor()).health().getStatus()));
+                .filter(healthContributor -> healthContributor.contributor() instanceof HealthIndicator)
+                .collect(Collectors.toMap(healthContributor -> healthContributor.name(),
+                        healthContributor -> ((HealthIndicator) healthContributor.contributor()).health().getStatus()));
     }
 
     private Status getAggregatedStatus(Map<String, Status> healthIndicatorStatuses) {
@@ -116,4 +114,3 @@ public class ApplicationHealthEndpoint {
                 }).collect(toList());
     }
 }
-
