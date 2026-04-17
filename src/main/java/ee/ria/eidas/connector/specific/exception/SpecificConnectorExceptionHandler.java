@@ -1,6 +1,6 @@
 package ee.ria.eidas.connector.specific.exception;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +12,7 @@ import net.logstash.logback.marker.LogstashMarker;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -43,7 +43,7 @@ import static org.springframework.web.servlet.View.RESPONSE_STATUS_ATTRIBUTE;
 public class SpecificConnectorExceptionHandler {
     public static final String BAD_REQUEST_ERROR_MESSAGE = "Bad request exception: %s";
     public static final String AUTHENTICATION_FAILED_ERROR_MESSAGE = "SAML Response created. Authentication failed: %s";
-    private final MappingJackson2XmlHttpMessageConverter messageConverter;
+    private final JacksonXmlHttpMessageConverter messageConverter;
     private final ResponseFactory responseFactory;
 
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
@@ -82,7 +82,7 @@ public class SpecificConnectorExceptionHandler {
         AuthnRequest authnRequest = ex.getAuthnRequest();
         ILightResponse lightResponse = ex.getLightResponse();
         String samlResponse = responseFactory.createSamlErrorResponse(authnRequest, ex.getStatusCode(), ex.getSubStatusCode(), ex.getStatusMessage());
-        JsonNode samlResponseJson = messageConverter.getObjectMapper().readTree(samlResponse);
+        JsonNode samlResponseJson = messageConverter.getMapper().readTree(samlResponse);
 
         LogstashMarker markers = appendRaw("saml_response", samlResponseJson.toString())
                 .and(append("event.kind", "event"))

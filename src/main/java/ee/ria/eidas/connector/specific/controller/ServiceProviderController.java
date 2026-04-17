@@ -1,6 +1,6 @@
 package ee.ria.eidas.connector.specific.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SigningMethod;
 import ee.ria.eidas.connector.specific.exception.AuthenticationException;
@@ -34,7 +34,7 @@ import org.opensaml.saml.saml2.core.Extensions;
 import org.opensaml.saml.saml2.core.NameIDType;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -73,7 +73,7 @@ public class ServiceProviderController {
     private final ServiceProviderMetadataRegistry metadataRegistry;
     private final AttributeRegistry supportedAttributesRegistry;
     private final ResponseFactory responseFactory;
-    private final MappingJackson2XmlHttpMessageConverter messageConverter;
+    private final JacksonXmlHttpMessageConverter messageConverter;
 
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) @Pattern(regexp = "^[A-Za-z0-9+/=]+$") String SAMLRequest,
@@ -225,7 +225,7 @@ public class ServiceProviderController {
 
     protected void logAuthnRequest(byte[] decodedAuthnRequest, String country, String relayState) {
         try {
-            JsonNode samlRequestJson = messageConverter.getObjectMapper().readTree(decodedAuthnRequest);
+            JsonNode samlRequestJson = messageConverter.getMapper().readTree(decodedAuthnRequest);
             log.info(appendRaw("authn_request", samlRequestJson.toString())
                             .and(append("authn_request.country", country))
                             .and(append("authn_request.relay_state", relayState))
