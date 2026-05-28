@@ -22,7 +22,7 @@ public class SpecificConnectorErrorAttributes extends DefaultErrorAttributes {
     public Map<String, Object> getErrorAttributes(WebRequest webRequest, ErrorAttributeOptions options) {
         Map<String, Object> attr = super.getErrorAttributes(webRequest, options.including(MESSAGE, BINDING_ERRORS));
         attr.put("locale", webRequest.getLocale().toString());
-        attr.put("incidentNumber", MDC.get("traceId") != null ? MDC.get("traceId") : UUID.randomUUID().toString());
+        attr.put("incidentNumber", MDC.get("traceId"));
 
         if (HttpStatus.valueOf((int) attr.get("status")).is5xxServerError()) {
             attr.replace("message", INTERNAL_EXCEPTION_MSG);
