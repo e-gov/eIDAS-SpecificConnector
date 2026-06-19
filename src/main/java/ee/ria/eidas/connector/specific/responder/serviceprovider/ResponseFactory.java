@@ -1,6 +1,5 @@
 package ee.ria.eidas.connector.specific.responder.serviceprovider;
 
-import com.google.common.collect.ImmutableSet;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.exception.TechnicalException;
 import ee.ria.eidas.connector.specific.monitoring.health.ResponderMetadataHealthIndicator.FailedSigningEvent;
@@ -32,6 +31,7 @@ import javax.xml.namespace.QName;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.lang.Math.toIntExact;
 import static org.opensaml.saml.common.SAMLVersion.VERSION_20;
@@ -193,17 +193,17 @@ public class ResponseFactory {
         AttributeStatement attributeStatement = new AttributeStatementBuilder().buildObject();
         ImmutableAttributeMap responseAttributes = lightResponse.getAttributes();
 
-        for (Map.Entry<AttributeDefinition<?>, ImmutableSet<? extends AttributeValue<?>>> entry : responseAttributes.getAttributeMap().entrySet()) {
+        for (Map.Entry<AttributeDefinition<?>, Set<? extends AttributeValue<?>>> entry : responseAttributes.getAttributeMap().entrySet()) {
             attributeStatement.getAttributes().add(createAttribute(entry));
         }
         return attributeStatement;
     }
 
     @SuppressWarnings("unchecked")
-    private Attribute createAttribute(Map.Entry<AttributeDefinition<?>, ImmutableSet<? extends AttributeValue<?>>> entry)
+    private Attribute createAttribute(Map.Entry<AttributeDefinition<?>, Set<? extends AttributeValue<?>>> entry)
             throws AttributeValueMarshallingException {
         AttributeDefinition<?> definition = entry.getKey();
-        ImmutableSet<? extends AttributeValue<?>> values = entry.getValue();
+        Set<? extends AttributeValue<?>> values = entry.getValue();
         Attribute attribute = createAttribute(definition.getFriendlyName(), definition.getNameUri().toString());
         List<XMLObject> attributeValues = attribute.getAttributeValues();
         AttributeValueMarshaller<?> attributeValueMarshaller = definition.getAttributeValueMarshaller();
