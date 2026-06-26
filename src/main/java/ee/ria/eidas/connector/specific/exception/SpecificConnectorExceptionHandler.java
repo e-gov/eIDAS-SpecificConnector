@@ -1,6 +1,5 @@
 package ee.ria.eidas.connector.specific.exception;
 
-import org.slf4j.MDC;
 import tools.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.responder.serviceprovider.ResponseFactory;
 import eu.eidas.auth.commons.light.ILightResponse;
@@ -141,13 +140,8 @@ public class SpecificConnectorExceptionHandler {
         body.put("message", message);
         body.put("path", request.getRequestURI());
         body.put("locale", request.getLocale().toString());
-        body.put("incidentNumber", getIncidentNumber());
+        body.put("incidentNumber", UUID.randomUUID().toString());
         return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(body);
-    }
-
-    private String getIncidentNumber() {
-        String traceId = MDC.get("traceId");
-        return traceId != null ? traceId : UUID.randomUUID().toString();
     }
 
     private void applyResponseHeaders(HttpServletResponse response) {
