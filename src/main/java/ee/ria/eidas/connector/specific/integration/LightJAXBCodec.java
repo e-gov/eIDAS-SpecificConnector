@@ -17,11 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 import javax.xml.transform.sax.SAXSource;
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
 public class LightJAXBCodec {
+    private static final Map<String, String> JAXB_OPTIONS = Map.of(
+            JAXBContext.JAXB_CONTEXT_FACTORY, "org.glassfish.jaxb.runtime.v2.JAXBContextFactory");
     protected static final Class<?>[] LIGHT_REQUEST_CODEC = {LightRequest.class};
     protected static final Class<?>[] LIGHT_RESPONSE_CODEC = {LightResponse.class};
     private final LightMessagesConverter messagesConverter = new LightMessagesConverter();
@@ -41,7 +44,7 @@ public class LightJAXBCodec {
 
     private static JAXBContext getJAXBContext(Class<?>[] contextClasses) {
         try {
-            return JAXBContext.newInstance(contextClasses);
+            return JAXBContext.newInstance(contextClasses, JAXB_OPTIONS);
         } catch (JAXBException e) {
             throw new IllegalArgumentException("Unable to instantiate the JAXBContext", e);
         }
