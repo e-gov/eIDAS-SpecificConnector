@@ -23,12 +23,14 @@
                     <property name="name" value="specificNodeConnectorRequestCache" />
                     <property name="atomicityMode" value="ATOMIC" />
                     <property name="backups" value="1" />
+                    <property name="statisticsEnabled" value="true" />
                     <property name="expiryPolicyFactory" ref="2_seconds_duration" />
                 </bean>
                 <bean class="org.apache.ignite.configuration.CacheConfiguration">
                     <property name="name" value="nodeSpecificConnectorResponseCache" />
                     <property name="atomicityMode" value="ATOMIC" />
                     <property name="backups" value="1" />
+                    <property name="statisticsEnabled" value="true" />
                     <property name="expiryPolicyFactory" ref="2_seconds_duration" />
                 </bean>
                 <!-- specificMSSpRequestCorrelationMap -->
@@ -36,6 +38,7 @@
                     <property name="name" value="specificMSSpRequestCorrelationMap"/>
                     <property name="atomicityMode" value="ATOMIC"/>
                     <property name="backups" value="1"/>
+                    <property name="statisticsEnabled" value="true"/>
                     <property name="expiryPolicyFactory" ref="2_seconds_duration"/>
                 </bean>
             </list>
