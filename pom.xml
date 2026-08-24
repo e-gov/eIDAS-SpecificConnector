@@ -45,8 +45,8 @@
              TODO Remove this property after upgrading opensaml-saml-impl.
              TODO xmlsec 3.0.3 causes error: InvalidKeyException: Private keys must be instance of RSAPrivate(Crt)Key or have PKCS#8 encoding -->
         <xmlsec.version>3.0.2</xmlsec.version>
-        <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version><!-- Update to >= 3.x when eIDAS-Node switches to jakarta imports -->
-        <jaxb-runtime.version>2.3.9</jaxb-runtime.version><!-- Versions >= 3.x throw JAXBException -->
+        <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
+        <jaxb-runtime.version>4.0.5</jaxb-runtime.version>
     </properties>
 
     <dependencyManagement>

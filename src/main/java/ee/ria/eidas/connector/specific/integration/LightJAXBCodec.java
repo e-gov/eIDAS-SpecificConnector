@@ -8,12 +8,12 @@ import eu.eidas.specificcommunication.LightRequest;
 import eu.eidas.specificcommunication.LightResponse;
 import eu.eidas.specificcommunication.protocol.util.LightMessagesConverter;
 import eu.eidas.specificcommunication.protocol.util.SecurityUtils;
-import javax.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.sax.SAXSource;
 import java.io.StringWriter;
 import java.util.Collection;
