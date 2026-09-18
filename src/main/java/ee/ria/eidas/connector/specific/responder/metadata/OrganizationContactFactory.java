@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.opensaml.saml.saml2.metadata.ContactPersonTypeEnumeration.*;
 import static org.springframework.util.CollectionUtils.isEmpty;

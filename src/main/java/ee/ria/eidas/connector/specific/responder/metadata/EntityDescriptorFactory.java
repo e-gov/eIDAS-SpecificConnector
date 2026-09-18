@@ -4,7 +4,7 @@ import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.Respon
 import ee.ria.eidas.connector.specific.responder.saml.OpenSAMLUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
