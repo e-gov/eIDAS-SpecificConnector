@@ -1,10 +1,5 @@
 package ee.ria.eidas.connector.specific.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,8 +21,10 @@ import org.opensaml.xmlsec.algorithm.SignatureAlgorithm;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.xml.sax.SAXException;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.dataformat.xml.XmlMapper;
 
 import javax.xml.validation.Schema;
 import java.io.IOException;
@@ -54,13 +51,13 @@ public class OpenSAMLConfiguration {
     }
 
     @Bean
-    public MappingJackson2XmlHttpMessageConverter messageConverter() {
-        JacksonXmlModule jacksonXmlModule = new JacksonXmlModule();
-        jacksonXmlModule.setXMLTextElementName(DEFAULT_TEXT_ELEMENT_NAME);
-        XmlMapper objectMapper = new XmlMapper(jacksonXmlModule);
-        objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
-        ObjectMapper.findModules().forEach(objectMapper::registerModule);
-        return new MappingJackson2XmlHttpMessageConverter(objectMapper);
+    public JacksonXmlHttpMessageConverter messageConverter() {
+        XmlMapper xmlMapper = XmlMapper.builder()
+                .nameForTextElement(DEFAULT_TEXT_ELEMENT_NAME)
+                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                .findAndAddModules()
+                .build();
+        return new JacksonXmlHttpMessageConverter(xmlMapper);
     }
 
     private BasicParserPool setupSecureSchemaValidatingParserPool() throws ComponentInitializationException, SAXException, IOException {

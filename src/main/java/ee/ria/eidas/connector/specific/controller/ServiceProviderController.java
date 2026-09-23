@@ -1,6 +1,6 @@
 package ee.ria.eidas.connector.specific.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties;
 import ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.SigningMethod;
 import ee.ria.eidas.connector.specific.exception.AuthenticationException;
@@ -18,6 +18,7 @@ import eu.eidas.auth.commons.light.ILightRequest;
 import eu.eidas.auth.commons.light.LevelOfAssuranceType;
 import eu.eidas.auth.commons.tx.BinaryLightToken;
 import eu.eidas.specificcommunication.BinaryLightTokenHelper;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ import org.opensaml.saml.saml2.core.Extensions;
 import org.opensaml.saml.saml2.core.NameIDType;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,14 +44,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.w3c.dom.Element;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.*;
 
 import static ee.ria.eidas.connector.specific.exception.ResponseStatus.SP_SIGNING_CERT_MISSING_OR_INVALID;
+import static ee.ria.eidas.connector.specific.config.SpecificConnectorProperties.DEFAULT_CONTENT_SECURITY_POLICY;
 import static ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory.REQUESTED_ATTRIBUTES_QNAME;
 import static ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory.REQUESTER_ID_QNAME;
 import static ee.ria.eidas.connector.specific.responder.serviceprovider.LightRequestFactory.SPTYPE_QNAME;
@@ -73,7 +75,7 @@ public class ServiceProviderController {
     private final ServiceProviderMetadataRegistry metadataRegistry;
     private final AttributeRegistry supportedAttributesRegistry;
     private final ResponseFactory responseFactory;
-    private final MappingJackson2XmlHttpMessageConverter messageConverter;
+    private final JacksonXmlHttpMessageConverter messageConverter;
 
     @GetMapping(value = "/ServiceProvider")
     public ModelAndView get(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) @Pattern(regexp = "^[A-Za-z0-9+/=]+$") String SAMLRequest,
@@ -89,8 +91,10 @@ public class ServiceProviderController {
     @PostMapping(value = "/ServiceProvider")
     public ModelAndView post(@RequestParam("SAMLRequest") @Size(min = 1, max = 131072) @Pattern(regexp = "^[A-Za-z0-9+/=]+$") String SAMLRequest,
                              @RequestParam("country") @Pattern(regexp = "^[A-Z]{2}$") String country,
-                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState) {
+                             @RequestParam(value = "RelayState", required = false) @Pattern(regexp = "^\\p{Print}{0,80}$") String RelayState,
+                             HttpServletResponse response) {
         String token = processRequest(SAMLRequest, country, RelayState);
+        applyResponseHeaders(response);
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("action", specificConnectorProperties.getSpecificConnectorRequestUrl());
         modelAndView.addObject(TOKEN.getValue(), token);
@@ -225,7 +229,7 @@ public class ServiceProviderController {
 
     protected void logAuthnRequest(byte[] decodedAuthnRequest, String country, String relayState) {
         try {
-            JsonNode samlRequestJson = messageConverter.getObjectMapper().readTree(decodedAuthnRequest);
+            JsonNode samlRequestJson = messageConverter.getMapper().readTree(decodedAuthnRequest);
             log.info(appendRaw("authn_request", samlRequestJson.toString())
                             .and(append("authn_request.country", country))
                             .and(append("authn_request.relay_state", relayState))
@@ -233,8 +237,17 @@ public class ServiceProviderController {
                             .and(append("event.category", "authentication"))
                             .and(append("event.type", "start")),
                     "SAML AuthNRequest received");
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             log.error("Unable to convert AuthnRequest from xml to json", e);
         }
+    }
+
+    private void applyResponseHeaders(HttpServletResponse response) {
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("Content-Security-Policy", DEFAULT_CONTENT_SECURITY_POLICY);
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
     }
 }

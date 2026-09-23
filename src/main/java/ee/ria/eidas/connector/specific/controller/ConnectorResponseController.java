@@ -1,7 +1,7 @@
 package ee.ria.eidas.connector.specific.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import ee.ria.eidas.connector.specific.exception.AuthenticationException;
 import ee.ria.eidas.connector.specific.exception.BadRequestException;
 import ee.ria.eidas.connector.specific.exception.CertificateResolverException;
@@ -21,7 +21,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.opensaml.saml.saml2.core.AuthnRequest;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +52,7 @@ public class ConnectorResponseController {
     private final SpecificConnectorCommunication specificConnectorCommunication;
     private final ServiceProviderMetadataRegistry metadataRegistry;
     private final ResponseFactory responseFactory;
-    private final MappingJackson2XmlHttpMessageConverter messageConverter;
+    private final JacksonXmlHttpMessageConverter messageConverter;
 
     @GetMapping(value = "/ConnectorResponse")
     public ModelAndView get(@RequestParam("token") @Pattern(regexp = "^[A-Za-z0-9+/=]{1,1000}$") String token) throws MalformedURLException {
@@ -130,7 +130,7 @@ public class ConnectorResponseController {
 
     private void logSuccessfulAuthenticationResult(String samlResponse, ILightResponse lightResponse) {
         try {
-            JsonNode samResponseJson = messageConverter.getObjectMapper().readTree(samlResponse);
+            JsonNode samResponseJson = messageConverter.getMapper().readTree(samlResponse);
             log.info(appendRaw("saml_response", samResponseJson.toString())
                     .and(append("authn_request.relay_state", lightResponse.getRelayState()))
                     .and(append("light_request.id", lightResponse.getInResponseToId()))
@@ -139,7 +139,7 @@ public class ConnectorResponseController {
                     .and(append("event.category", "authentication"))
                     .and(append("event.type", "end"))
                     .and(append("event.outcome", "success")), "SAML Response created");
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Unable to convert SAMLResponse from xml to json", e);
         }
     }

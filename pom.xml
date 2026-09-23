@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.11</version>
+        <version>4.0.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ee.ria.eidas.connector.specific</groupId>
@@ -25,16 +25,16 @@
     <properties>
         <java.version>17</java.version>
 
-        <bouncycastle.version>1.83</bouncycastle.version>
+        <bouncycastle.version>1.84</bouncycastle.version>
         <eidas.node.version>3.1.0</eidas.node.version>
-        <elastic-apm.version>1.55.4</elastic-apm.version>
+        <elastic-apm.version>1.55.5</elastic-apm.version>
         <encoder-jsp.version>1.4.0</encoder-jsp.version>
         <guava.version>33.5.0-jre</guava.version>
         <!-- Keep aligned with eIDAS Node:
              https://ec.europa.eu/digital-building-blocks/code/projects/EID/repos/eidasnode-pub/browse/EIDAS-JCache-Ignite/pom.xml?at=refs%2Ftags%2Feidasnode-3.1.0&lines=36 -->
         <ignite.version>2.17.0</ignite.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-        <logstash-logback-encoder.version>8.1</logstash-logback-encoder.version><!-- TODO Upgrade to logstash-logback-encoder 9.x with Spring Boot 4.x, both upgrade to Jackson 3 -->
+        <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
         <!-- TODO AUT-907 Upgrade to OpenSAML 4.x -->
         <opensaml.version>3.4.6</opensaml.version>
         <wiremock.version>3.13.2</wiremock.version>
@@ -49,6 +49,7 @@
         <xmlsec.version>3.0.2</xmlsec.version>
         <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
         <jaxb-runtime.version>4.0.5</jaxb-runtime.version>
+        <rest-assured.version>6.0.0</rest-assured.version>
     </properties>
 
     <dependencyManagement>
@@ -78,7 +79,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -99,8 +100,12 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <artifactId>spring-boot-starter-tomcat-runtime</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-web-server</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -113,12 +118,16 @@
             <version>${guava.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <groupId>tools.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
         </dependency>
 
         <dependency>

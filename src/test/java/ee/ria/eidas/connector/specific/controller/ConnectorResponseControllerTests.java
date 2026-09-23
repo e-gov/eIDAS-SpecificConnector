@@ -279,6 +279,7 @@ class ConnectorResponseControllerTests extends SpecificConnectorTest {
                 .then()
                 .assertThat()
                 .statusCode(400)
+                .header("Content-Type", equalTo("application/json"))
                 .body("error", equalTo("Bad Request"))
                 .body("incidentNumber", notNullValue())
                 .body("message", equalTo("Duplicate request parameter 'token'"));
