@@ -21,6 +21,6 @@ public class SpecificConnectorApplication extends SpringBootServletInitializer {
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
         ElasticApmAttacher.attach();
-        return application.sources(SpecificConnectorApplication.class).properties("server.error.whitelabel.enabled=false");
+        return application.sources(SpecificConnectorApplication.class).properties("spring.web.error.whitelabel.enabled=false");
     }
 }
