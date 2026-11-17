@@ -12,6 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
@@ -56,6 +58,8 @@ public class ApplicationHealthEndpointTests extends ApplicationHealthTest {
         assertNull(healthResponse.jsonPath().get("warnings"));
         assertStartAndUptime(healthResponse);
         assertAllDependenciesUp(healthResponse);
+        assertThat(healthResponse.jsonPath().getList("dependencies.name"),
+                containsInAnyOrder("connectorMetadata", "igniteCluster", "responderMetadata", "sp-service-provider-metadata"));
     }
 
     @Test
